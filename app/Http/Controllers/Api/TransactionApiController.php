@@ -57,15 +57,19 @@ class TransactionApiController extends Controller
 
     private function validated(Request $request): array
     {
-        return $request->validate([
+        $validated = $request->validate([
             'transaction_date' => 'required|date',
             'coffre' => 'required|in:Caisse,Cmpt Pers,Cmpt Ste',
-            'statut' => 'required|in:Débit,Crédit',
+            'statut' => 'required|in:Sortie,Entrée,Débit,Crédit',
             'type_reglement' => 'nullable|in:Esp,Chq,Eff,Vir,Vers',
             'amount' => 'required|numeric|min:0.01',
             'beneficiary' => 'required|string|max:255',
             'motif' => 'nullable|string|max:1000',
         ]);
+
+        $validated['statut'] = $this->normalizeStatut($validated['statut']);
+
+        return $validated;
     }
 
     private function filteredQuery(Request $request)
@@ -73,21 +77,59 @@ class TransactionApiController extends Controller
         return MonetaryTransaction::query()
             ->when($request->date_from, fn ($q, $d) => $q->whereDate('transaction_date', '>=', $d))
             ->when($request->date_to, fn ($q, $d) => $q->whereDate('transaction_date', '<=', $d))
-            ->when($request->statut, fn ($q, $s) => $q->where('statut', $s))
+            ->when($request->statut, fn ($q, $s) => $q->whereIn('statut', $this->statutAliases($s)))
             ->when($request->coffre, fn ($q, $c) => $q->where('coffre', $c));
     }
 
     private function summary($rows): array
     {
-        $totalDebit = round((float) $rows->where('statut', 'Débit')->sum('amount'), 2);
-        $totalCredit = round((float) $rows->where('statut', 'Crédit')->sum('amount'), 2);
-        $solde = round($totalCredit - $totalDebit, 2);
+        $totalDebit = round((float) $rows->filter(fn ($r) => $this->isSortie($r->statut))->sum('amount'), 2);
+        $totalEntree = round((float) $rows->filter(fn ($r) => $this->isEntree($r->statut))->sum('amount'), 2);
 
         return [
             'total_debit' => $totalDebit,
-            'total_credit' => $totalCredit,
-            'solde' => $solde,
+            'total_caisse' => $this->coffreBalance($rows, 'Caisse'),
+            'total_cmpt_pers' => $this->coffreBalance($rows, 'Cmpt Pers'),
+            'total_cmpt_ste' => $this->coffreBalance($rows, 'Cmpt Ste'),
+            'solde' => round($totalEntree - $totalDebit, 2),
         ];
+    }
+
+    private function coffreBalance($rows, string $coffre): float
+    {
+        $subset = $rows->where('coffre', $coffre);
+        $entrees = (float) $subset->filter(fn ($r) => $this->isEntree($r->statut))->sum('amount');
+        $sorties = (float) $subset->filter(fn ($r) => $this->isSortie($r->statut))->sum('amount');
+
+        return round($entrees - $sorties, 2);
+    }
+
+    private function isSortie(?string $statut): bool
+    {
+        return in_array($statut, ['Débit', 'Sortie'], true);
+    }
+
+    private function isEntree(?string $statut): bool
+    {
+        return in_array($statut, ['Crédit', 'Entrée'], true);
+    }
+
+    private function normalizeStatut(string $statut): string
+    {
+        return match ($statut) {
+            'Débit' => 'Sortie',
+            'Crédit' => 'Entrée',
+            default => $statut,
+        };
+    }
+
+    private function statutAliases(string $statut): array
+    {
+        return match ($this->normalizeStatut($statut)) {
+            'Sortie' => ['Sortie', 'Débit'],
+            'Entrée' => ['Entrée', 'Crédit'],
+            default => [$statut],
+        };
     }
 
     private function format(MonetaryTransaction $t): array
@@ -97,7 +139,7 @@ class TransactionApiController extends Controller
             'transaction_date' => $t->transaction_date?->format('d/m/Y'),
             'transaction_date_raw' => $t->transaction_date?->format('Y-m-d'),
             'coffre' => $t->coffre,
-            'statut' => $t->statut,
+            'statut' => $this->normalizeStatut($t->statut),
             'type_reglement' => $t->type_reglement,
             'amount' => round((float) $t->amount, 2),
             'beneficiary' => $t->beneficiary,

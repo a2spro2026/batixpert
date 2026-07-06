@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
     Save, Eye, Pencil, Trash2, Printer, X, RefreshCw, Plus, Search,
-    ArrowDownCircle, ArrowUpCircle, Scale,
+    ArrowDownCircle, Scale, Wallet, User, Building2,
 } from 'lucide-react';
 import api from '../lib/api';
 
 const COFFRE_OPTIONS = ['', 'Caisse', 'Cmpt Pers', 'Cmpt Ste'];
-const STATUT_OPTIONS = ['', 'Débit', 'Crédit'];
+const STATUT_OPTIONS = ['', 'Sortie', 'Entrée'];
 const TYPE_OPTIONS = ['', 'Esp', 'Chq', 'Eff', 'Vir', 'Vers'];
 
 const COFFRE_FILTER_OPTIONS = [
@@ -18,8 +18,45 @@ const COFFRE_FILTER_OPTIONS = [
 
 const STATUT_FILTER_OPTIONS = [
     { value: '', label: 'Tous' },
-    { value: 'Débit', label: 'Débit' },
-    { value: 'Crédit', label: 'Crédit' },
+    { value: 'Sortie', label: 'Sortie' },
+    { value: 'Entrée', label: 'Entrée' },
+];
+
+const SUMMARY_CARDS = [
+    {
+        key: 'total_debit',
+        label: 'Total Débit',
+        gradient: 'from-blue-600 via-brand-navy to-slate-900',
+        glow: 'rgba(30, 58, 95, 0.45)',
+        icon: ArrowDownCircle,
+    },
+    {
+        key: 'total_caisse',
+        label: 'Total Caisse',
+        gradient: 'from-emerald-500 via-green-600 to-teal-800',
+        glow: 'rgba(16, 185, 129, 0.4)',
+        icon: Wallet,
+    },
+    {
+        key: 'total_cmpt_pers',
+        label: 'Total Cmpt Pers',
+        gradient: 'from-violet-500 via-purple-600 to-indigo-900',
+        glow: 'rgba(139, 92, 246, 0.4)',
+        icon: User,
+    },
+    {
+        key: 'total_cmpt_ste',
+        label: 'Total Ste',
+        gradient: 'from-amber-500 via-orange-500 to-orange-700',
+        glow: 'rgba(249, 115, 22, 0.4)',
+        icon: Building2,
+    },
+    {
+        key: 'solde',
+        label: 'Solde',
+        dynamic: true,
+        icon: Scale,
+    },
 ];
 
 const emptyFilters = {
@@ -59,16 +96,25 @@ function formatMontant(value) {
     return `${n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MAD`;
 }
 
-function SummaryCard({ label, value, gradient, icon: Icon }) {
+function isSortie(value) {
+    return value === 'Sortie' || value === 'Débit';
+}
+
+function SummaryCard({ label, value, gradient, glow, icon: Icon }) {
     return (
-        <div className={`relative overflow-hidden rounded-xl bg-gradient-to-br ${gradient} p-4 shadow-md text-white`}>
-            <div className="absolute inset-0 bg-gradient-to-t from-black/15 to-transparent pointer-events-none" />
+        <div
+            className={`group relative overflow-hidden rounded-xl bg-gradient-to-br ${gradient} p-4 shadow-lg text-white transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl`}
+            style={{ boxShadow: `0 10px 28px -8px ${glow}` }}
+        >
+            <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-white/10 pointer-events-none" />
+            <div className="absolute -right-4 -top-4 h-20 w-20 rounded-full bg-white/10 blur-2xl transition-transform duration-300 group-hover:scale-110" />
+            <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/25" />
             <div className="relative flex items-start justify-between gap-3">
-                <div>
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-white/80">{label}</p>
-                    <p className="mt-1 text-xl font-bold tabular-nums">{formatMontant(value)}</p>
+                <div className="min-w-0">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-white/85">{label}</p>
+                    <p className="mt-1.5 text-lg sm:text-xl font-bold tabular-nums leading-tight">{formatMontant(value)}</p>
                 </div>
-                <div className="p-2 rounded-lg bg-white/15">
+                <div className="p-2.5 rounded-xl bg-white/15 ring-1 ring-white/20 backdrop-blur-sm shrink-0">
                     <Icon className="w-5 h-5" strokeWidth={2} />
                 </div>
             </div>
@@ -77,9 +123,9 @@ function SummaryCard({ label, value, gradient, icon: Icon }) {
 }
 
 function StatutBadge({ value }) {
-    const debit = value === 'Débit';
+    const sortie = isSortie(value);
     return (
-        <span className={`inline-flex px-2 py-0.5 rounded-md text-xs font-semibold ${debit ? 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300' : 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300'}`}>
+        <span className={`inline-flex px-2 py-0.5 rounded-md text-xs font-semibold ${sortie ? 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300' : 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300'}`}>
             {value || '—'}
         </span>
     );
@@ -173,7 +219,9 @@ tbody tr:nth-child(even) { background: #f8fafc; }
 </table>
 <table class="totals">
 <tr><td>Total Débit</td><td>${formatMontant(summary.total_debit)}</td></tr>
-<tr><td>Total Crédit</td><td>${formatMontant(summary.total_credit)}</td></tr>
+<tr><td>Total Caisse</td><td>${formatMontant(summary.total_caisse)}</td></tr>
+<tr><td>Total Cmpt Pers</td><td>${formatMontant(summary.total_cmpt_pers)}</td></tr>
+<tr><td>Total Ste</td><td>${formatMontant(summary.total_cmpt_ste)}</td></tr>
 <tr><td>Solde</td><td>${formatMontant(summary.solde)}</td></tr>
 </table>
 <p class="footer">© BatiXpert — ${rows.length} transaction(s)</p>
@@ -224,7 +272,13 @@ export default function TransactionsPage() {
     const [form, setForm] = useState(emptyForm);
     const [filters, setFilters] = useState(emptyFilters);
     const [rows, setRows] = useState([]);
-    const [summary, setSummary] = useState({ total_debit: 0, total_credit: 0, solde: 0 });
+    const [summary, setSummary] = useState({
+        total_debit: 0,
+        total_caisse: 0,
+        total_cmpt_pers: 0,
+        total_cmpt_ste: 0,
+        solde: 0,
+    });
     const [meta, setMeta] = useState({ date: '—' });
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -240,7 +294,13 @@ export default function TransactionsPage() {
         api.get('/transactions', { params })
             .then((res) => {
                 setRows(res.data.data ?? []);
-                setSummary(res.data.summary ?? { total_debit: 0, total_credit: 0, solde: 0 });
+                setSummary(res.data.summary ?? {
+                    total_debit: 0,
+                    total_caisse: 0,
+                    total_cmpt_pers: 0,
+                    total_cmpt_ste: 0,
+                    solde: 0,
+                });
                 setMeta(res.data.meta ?? { date: '—' });
             })
             .catch(() => setRows([]))
@@ -318,33 +378,33 @@ export default function TransactionsPage() {
     };
 
     const soldePositive = summary.solde >= 0;
-    const soldeGradient = soldePositive
-        ? 'from-orange-500 via-amber-500 to-orange-700'
-        : 'from-red-500 via-rose-600 to-red-800';
 
     return (
         <div className="space-y-4">
             <ViewModal row={viewRow} onClose={() => setViewRow(null)} />
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <SummaryCard
-                    label="Total Débit"
-                    value={summary.total_debit}
-                    gradient="from-blue-600 via-brand-navy to-slate-900"
-                    icon={ArrowDownCircle}
-                />
-                <SummaryCard
-                    label="Total Crédit"
-                    value={summary.total_credit}
-                    gradient="from-emerald-500 via-green-600 to-teal-800"
-                    icon={ArrowUpCircle}
-                />
-                <SummaryCard
-                    label="Solde"
-                    value={summary.solde}
-                    gradient={soldeGradient}
-                    icon={Scale}
-                />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
+                {SUMMARY_CARDS.map((card) => {
+                    const gradient = card.dynamic
+                        ? (soldePositive
+                            ? 'from-cyan-500 via-sky-600 to-blue-800'
+                            : 'from-fuchsia-500 via-pink-600 to-rose-800')
+                        : card.gradient;
+                    const glow = card.dynamic
+                        ? (soldePositive ? 'rgba(14, 165, 233, 0.42)' : 'rgba(219, 39, 119, 0.4)')
+                        : card.glow;
+
+                    return (
+                        <SummaryCard
+                            key={card.key}
+                            label={card.label}
+                            value={summary[card.key] ?? 0}
+                            gradient={gradient}
+                            glow={glow}
+                            icon={card.icon}
+                        />
+                    );
+                })}
             </div>
 
             <form onSubmit={handleSubmit} className="glass-card p-4 lg:p-5 shadow-card border border-slate-200/60 dark:border-slate-700/60">
@@ -358,33 +418,33 @@ export default function TransactionsPage() {
                 )}
 
                 <div className="overflow-x-auto">
-                    <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid xl:grid-cols-[88px_0.9fr_0.75fr_0.7fr_0.75fr_1fr_1.2fr_auto_auto] gap-2 items-end min-w-[980px]">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid xl:grid-cols-[112px_0.55fr_0.32fr_0.3fr_0.42fr_0.95fr_2.65fr_auto_auto] gap-2 items-end min-w-[980px]">
                         <Field label="Date" compact>
-                            <input type="date" required value={form.transaction_date} onChange={(e) => set('transaction_date', e.target.value)} className={inputCompact} />
+                            <input type="date" required value={form.transaction_date} onChange={(e) => set('transaction_date', e.target.value)} className={`${inputCompact} text-[12px] py-1.5`} />
                         </Field>
                         <Field label="Coffre" compact>
-                            <select required value={form.coffre} onChange={(e) => set('coffre', e.target.value)} className={inputCompact}>
+                            <select required value={form.coffre} onChange={(e) => set('coffre', e.target.value)} className={`${inputCompact} max-w-[108px] mx-auto`}>
                                 {COFFRE_OPTIONS.map((v) => <option key={v || 'e'} value={v}>{v || '—'}</option>)}
                             </select>
                         </Field>
                         <Field label="Statut" compact>
-                            <select required value={form.statut} onChange={(e) => set('statut', e.target.value)} className={inputCompact}>
+                            <select required value={form.statut} onChange={(e) => set('statut', e.target.value)} className={`${inputCompact} max-w-[68px] mx-auto text-[10px] px-1`}>
                                 {STATUT_OPTIONS.map((v) => <option key={v || 'e'} value={v}>{v || '—'}</option>)}
                             </select>
                         </Field>
                         <Field label="Type" compact>
-                            <select value={form.type_reglement} onChange={(e) => set('type_reglement', e.target.value)} className={inputCompact}>
+                            <select value={form.type_reglement} onChange={(e) => set('type_reglement', e.target.value)} className={`${inputCompact} max-w-[56px] mx-auto text-[10px] px-1`}>
                                 {TYPE_OPTIONS.map((v) => <option key={v || 'e'} value={v}>{v || '—'}</option>)}
                             </select>
                         </Field>
                         <Field label="Montant" compact>
-                            <input type="number" step="0.01" min="0.01" required value={form.amount} onChange={(e) => set('amount', e.target.value)} placeholder="0.00" className={inputCompact} />
+                            <input type="number" step="0.01" min="0.01" required value={form.amount} onChange={(e) => set('amount', e.target.value)} placeholder="0.00" className={`${inputCompact} max-w-[72px] mx-auto text-[10px] px-1`} />
                         </Field>
                         <Field label="Bénéficiaire">
                             <input type="text" required value={form.beneficiary} onChange={(e) => set('beneficiary', e.target.value)} placeholder="Bénéficiaire" className={inputClass} />
                         </Field>
                         <Field label="Motif">
-                            <input type="text" value={form.motif} onChange={(e) => set('motif', e.target.value)} placeholder="Cause de la transaction" className={inputClass} />
+                            <input type="text" value={form.motif} onChange={(e) => set('motif', e.target.value)} placeholder="Cause de la transaction" className={`${inputClass} min-w-0 w-full`} />
                         </Field>
                         <button type="submit" disabled={saving} className="btn-primary text-xs h-[34px] px-3 self-end whitespace-nowrap">
                             <Save className="w-3.5 h-3.5" />
@@ -430,7 +490,7 @@ export default function TransactionsPage() {
 
             <div className="glass-card overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60">
                 <div className="px-5 py-3.5 bg-gradient-to-r from-brand-navy via-blue-800 to-indigo-900 border-b border-white/10 flex items-center justify-between">
-                    <h3 className="text-sm font-bold text-white uppercase tracking-wide">Transactions</h3>
+                    <h3 className="text-sm font-bold text-white uppercase tracking-wide">Transaction et Charges</h3>
                     <button type="button" onClick={load} disabled={loading} className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors" title="Actualiser">
                         <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
                     </button>
@@ -457,7 +517,7 @@ export default function TransactionsPage() {
                                     <tr key={row.id} className={`hover:bg-blue-50/40 dark:hover:bg-slate-800/40 transition-colors ${editingId === row.id ? 'bg-amber-50/60 dark:bg-amber-900/10' : ''}`}>
                                         <td className="px-4 py-2.5 text-center text-slate-600 dark:text-slate-300">{row.transaction_date}</td>
                                         <td className="px-4 py-2.5 text-center font-medium text-slate-800 dark:text-white">{row.beneficiary || '—'}</td>
-                                        <td className={`px-4 py-2.5 text-center font-semibold tabular-nums ${row.statut === 'Débit' ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                                        <td className={`px-4 py-2.5 text-center font-semibold tabular-nums ${isSortie(row.statut) ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
                                             {formatMontant(row.amount)}
                                         </td>
                                         <td className="px-4 py-2.5 text-center">

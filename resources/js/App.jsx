@@ -34,13 +34,6 @@ const employeeCols = [
     { key: 'status', label: 'Statut' },
 ];
 
-const expenseCols = [
-    { key: 'reference', label: 'Référence' },
-    { key: 'category', label: 'Catégorie' },
-    { key: 'amount', label: 'Montant', render: (r) => `${r.amount} MAD` },
-    { key: 'expense_date', label: 'Date' },
-];
-
 function AppRoutes() {
     return (
         <Routes>
@@ -85,7 +78,6 @@ function AppRoutes() {
 
                 {/* Suivi Monétaire */}
                 <Route path="monetaire/transactions" element={<TransactionsPage />} />
-                <Route path="monetaire/charges" element={<GenericListPage title="Charges" subtitle="Suivi monétaire" endpoint="/expenses" columns={expenseCols} />} />
                 <Route path="monetaire/salaires" element={<ModulePage />} />
                 <Route path="monetaire/tresorerie" element={<ModulePage />} />
 

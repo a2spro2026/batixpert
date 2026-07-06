@@ -34,7 +34,6 @@ import {
     BadgeCheck,
     CalendarCheck,
     // Monétaire
-    MinusCircle,
     Coins,
     Vault,
 } from 'lucide-react';
@@ -116,8 +115,7 @@ export const navigation = [
         icon: Landmark,
         perm: 'reglements.view',
         children: [
-            { to: '/monetaire/transactions', label: 'Transaction', icon: ArrowLeftRight },
-            { to: '/monetaire/charges', label: 'Charge', icon: MinusCircle },
+            { to: '/monetaire/transactions', label: 'Transaction et Charges', icon: ArrowLeftRight },
             { to: '/monetaire/salaires', label: 'Salaire', icon: Coins },
             { to: '/monetaire/tresorerie', label: 'Trésorerie', icon: Vault },
         ],
