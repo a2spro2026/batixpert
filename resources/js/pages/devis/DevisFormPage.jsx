@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Save, ArrowLeft, Send, CheckCircle, Plus, Trash2, Printer } from 'lucide-react';
+import { Save, ArrowLeft, Send, CheckCircle, Plus, Trash2, Printer, ChevronUp, ChevronDown } from 'lucide-react';
 import api from '../../lib/api';
 import DesignationPicker from '../../components/DesignationPicker';
 import {
@@ -50,6 +50,21 @@ export default function DevisFormPage() {
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+
+    const linesScrollRef = useRef(null);
+    const [canScrollUp, setCanScrollUp] = useState(false);
+    const [canScrollDown, setCanScrollDown] = useState(false);
+
+    const updateScrollState = () => {
+        const el = linesScrollRef.current;
+        if (!el) return;
+        setCanScrollUp(el.scrollTop > 4);
+        setCanScrollDown(el.scrollTop + el.clientHeight < el.scrollHeight - 4);
+    };
+
+    useEffect(() => {
+        updateScrollState();
+    }, [lines.length]);
 
     const totalHt = useMemo(
         () => lines.reduce((sum, line) => sum + lineSubtotal(line), 0),
@@ -119,8 +134,24 @@ export default function DevisFormPage() {
         )));
     };
 
-    const addLine = () => setLines((prev) => [...prev, newLine()]);
+    const addLine = () => {
+        setLines((prev) => [...prev, newLine()]);
+        requestAnimationFrame(() => {
+            const el = linesScrollRef.current;
+            if (el) {
+                el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+                updateScrollState();
+            }
+        });
+    };
     const removeLine = (index) => setLines((prev) => (prev.length <= 1 ? prev : prev.filter((_, i) => i !== index)));
+
+    const scrollLines = (direction) => {
+        const el = linesScrollRef.current;
+        if (!el) return;
+        el.scrollBy({ top: direction * 52, behavior: 'smooth' });
+        requestAnimationFrame(updateScrollState);
+    };
 
     const handleClientChange = (clientId) => {
         const client = clients.find((c) => String(c.id) === String(clientId));
@@ -268,26 +299,26 @@ export default function DevisFormPage() {
     }
 
     return (
-        <div className="space-y-4">
-            <button type="button" onClick={goToList} className="btn-secondary text-sm">
+        <div className="flex flex-col h-[calc(100vh-10.5rem)] min-h-0">
+            <button type="button" onClick={goToList} className="btn-secondary text-sm shrink-0 self-start mb-3">
                 <ArrowLeft className="w-4 h-4" />
                 Retour à la liste
             </button>
 
-            <form onSubmit={handleSubmit} className="glass-card p-4 lg:p-5 shadow-card border border-slate-200/60 dark:border-slate-700/60">
+            <form onSubmit={handleSubmit} className="glass-card p-4 lg:p-5 shadow-card border border-slate-200/60 dark:border-slate-700/60 flex flex-col flex-1 min-h-0 overflow-hidden">
                 {error && (
-                    <div className="mb-3 p-3 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm border border-red-100 dark:border-red-800">{error}</div>
+                    <div className="mb-3 p-3 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm border border-red-100 dark:border-red-800 shrink-0">{error}</div>
                 )}
                 {success && (
-                    <div className="mb-3 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 text-sm border border-emerald-100 dark:border-emerald-800">{success}</div>
+                    <div className="mb-3 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 text-sm border border-emerald-100 dark:border-emerald-800 shrink-0">{success}</div>
                 )}
                 {!isNew && (
-                    <div className="mb-3 px-3 py-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 text-xs font-medium border border-amber-200 dark:border-amber-800">
+                    <div className="mb-3 px-3 py-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 text-xs font-medium border border-amber-200 dark:border-amber-800 shrink-0">
                         {isValidated ? 'Devis validé — consultation uniquement' : 'Mode modification — Mettez à jour puis enregistrez'}
                     </div>
                 )}
 
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto shrink-0">
                     <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid xl:grid-cols-[92px_72px_minmax(100px,0.9fr)_minmax(68px,0.6fr)_0.75fr_96px_0.75fr_80px] gap-2 items-end min-w-[900px]">
                         <Field label="Date" compact>
                             <input type="text" readOnly value={meta.date} className={readOnlyCompact} />
@@ -335,103 +366,154 @@ export default function DevisFormPage() {
                     </div>
                 </div>
 
-                <div className="mt-5 pt-4 border-t border-slate-200 dark:border-slate-700">
-                    <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700">
-                        <table className="w-full text-sm min-w-[900px]">
-                            <thead>
-                                <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700">
-                                    {['Désignation Travaux', 'Consistance', 'Unité', 'Qté', 'Prix HT', 'Sous-Total HT'].map((h) => (
-                                        <th key={h} className="px-3 py-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap text-center">{h}</th>
-                                    ))}
-                                    <th className="px-2 py-2.5 w-10 text-center">
-                                        {!isValidated && (
-                                            <button
-                                                type="button"
-                                                title="Ajouter une ligne"
-                                                onClick={addLine}
-                                                className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-violet-600 hover:bg-violet-700 text-white shadow-sm transition-colors"
-                                            >
-                                                <Plus className="w-4 h-4" strokeWidth={2.5} />
-                                            </button>
-                                        )}
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                                {lines.map((line, index) => {
-                                    const sub = lineSubtotal(line);
-                                    return (
-                                        <tr key={line._key} className="hover:bg-violet-50/30 dark:hover:bg-slate-800/30">
-                                            <td className="px-2 py-2 min-w-[220px]">
-                                                {isValidated ? (
-                                                    <input type="text" readOnly value={line.designation} className={readOnlyClass} />
-                                                ) : (
-                                                    <DesignationPicker
-                                                        products={products}
-                                                        value={line.designation}
-                                                        onSelect={(product) => handleDesignationSelect(index, product)}
-                                                        placeholder="— Sélectionner travaux —"
-                                                    />
-                                                )}
-                                            </td>
-                                            <td className="px-2 py-2 w-20">
-                                                <select disabled={isValidated} value={line.consistance} onChange={(e) => updateLine(index, 'consistance', e.target.value)} className={lineInputClass}>
-                                                    {CONSISTANCE_OPTIONS.map((v) => <option key={v || 'e'} value={v}>{v || '—'}</option>)}
-                                                </select>
-                                            </td>
-                                            <td className="px-2 py-2 w-24">
-                                                <select disabled={isValidated} value={line.unit} onChange={(e) => updateLine(index, 'unit', e.target.value)} className={lineInputClass}>
-                                                    {UNIT_OPTIONS.map((v) => <option key={v || 'e'} value={v}>{v || '—'}</option>)}
-                                                </select>
-                                            </td>
-                                            <td className="px-2 py-2 w-20">
-                                                <input type="number" step="0.001" min="0.001" disabled={isValidated} value={line.quantity} onChange={(e) => updateLine(index, 'quantity', e.target.value)} className={lineInputClass} />
-                                            </td>
-                                            <td className="px-2 py-2 w-28">
-                                                <input type="number" step="0.01" min="0" disabled={isValidated} value={line.unit_price} onChange={(e) => updateLine(index, 'unit_price', e.target.value)} className={lineInputClass} placeholder="0.00" />
-                                            </td>
-                                            <td className="px-2 py-2 w-28 text-center font-semibold tabular-nums text-brand-navy dark:text-violet-400 text-xs">
-                                                {sub ? sub.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}
-                                            </td>
-                                            <td className="px-2 py-2 w-10 text-center">
-                                                {!isValidated && lines.length > 1 && (
-                                                    <button type="button" title="Supprimer la ligne" onClick={() => removeLine(index)} className="p-1.5 rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/30 dark:hover:text-red-400 transition-colors">
-                                                        <Trash2 className="w-3.5 h-3.5" />
-                                                    </button>
-                                                )}
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                            <tfoot>
-                                <tr className="bg-slate-50 dark:bg-slate-800/60 border-t border-slate-200 dark:border-slate-700">
-                                    <td colSpan={5} className="px-3 py-2 text-right text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">Total HT</td>
-                                    <td className="px-3 py-2 text-center font-bold tabular-nums text-brand-navy dark:text-violet-400 text-xs">
-                                        {totalHt.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MAD
-                                    </td>
-                                    <td />
-                                </tr>
-                                <tr className="bg-slate-50 dark:bg-slate-800/40 border-t border-slate-100 dark:border-slate-800">
-                                    <td colSpan={5} className="px-3 py-2 text-right text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">TVA 20%</td>
-                                    <td className="px-3 py-2 text-center font-semibold tabular-nums text-slate-700 dark:text-slate-200 text-xs">
-                                        {tva.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MAD
-                                    </td>
-                                    <td />
-                                </tr>
-                                <tr className="bg-violet-50 dark:bg-violet-900/20 border-t border-slate-200 dark:border-slate-700">
-                                    <td colSpan={5} className="px-3 py-2.5 text-right text-xs font-bold uppercase tracking-wide text-violet-700 dark:text-violet-300">Total TTC</td>
-                                    <td className="px-3 py-2.5 text-center font-bold tabular-nums text-brand-navy dark:text-violet-400">
-                                        {totalTtc.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MAD
-                                    </td>
-                                    <td />
-                                </tr>
-                            </tfoot>
-                        </table>
+                <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700 flex flex-col flex-1 min-h-0">
+                    <div className="flex shrink-0 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden bg-white dark:bg-slate-900">
+                        <div className="flex-1 min-w-0 flex flex-col">
+                            <table className="w-full text-sm table-fixed">
+                                <colgroup>
+                                    <col className="w-[34%]" />
+                                    <col className="w-[10%]" />
+                                    <col className="w-[10%]" />
+                                    <col className="w-[8%]" />
+                                    <col className="w-[12%]" />
+                                    <col className="w-[14%]" />
+                                    <col className="w-[8%]" />
+                                </colgroup>
+                                <thead>
+                                    <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
+                                        {['Désignation Travaux', 'Consistance', 'Unité', 'Qté', 'Prix HT', 'Sous-Total HT'].map((h) => (
+                                            <th key={h} className="px-2 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap text-center">{h}</th>
+                                        ))}
+                                        <th className="px-1 py-2 text-center">
+                                            {!isValidated && (
+                                                <button
+                                                    type="button"
+                                                    title="Ajouter une ligne"
+                                                    onClick={addLine}
+                                                    className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-violet-600 hover:bg-violet-700 text-white shadow-sm transition-colors"
+                                                >
+                                                    <Plus className="w-4 h-4" strokeWidth={2.5} />
+                                                </button>
+                                            )}
+                                        </th>
+                                    </tr>
+                                </thead>
+                            </table>
+
+                            <div
+                                ref={linesScrollRef}
+                                onScroll={updateScrollState}
+                                className="h-[min(360px,48vh)] overflow-y-auto overflow-x-hidden [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+                            >
+                                <table className="w-full text-sm table-fixed">
+                                    <colgroup>
+                                        <col className="w-[34%]" />
+                                        <col className="w-[10%]" />
+                                        <col className="w-[10%]" />
+                                        <col className="w-[8%]" />
+                                        <col className="w-[12%]" />
+                                        <col className="w-[14%]" />
+                                        <col className="w-[8%]" />
+                                    </colgroup>
+                                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                                        {lines.map((line, index) => {
+                                            const sub = lineSubtotal(line);
+                                            return (
+                                                <tr key={line._key} className="hover:bg-violet-50/30 dark:hover:bg-slate-800/30">
+                                                    <td className="px-2 py-1.5">
+                                                        {isValidated ? (
+                                                            <input type="text" readOnly value={line.designation} className={readOnlyClass} />
+                                                        ) : (
+                                                            <DesignationPicker
+                                                                products={products}
+                                                                value={line.designation}
+                                                                onSelect={(product) => handleDesignationSelect(index, product)}
+                                                                placeholder="— Sélectionner travaux —"
+                                                            />
+                                                        )}
+                                                    </td>
+                                                    <td className="px-1 py-1.5">
+                                                        <select disabled={isValidated} value={line.consistance} onChange={(e) => updateLine(index, 'consistance', e.target.value)} className={lineInputClass}>
+                                                            {CONSISTANCE_OPTIONS.map((v) => <option key={v || 'e'} value={v}>{v || '—'}</option>)}
+                                                        </select>
+                                                    </td>
+                                                    <td className="px-1 py-1.5">
+                                                        <select disabled={isValidated} value={line.unit} onChange={(e) => updateLine(index, 'unit', e.target.value)} className={lineInputClass}>
+                                                            {UNIT_OPTIONS.map((v) => <option key={v || 'e'} value={v}>{v || '—'}</option>)}
+                                                        </select>
+                                                    </td>
+                                                    <td className="px-1 py-1.5">
+                                                        <input type="number" step="0.001" min="0.001" disabled={isValidated} value={line.quantity} onChange={(e) => updateLine(index, 'quantity', e.target.value)} className={lineInputClass} />
+                                                    </td>
+                                                    <td className="px-1 py-1.5">
+                                                        <input type="number" step="0.01" min="0" disabled={isValidated} value={line.unit_price} onChange={(e) => updateLine(index, 'unit_price', e.target.value)} className={lineInputClass} placeholder="0.00" />
+                                                    </td>
+                                                    <td className="px-1 py-1.5 text-center font-semibold tabular-nums text-brand-navy dark:text-violet-400 text-xs">
+                                                        {sub ? sub.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}
+                                                    </td>
+                                                    <td className="px-1 py-1.5 text-center">
+                                                        {!isValidated && lines.length > 1 && (
+                                                            <button type="button" title="Supprimer la ligne" onClick={() => removeLine(index)} className="p-1 rounded-md text-slate-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/30 dark:hover:text-red-400 transition-colors">
+                                                                <Trash2 className="w-3.5 h-3.5" />
+                                                            </button>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col w-9 shrink-0 bg-slate-200 dark:bg-slate-700 border-l border-slate-300 dark:border-slate-600">
+                            <button
+                                type="button"
+                                title="Défiler vers le haut"
+                                onClick={() => scrollLines(-1)}
+                                disabled={!canScrollUp}
+                                className="h-10 flex items-center justify-center text-slate-600 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-600 disabled:opacity-35 disabled:cursor-not-allowed border-b border-slate-300 dark:border-slate-600 transition-colors"
+                            >
+                                <ChevronUp className="w-5 h-5" strokeWidth={2.5} />
+                            </button>
+                            <div className="flex-1 bg-slate-200 dark:bg-slate-700" />
+                            <button
+                                type="button"
+                                title="Défiler vers le bas"
+                                onClick={() => scrollLines(1)}
+                                disabled={!canScrollDown}
+                                className="h-10 flex items-center justify-center text-slate-600 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-600 disabled:opacity-35 disabled:cursor-not-allowed transition-colors"
+                            >
+                                <ChevronDown className="w-5 h-5" strokeWidth={2.5} />
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="shrink-0 mt-4 flex justify-end pr-10">
+                        <div className="min-w-[280px] space-y-1.5 text-sm">
+                            <div className="flex items-center justify-between gap-8 px-1">
+                                <span className="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">Total HT</span>
+                                <span className="font-bold tabular-nums text-brand-navy dark:text-violet-400">
+                                    {totalHt.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </span>
+                            </div>
+                            <div className="flex items-center justify-between gap-8 px-1">
+                                <span className="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">TVA 20%</span>
+                                <span className="font-semibold tabular-nums text-slate-700 dark:text-slate-200">
+                                    {tva.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </span>
+                            </div>
+                            <div className="flex items-center justify-between gap-8 px-1 pt-1 border-t border-slate-200 dark:border-slate-700">
+                                <span className="text-xs font-bold uppercase tracking-wide text-violet-700 dark:text-violet-300">Total TTC</span>
+                                <span className="font-bold tabular-nums text-brand-navy dark:text-violet-400 text-base">
+                                    {totalTtc.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </span>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <div className="flex flex-wrap gap-3 mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+                <div className="shrink-0 mt-auto flex flex-wrap justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
                     {!isValidated && (
                         <button type="submit" disabled={saving} className="btn-primary text-sm">
                             <Save className="w-4 h-4" />

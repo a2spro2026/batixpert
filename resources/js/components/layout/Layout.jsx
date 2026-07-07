@@ -8,6 +8,7 @@ export default function Layout() {
     const [mobileOpen, setMobileOpen] = useState(false);
     const { pathname } = useLocation();
     const isDashboard = pathname === '/';
+    const isDevisForm = /^\/clients\/devis\/(nouveau|\d+)/.test(pathname);
 
     return (
         <div className="min-h-screen h-screen bg-slate-50 dark:bg-slate-950 flex overflow-hidden">
@@ -37,9 +38,11 @@ export default function Layout() {
                     </main>
                 )}
 
-                <footer className="mt-auto shrink-0 px-6 py-4 border-t border-slate-200 dark:border-slate-800 text-center text-xs text-slate-500">
-                    © {new Date().getFullYear()} BatiXpert — Construisons l'avenir avec une gestion intelligente | v1.0.0
-                </footer>
+                {!isDevisForm && (
+                    <footer className="mt-auto shrink-0 px-6 py-4 border-t border-slate-200 dark:border-slate-800 text-center text-xs text-slate-500">
+                        © {new Date().getFullYear()} BatiXpert — Construisons l'avenir avec une gestion intelligente | v1.0.0
+                    </footer>
+                )}
             </div>
         </div>
     );
