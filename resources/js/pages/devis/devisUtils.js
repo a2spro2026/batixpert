@@ -11,6 +11,7 @@ let lineKey = 0;
 export function newLine() {
     return {
         _key: ++lineKey,
+        type_travaux: '',
         designation: '',
         consistance: '',
         unit: '',
@@ -92,16 +93,22 @@ export function buildDevisHtml(row) {
     const totalTtc = row.total_ttc ?? totals.totalTtc;
     const subtotal = row.subtotal ?? totals.totalHt;
 
-    const itemsRows = (row.items || []).map((item, i) => `
+    const itemsRows = (row.items || []).map((item) => {
+        const typeTravaux = item.type_travaux?.trim();
+        const typeTravauxCell = typeTravaux
+            ? `<span class="type-travaux-box">${esc(typeTravaux)}</span>`
+            : '—';
+        return `
 <tr>
-<td class="num">${i + 1}</td>
+<td class="left">${typeTravauxCell}</td>
 <td class="left designation">${esc(item.designation || '—')}</td>
 <td>${esc(item.consistance || '—')}</td>
 <td>${esc(item.unit || '—')}</td>
 <td class="num">${item.quantity ?? 1}</td>
 <td class="num">${formatMontantPlain(item.unit_price)}</td>
-<td class="num strong">${formatMontantPlain(item.subtotal)}</td>
-</tr>`).join('');
+<td class="num strong"><span class="subtotal-box">${formatMontantPlain(item.subtotal)}</span></td>
+</tr>`;
+    }).join('');
 
     return `<!DOCTYPE html>
 <html lang="fr">
@@ -241,13 +248,33 @@ body {
     overflow-wrap: anywhere;
 }
 .lines .strong { font-weight: 700; color: #1e3a5f; }
-.col-n { width: 5%; }
-.col-des { width: 34%; }
+.lines .type-travaux-box {
+    display: inline-block;
+    min-width: 48px;
+    padding: 2px 8px;
+    background: #fef9c3;
+    border: 1px solid #fde047;
+    border-radius: 4px;
+    color: #1e3a5f;
+    font-weight: 600;
+}
+.lines .subtotal-box {
+    display: inline-block;
+    min-width: 56px;
+    padding: 2px 8px;
+    border: 1px solid #1e3a5f;
+    border-radius: 4px;
+    background: #f8fafc;
+    font-weight: 700;
+    color: #1e3a5f;
+}
+.col-type { width: 23%; }
+.col-des { width: 33%; }
 .col-c { width: 8%; }
 .col-u { width: 8%; }
 .col-q { width: 8%; }
-.col-p { width: 14%; }
-.col-s { width: 14%; }
+.col-p { width: 9%; }
+.col-s { width: 13%; }
 .bottom {
     display: flex;
     justify-content: flex-end;
@@ -352,7 +379,7 @@ body {
         <table class="lines">
             <thead>
                 <tr>
-                    <th class="col-n">N°</th>
+                    <th class="col-type" style="color:#1e3a5f">Type Travaux</th>
                     <th class="col-des">Désignation</th>
                     <th class="col-c">Cons.</th>
                     <th class="col-u">Unité</th>
@@ -395,6 +422,7 @@ export function openPrintable(row) {
 
 export function mapRowToLines(row) {
     return (row.items?.length ? row.items : [{
+        type_travaux: row.type_travaux || '',
         designation: row.designation || '',
         consistance: row.consistance || '',
         unit: row.unit || '',
@@ -402,6 +430,7 @@ export function mapRowToLines(row) {
         unit_price: row.unit_price ?? '',
     }]).map((item) => ({
         _key: ++lineKey,
+        type_travaux: item.type_travaux || '',
         designation: item.designation || '',
         consistance: item.consistance || '',
         unit: item.unit || '',

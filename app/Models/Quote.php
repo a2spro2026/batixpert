@@ -12,7 +12,7 @@ class Quote extends Model
     protected $fillable = [
         'reference', 'client_id', 'chantier_id', 'quote_date', 'valid_until',
         'contact', 'city', 'chantier_type', 'budget', 'work_delay',
-        'designation', 'consistance', 'unit', 'quantity', 'unit_price', 'subtotal',
+        'type_travaux', 'designation', 'consistance', 'unit', 'quantity', 'unit_price', 'subtotal',
         'total_ht', 'tva', 'total_ttc', 'status', 'notes', 'sent_at', 'client_order_id',
     ];
 

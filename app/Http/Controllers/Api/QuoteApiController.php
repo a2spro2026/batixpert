@@ -146,6 +146,7 @@ class QuoteApiController extends Controller
                 'chantier_type' => $quote->chantier_type,
                 'budget' => $quote->budget,
                 'work_delay' => $quote->work_delay,
+                'type_travaux' => $quote->type_travaux,
                 'designation' => $quote->designation,
                 'consistance' => $quote->consistance,
                 'unit' => $quote->unit,
@@ -163,6 +164,7 @@ class QuoteApiController extends Controller
 
             foreach ($quote->items as $item) {
                 $order->items()->create([
+                    'type_travaux' => $item->type_travaux,
                     'description' => $item->description,
                     'consistance' => $item->consistance,
                     'unit' => $item->unit,
@@ -198,6 +200,7 @@ class QuoteApiController extends Controller
             'budget' => 'nullable|numeric|min:0',
             'work_delay' => 'nullable|string|max:100',
             'items' => ($partial ? 'sometimes' : 'required').'|array|min:1',
+            'items.*.type_travaux' => 'nullable|string|max:100',
             'items.*.designation' => 'required|string|max:500',
             'items.*.consistance' => 'nullable|in:F,M,F+M',
             'items.*.unit' => 'nullable|string|max:20',
@@ -229,6 +232,7 @@ class QuoteApiController extends Controller
             $lineTotal = round($qty * $price, 2);
 
             $quote->items()->create([
+                'type_travaux' => $row['type_travaux'] ?? null,
                 'description' => $row['designation'],
                 'consistance' => $row['consistance'] ?? null,
                 'unit' => $row['unit'] ?? null,
@@ -259,6 +263,7 @@ class QuoteApiController extends Controller
         $price = (float) ($first['unit_price'] ?? 0);
 
         return [
+            'type_travaux' => $first['type_travaux'] ?? null,
             'designation' => $first['designation'] ?? null,
             'consistance' => $first['consistance'] ?? null,
             'unit' => $first['unit'] ?? null,
@@ -288,6 +293,7 @@ class QuoteApiController extends Controller
 
         $items = $quote->items->map(fn ($item) => [
             'id' => $item->id,
+            'type_travaux' => $item->type_travaux,
             'designation' => $item->description,
             'consistance' => $item->consistance,
             'unit' => $item->unit,
@@ -299,6 +305,7 @@ class QuoteApiController extends Controller
         if (count($items) === 0 && $quote->designation) {
             $items = [[
                 'id' => null,
+                'type_travaux' => $quote->type_travaux ?? null,
                 'designation' => $quote->designation,
                 'consistance' => $quote->consistance,
                 'unit' => $quote->unit,
@@ -328,6 +335,7 @@ class QuoteApiController extends Controller
             'work_delay' => $quote->work_delay,
             'items' => $items,
             'items_count' => count($items),
+            'type_travaux' => $items[0]['type_travaux'] ?? ($quote->type_travaux ?? null),
             'designation' => $designationSummary,
             'consistance' => $items[0]['consistance'] ?? $quote->consistance,
             'unit' => $items[0]['unit'] ?? $quote->unit,
