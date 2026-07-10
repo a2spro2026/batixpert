@@ -11,6 +11,9 @@ import GenericListPage from './pages/GenericListPage';
 import ModulePage from './pages/ModulePage';
 import FicheFournisseurPage from './pages/FicheFournisseurPage';
 import FicheClientPage from './pages/FicheClientPage';
+import BonExecutionListPage from './pages/clients/BonExecutionListPage';
+import ClientBalancePage from './pages/clients/ClientBalancePage';
+import EtatPaiementPage from './pages/clients/EtatPaiementPage';
 import DevisListPage from './pages/devis/DevisListPage';
 import DevisFormPage from './pages/devis/DevisFormPage';
 import TransactionsPage from './pages/TransactionsPage';
@@ -30,7 +33,7 @@ const employeeCols = [
     { key: 'matricule', label: 'Matricule' },
     { key: 'name', label: 'Nom', render: (r) => `${r.first_name} ${r.last_name}` },
     { key: 'position', label: 'Poste' },
-    { key: 'monthly_salary', label: 'Salaire', render: (r) => `${r.monthly_salary} MAD` },
+    { key: 'monthly_salary', label: 'Salaire', render: (r) => `${r.monthly_salary}` },
     { key: 'status', label: 'Statut' },
 ];
 
@@ -55,11 +58,11 @@ function AppRoutes() {
                 <Route path="clients/devis/nouveau" element={<DevisFormPage />} />
                 <Route path="clients/devis/:id" element={<DevisFormPage />} />
                 <Route path="clients/devis" element={<DevisListPage />} />
-                <Route path="clients/bons-vente" element={<ModulePage />} />
-                <Route path="clients/reglements-vente" element={<ModulePage />} />
+                <Route path="clients/bons-vente" element={<BonExecutionListPage />} />
+                <Route path="clients/reglements-vente" element={<EtatPaiementPage />} />
                 <Route path="clients/factures-ventes" element={<ModulePage />} />
                 <Route path="clients/reglements-factures" element={<ModulePage />} />
-                <Route path="clients/balance" element={<ModulePage />} />
+                <Route path="clients/balance" element={<ClientBalancePage />} />
                 <Route path="clients/releve-compte" element={<ModulePage />} />
 
                 {/* Stock */}

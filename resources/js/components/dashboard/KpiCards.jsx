@@ -52,7 +52,7 @@ const cards = [
 function formatValue(value, format) {
     const num = Number(value) || 0;
     if (format === 'number') return num.toLocaleString('fr-FR');
-    return `${num.toLocaleString('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} MAD`;
+    return `${num.toLocaleString('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 }
 
 function AnimatedValue({ value, format }) {

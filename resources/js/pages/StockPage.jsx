@@ -63,7 +63,7 @@ export default function StockPage() {
                                 <td className="px-5 py-3 text-right">{p.quantity_in_stock} {p.unit}</td>
                                 <td className="px-5 py-3 text-right">{p.min_stock_alert}</td>
                                 <td className="px-5 py-3">{p.location || '—'}</td>
-                                <td className="px-5 py-3 text-right">{p.purchase_price} MAD</td>
+                                <td className="px-5 py-3 text-right">{p.purchase_price}</td>
                             </tr>
                         ))}
                     </tbody>

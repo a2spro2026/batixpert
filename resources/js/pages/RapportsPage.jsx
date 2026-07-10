@@ -52,10 +52,10 @@ export default function RapportsPage() {
                         {data?.chantiers?.map((c) => (
                             <tr key={c.id}>
                                 <td className="px-5 py-3 font-medium">{c.name}</td>
-                                <td className="px-5 py-3 text-right">{c.budget?.toLocaleString()} MAD</td>
-                                <td className="px-5 py-3 text-right text-emerald-600">{c.recettes?.toLocaleString()} MAD</td>
-                                <td className="px-5 py-3 text-right text-red-500">{c.depenses?.toLocaleString()} MAD</td>
-                                <td className="px-5 py-3 text-right font-semibold">{c.benefice?.toLocaleString()} MAD</td>
+                                <td className="px-5 py-3 text-right">{c.budget?.toLocaleString()}</td>
+                                <td className="px-5 py-3 text-right text-emerald-600">{c.recettes?.toLocaleString()}</td>
+                                <td className="px-5 py-3 text-right text-red-500">{c.depenses?.toLocaleString()}</td>
+                                <td className="px-5 py-3 text-right font-semibold">{c.benefice?.toLocaleString()}</td>
                                 <td className="px-5 py-3 text-right"><span className="px-2 py-1 rounded-full bg-blue-100 text-blue-800 text-xs">{c.rentabilite}%</span></td>
                             </tr>
                         ))}

@@ -93,7 +93,7 @@ const filterClass = 'w-full rounded-lg border border-slate-200 dark:border-slate
 
 function formatMontant(value) {
     const n = Number(value) || 0;
-    return `${n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MAD`;
+    return `${n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 function isSortie(value) {
@@ -198,7 +198,7 @@ h1 { font-size: 16px; color: #1e3a5f; margin-bottom: 4px; }
 .sub { font-size: 9px; color: #64748b; margin-bottom: 12px; }
 table { width: 100%; border-collapse: collapse; }
 th, td { border: 1px solid #e2e8f0; padding: 5px 6px; text-align: center; }
-th { background: #1e3a5f; color: #fff; font-size: 8px; text-transform: uppercase; }
+th { background: #1e3a5f; color: #fff; font-weight: 700; font-size: 8px; text-transform: uppercase; }
 td.left { text-align: left; }
 td.num { text-align: right; white-space: nowrap; }
 tbody tr:nth-child(even) { background: #f8fafc; }

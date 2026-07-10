@@ -308,4 +308,16 @@
     .report-table tbody tr:nth-child(even) {
         @apply bg-slate-50/50 dark:bg-slate-800/20;
     }
+
+    /* En-têtes de colonnes — gras sur tout le projet */
+    table thead th {
+        @apply font-bold;
+    }
+
+    /* Titres de panneaux au-dessus des tableaux */
+    .glass-card .border-b h3,
+    .bg-white.rounded-xl .border-b h3,
+    div:has(> table) > h3 {
+        @apply font-bold;
+    }
 }

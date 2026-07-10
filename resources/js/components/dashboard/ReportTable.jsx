@@ -2,7 +2,7 @@ import { FileSpreadsheet } from 'lucide-react';
 
 function formatMontant(value) {
     const n = Number(value) || 0;
-    return `${n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MAD`;
+    return `${n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 export default function ReportTable({ title, icon: Icon, columns, rows, loading, accent = 'from-brand-navy to-blue-700' }) {

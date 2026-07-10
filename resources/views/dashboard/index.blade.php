@@ -6,19 +6,19 @@
 <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4 mb-6">
     <div class="bg-white rounded-xl p-5 shadow-sm border border-slate-100">
         <p class="text-xs text-slate-500 uppercase tracking-wide">Ventes (Mois)</p>
-        <p class="text-2xl font-bold text-slate-800 mt-1">{{ number_format($ventesMois, 0, ',', ' ') }} MAD</p>
+        <p class="text-2xl font-bold text-slate-800 mt-1">{{ number_format($ventesMois, 0, ',', ' ') }}</p>
         <p class="text-xs mt-2 {{ $ventesEvolution >= 0 ? 'text-emerald-600' : 'text-red-600' }}">
             {{ $ventesEvolution >= 0 ? '+' : '' }}{{ $ventesEvolution }}% vs mois dernier
         </p>
     </div>
     <div class="bg-white rounded-xl p-5 shadow-sm border border-slate-100">
         <p class="text-xs text-slate-500 uppercase tracking-wide">Stock Total</p>
-        <p class="text-2xl font-bold text-slate-800 mt-1">{{ number_format($stockTotal->total ?? 0, 0, ',', ' ') }} MAD</p>
+        <p class="text-2xl font-bold text-slate-800 mt-1">{{ number_format($stockTotal->total ?? 0, 0, ',', ' ') }}</p>
         <p class="text-xs text-slate-500 mt-2">{{ $stockTotal->count ?? 0 }} produits en stock</p>
     </div>
     <div class="bg-white rounded-xl p-5 shadow-sm border border-slate-100">
         <p class="text-xs text-slate-500 uppercase tracking-wide">Factures (Mois)</p>
-        <p class="text-2xl font-bold text-slate-800 mt-1">{{ number_format($facturesMontant, 0, ',', ' ') }} MAD</p>
+        <p class="text-2xl font-bold text-slate-800 mt-1">{{ number_format($facturesMontant, 0, ',', ' ') }}</p>
         <p class="text-xs text-slate-500 mt-2">{{ $facturesMois }} factures émises</p>
     </div>
     <div class="bg-white rounded-xl p-5 shadow-sm border border-slate-100">
@@ -28,7 +28,7 @@
     </div>
     <div class="bg-white rounded-xl p-5 shadow-sm border border-slate-100">
         <p class="text-xs text-slate-500 uppercase tracking-wide">Chiffre d'affaires</p>
-        <p class="text-2xl font-bold text-slate-800 mt-1">{{ number_format($caAnnee, 0, ',', ' ') }} MAD</p>
+        <p class="text-2xl font-bold text-slate-800 mt-1">{{ number_format($caAnnee, 0, ',', ' ') }}</p>
         <p class="text-xs text-emerald-600 mt-2">Année {{ now()->year }}</p>
     </div>
 </div>
@@ -105,7 +105,7 @@
                 <tr class="hover:bg-slate-50">
                     <td class="px-5 py-3 font-medium">{{ $invoice->reference }}</td>
                     <td class="px-5 py-3">{{ $invoice->client->name }}</td>
-                    <td class="px-5 py-3 text-right">{{ number_format($invoice->total_ttc, 2, ',', ' ') }} MAD</td>
+                    <td class="px-5 py-3 text-right">{{ number_format($invoice->total_ttc, 2, ',', ' ') }}</td>
                     <td class="px-5 py-3 text-center"><x-status-badge :status="$invoice->status" /></td>
                 </tr>
             @empty

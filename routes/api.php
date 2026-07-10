@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ChantierApiController;
+use App\Http\Controllers\Api\ClientOrderApiController;
+use App\Http\Controllers\Api\ClientPaymentApiController;
 use App\Http\Controllers\Api\ClientApiController;
 use App\Http\Controllers\Api\DashboardApiController;
 use App\Http\Controllers\Api\DocumentApiController;
@@ -27,6 +29,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('chantiers/{chantier}/archive', [ChantierApiController::class, 'archive']);
 
     Route::apiResource('clients', ClientApiController::class);
+    Route::get('client-payments/meta', [ClientPaymentApiController::class, 'meta']);
+    Route::get('client-payments', [ClientPaymentApiController::class, 'index']);
+    Route::post('client-payments', [ClientPaymentApiController::class, 'store']);
+    Route::get('client-payments/{client_payment}', [ClientPaymentApiController::class, 'show']);
+    Route::put('client-payments/{client_payment}', [ClientPaymentApiController::class, 'update']);
+    Route::delete('client-payments/{client_payment}', [ClientPaymentApiController::class, 'destroy']);
+    Route::apiResource('client-orders', ClientOrderApiController::class)->only(['index', 'show']);
     Route::apiResource('quotes', QuoteApiController::class);
     Route::post('quotes/{quote}/send', [QuoteApiController::class, 'send']);
     Route::post('quotes/{quote}/validate', [QuoteApiController::class, 'validateQuote']);

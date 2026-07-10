@@ -39,7 +39,7 @@ const readOnlyClass =
 
 function formatSolde(value) {
     const n = Number(value) || 0;
-    return `${n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MAD`;
+    return `${n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 function buildFicheHtml(row) {

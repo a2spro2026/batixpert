@@ -43,7 +43,7 @@ const readOnlyCompact = `${readOnlyClass} py-1 text-[11px]`;
 
 function formatMontant(value) {
     const n = Number(value) || 0;
-    return `${n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MAD`;
+    return `${n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 function buildBonHtml(row) {

@@ -69,8 +69,8 @@ export const navigation = [
         children: [
             { to: '/clients/fiches', label: 'Fiche Client', icon: ContactRound },
             { to: '/clients/devis', label: 'Devis', icon: FileSignature },
-            { to: '/clients/bons-vente', label: 'Bon Vente', icon: FileCheck },
-            { to: '/clients/reglements-vente', label: 'Règlement Vente', icon: CircleDollarSign },
+            { to: '/clients/bons-vente', label: "Bon D'Execution", icon: FileCheck },
+            { to: '/clients/reglements-vente', label: 'Etat Paiement', icon: CircleDollarSign },
             { to: '/clients/factures-ventes', label: 'Facture Ventes', icon: Receipt },
             { to: '/clients/reglements-factures', label: 'Règlement Facture', icon: Wallet },
             { to: '/clients/balance', label: 'Balance', icon: Scale },

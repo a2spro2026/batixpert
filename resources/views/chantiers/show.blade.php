@@ -14,7 +14,7 @@
         <div class="flex justify-between mb-2"><span class="text-sm text-slate-500">Progression</span><span class="font-semibold">{{ $chantier->progress }}%</span></div>
         <div class="w-full bg-slate-100 rounded-full h-3"><div class="bg-blue-600 h-3 rounded-full" style="width:{{ $chantier->progress }}%"></div></div>
         <div class="mt-4 grid grid-cols-2 gap-2 text-sm">
-            <div><span class="text-slate-500">Budget:</span> {{ number_format($chantier->budget, 0, ',', ' ') }} MAD</div>
+            <div><span class="text-slate-500">Budget:</span> {{ number_format($chantier->budget, 0, ',', ' ') }}</div>
             <div><span class="text-slate-500">Statut:</span> <x-status-badge :status="$chantier->status" /></div>
         </div>
     </div>

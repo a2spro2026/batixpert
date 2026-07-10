@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Plus, CheckCircle } from 'lucide-react';
 import api from '../lib/api';
 
-const formatMAD = (n) => new Intl.NumberFormat('fr-MA').format(n) + ' MAD';
+const formatMontant = (n) => new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(n) || 0);
 
 export default function AchatsPage() {
     const [orders, setOrders] = useState({ data: [] });
@@ -46,7 +46,7 @@ export default function AchatsPage() {
                                 <td className="px-5 py-3">{o.order_date}</td>
                                 <td className="px-5 py-3">{o.supplier?.name}</td>
                                 <td className="px-5 py-3">{o.chantier?.name || '—'}</td>
-                                <td className="px-5 py-3 text-right font-semibold">{formatMAD(o.total_ttc)}</td>
+                                <td className="px-5 py-3 text-right font-semibold">{formatMontant(o.total_ttc)}</td>
                                 <td className="px-5 py-3 text-center">
                                     <span className="px-2 py-1 rounded-full text-xs bg-amber-100 text-amber-800">{o.status}</span>
                                 </td>

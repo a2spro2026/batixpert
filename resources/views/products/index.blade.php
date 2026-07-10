@@ -19,7 +19,7 @@
                     <td class="px-5 py-3 font-mono text-xs">{{ $product->reference }}</td>
                     <td class="px-5 py-3 font-medium">{{ $product->name }}</td>
                     <td class="px-5 py-3 text-right">{{ number_format($product->quantity_in_stock, 2) }} {{ $product->unit }}</td>
-                    <td class="px-5 py-3 text-right">{{ number_format($product->unit_price, 2) }} MAD</td>
+                    <td class="px-5 py-3 text-right">{{ number_format($product->unit_price, 2) }}</td>
                     <td class="px-5 py-3 text-center">@if($product->isLowStock())<span class="text-amber-600 text-xs font-medium">Stock faible</span>@endif</td>
                     <td class="px-5 py-3 text-right"><a href="{{ route('products.edit', $product) }}" class="text-blue-600 hover:underline">Modifier</a></td>
                 </tr>

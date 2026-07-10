@@ -5,7 +5,7 @@
 <form method="POST" action="{{ route('employee-payments.store') }}" class="bg-white rounded-xl border p-6 max-w-md">
     @csrf
     <div class="space-y-4">
-        <div><label class="block text-sm font-medium mb-1">Employé *</label><select name="employee_id" required class="w-full rounded-lg border-slate-300 text-sm">@foreach($employees as $e)<option value="{{ $e->id }}">{{ $e->full_name }} — {{ number_format($e->monthly_salary, 0) }} MAD</option>@endforeach</select></div>
+        <div><label class="block text-sm font-medium mb-1">Employé *</label><select name="employee_id" required class="w-full rounded-lg border-slate-300 text-sm">@foreach($employees as $e)<option value="{{ $e->id }}">{{ $e->full_name }} — {{ number_format($e->monthly_salary, 0) }}</option>@endforeach</select></div>
         <div><label class="block text-sm font-medium mb-1">Début période *</label><input type="date" name="period_start" required class="w-full rounded-lg border-slate-300 text-sm"></div>
         <div><label class="block text-sm font-medium mb-1">Fin période *</label><input type="date" name="period_end" required class="w-full rounded-lg border-slate-300 text-sm"></div>
         <div><label class="block text-sm font-medium mb-1">Montant de base *</label><input type="number" step="0.01" name="base_amount" required class="w-full rounded-lg border-slate-300 text-sm"></div>

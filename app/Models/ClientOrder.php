@@ -12,7 +12,7 @@ class ClientOrder extends Model
         'reference', 'quote_id', 'client_id', 'order_date',
         'contact', 'city', 'chantier_type', 'budget', 'work_delay',
         'type_travaux', 'designation', 'consistance', 'unit', 'quantity', 'unit_price', 'subtotal',
-        'total_ht', 'tva', 'total_ttc', 'status', 'user_id',
+        'total_ht', 'tva', 'total_ttc', 'montant_paye', 'status', 'user_id',
     ];
 
     protected function casts(): array
@@ -26,6 +26,7 @@ class ClientOrder extends Model
             'total_ht' => 'decimal:2',
             'tva' => 'decimal:2',
             'total_ttc' => 'decimal:2',
+            'montant_paye' => 'decimal:2',
         ];
     }
 
@@ -42,5 +43,10 @@ class ClientOrder extends Model
     public function items(): HasMany
     {
         return $this->hasMany(ClientOrderItem::class);
+    }
+
+    public function paymentAllocations(): HasMany
+    {
+        return $this->hasMany(ClientPaymentAllocation::class);
     }
 }

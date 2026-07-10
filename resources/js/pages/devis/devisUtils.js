@@ -71,7 +71,7 @@ export function calcTotals(totalHt) {
 
 export function formatMontant(value) {
     const n = Number(value) || 0;
-    return `${n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MAD`;
+    return n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function esc(value) {
@@ -202,7 +202,7 @@ body {
 .info-card th {
     width: 38%;
     color: #64748b;
-    font-weight: 600;
+    font-weight: 700;
     background: #f8fafc;
 }
 .info-card tr:last-child th,
@@ -227,6 +227,7 @@ body {
 .lines thead th {
     background: #1e3a5f;
     color: #fff;
+    font-weight: 700;
     font-size: 8px;
     text-transform: uppercase;
     letter-spacing: 0.4px;
@@ -395,9 +396,9 @@ body {
     <div class="bottom">
         <div class="totals">
             <table>
-                <tr><td>Total HT</td><td>${formatMontantPlain(subtotal)} MAD</td></tr>
-                <tr><td>TVA 20%</td><td>${formatMontantPlain(tva)} MAD</td></tr>
-                <tr><td>Total TTC</td><td>${formatMontantPlain(totalTtc)} MAD</td></tr>
+                <tr><td>Total HT</td><td>${formatMontantPlain(subtotal)}</td></tr>
+                <tr><td>TVA 20%</td><td>${formatMontantPlain(tva)}</td></tr>
+                <tr><td>Total TTC</td><td>${formatMontantPlain(totalTtc)}</td></tr>
             </table>
         </div>
     </div>

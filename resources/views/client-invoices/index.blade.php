@@ -17,7 +17,7 @@
                     <td class="px-5 py-3 font-medium">{{ $invoice->reference }}</td>
                     <td class="px-5 py-3">{{ $invoice->client->name }}</td>
                     <td class="px-5 py-3">{{ $invoice->invoice_date->format('d/m/Y') }}</td>
-                    <td class="px-5 py-3 text-right">{{ number_format($invoice->total_ttc, 2, ',', ' ') }} MAD</td>
+                    <td class="px-5 py-3 text-right">{{ number_format($invoice->total_ttc, 2, ',', ' ') }}</td>
                     <td class="px-5 py-3 text-center"><x-status-badge :status="$invoice->status" /></td>
                     <td class="px-5 py-3 text-right"><a href="{{ route('client-invoices.show', $invoice) }}" class="text-blue-600">Voir</a></td>
                 </tr>

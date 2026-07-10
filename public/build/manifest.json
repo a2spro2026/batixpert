@@ -1,6 +1,6 @@
 {
   "resources/css/app.css": {
-    "file": "assets/app-DAcgriu7.css",
+    "file": "assets/app-IPtlKynt.css",
     "src": "resources/css/app.css",
     "isEntry": true,
     "name": "app",
@@ -9,12 +9,12 @@
     ]
   },
   "resources/js/main.jsx": {
-    "file": "assets/main-DOG3U-gh.js",
+    "file": "assets/main-ClP6fj5-.js",
     "name": "main",
     "src": "resources/js/main.jsx",
     "isEntry": true,
     "css": [
-      "assets/app-DAcgriu7.css"
+      "assets/app-IPtlKynt.css"
     ]
   }
 }
