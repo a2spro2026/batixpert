@@ -27,7 +27,7 @@ const emptyForm = {
 function Field({ label, children, compact = false }) {
     return (
         <div>
-            <label className={`block font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1 truncate text-center ${compact ? 'text-[9px]' : 'text-[10px]'}`}>
+            <label className={`field-label ${compact ? 'field-label-compact' : ''}`}>
                 {label}
             </label>
             {children}

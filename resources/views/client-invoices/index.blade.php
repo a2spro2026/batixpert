@@ -10,7 +10,7 @@
 </div>
 <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
     <table class="w-full text-sm">
-        <thead class="bg-slate-50 text-xs uppercase text-slate-500"><tr><th class="px-5 py-3 text-left">Réf.</th><th class="px-5 py-3 text-left">Client</th><th class="px-5 py-3 text-left">Date</th><th class="px-5 py-3 text-right">Montant TTC</th><th class="px-5 py-3 text-center">Statut</th><th class="px-5 py-3 text-right">Actions</th></tr></thead>
+        <thead class="bg-slate-50 font-bold text-xs uppercase text-slate-500"><tr><th class="px-5 py-3 text-left">Réf.</th><th class="px-5 py-3 text-left">Client</th><th class="px-5 py-3 text-left">Date</th><th class="px-5 py-3 text-right">Montant TTC</th><th class="px-5 py-3 text-center">Statut</th><th class="px-5 py-3 text-right">Actions</th></tr></thead>
         <tbody class="divide-y">
             @forelse($invoices as $invoice)
                 <tr class="hover:bg-slate-50">

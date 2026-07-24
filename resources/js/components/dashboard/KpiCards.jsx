@@ -1,34 +1,35 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
-    HardHat, Package, Warehouse, Receipt, Vault, TrendingUp, TrendingDown,
+    ShoppingCart, ShoppingBag, Scale, Receipt, Vault, TrendingUp, TrendingDown,
 } from 'lucide-react';
 import api from '../../lib/api';
 
 const cards = [
     {
-        key: 'nombre_chantiers',
-        label: 'Nombre de Chantiers',
-        icon: HardHat,
-        format: 'number',
+        key: 'total_achats',
+        label: 'Total Achats',
+        icon: ShoppingCart,
+        format: 'currency',
         gradient: 'from-blue-700 via-brand-navy to-slate-900',
         glow: 'rgba(30, 58, 95, 0.4)',
     },
     {
-        key: 'valeur_stock_chantiers',
-        label: 'Valeur Stock sur Chantiers',
-        icon: Package,
+        key: 'total_ventes',
+        label: 'Total Ventes',
+        icon: ShoppingBag,
         format: 'currency',
         gradient: 'from-amber-500 via-orange-500 to-orange-700',
         glow: 'rgba(249, 115, 22, 0.4)',
     },
     {
-        key: 'valeur_stock_depot',
-        label: 'Valeur Stock Dépôt',
-        icon: Warehouse,
+        key: 'reliquat',
+        label: 'Reliquat',
+        icon: Scale,
         format: 'currency',
         gradient: 'from-emerald-500 via-teal-600 to-green-800',
         glow: 'rgba(16, 185, 129, 0.4)',
+        dynamic: true,
     },
     {
         key: 'total_charges',
@@ -52,7 +53,7 @@ const cards = [
 function formatValue(value, format) {
     const num = Number(value) || 0;
     if (format === 'number') return num.toLocaleString('fr-FR');
-    return `${num.toLocaleString('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+    return `${num.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 function AnimatedValue({ value, format }) {
@@ -82,7 +83,7 @@ function AnimatedValue({ value, format }) {
 
 function KpiCard({ card, value, index }) {
     const Icon = card.icon;
-    const isTresorerie = card.key === 'tresorerie';
+    const isDynamic = card.dynamic;
     const num = Number(value) || 0;
     const positive = num >= 0;
 
@@ -103,7 +104,7 @@ function KpiCard({ card, value, index }) {
                     <div className="p-1.5 rounded-lg bg-white/20 backdrop-blur-sm">
                         <Icon className="w-4 h-4 text-white" strokeWidth={2} />
                     </div>
-                    {isTresorerie && (
+                    {isDynamic && (
                         <span className={`inline-flex items-center gap-0.5 text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full ${
                             positive ? 'bg-white/25 text-white' : 'bg-black/25 text-red-200'
                         }`}>

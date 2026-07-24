@@ -6,6 +6,7 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import ChantiersPage from './pages/ChantiersPage';
 import BonAchatsPage from './pages/BonAchatsPage';
+import BonVentesPage from './pages/BonVentesPage';
 import FicheProduitPage from './pages/FicheProduitPage';
 import GenericListPage from './pages/GenericListPage';
 import ModulePage from './pages/ModulePage';
@@ -55,6 +56,7 @@ function AppRoutes() {
 
                 {/* Client */}
                 <Route path="clients/fiches" element={<FicheClientPage />} />
+                <Route path="clients/bons-de-vente" element={<BonVentesPage />} />
                 <Route path="clients/devis/nouveau" element={<DevisFormPage />} />
                 <Route path="clients/devis/:id" element={<DevisFormPage />} />
                 <Route path="clients/devis" element={<DevisListPage />} />

@@ -13,8 +13,17 @@ const REGLEMENT_OPTIONS = [
 
 const TYPE_OPTIONS = [
     { value: '', label: '—' },
-    { value: 'Public', label: 'Public' },
-    { value: 'Privé', label: 'Privé' },
+    { value: 'Rev', label: 'Rev' },
+    { value: 'Entr', label: 'Entr' },
+    { value: 'Pro', label: 'Pro' },
+];
+
+const ECHEANCE_OPTIONS = [
+    { value: '', label: '—' },
+    { value: '45 Jrs', label: '45 Jrs' },
+    { value: '60 Jrs', label: '60 Jrs' },
+    { value: '90 Jrs', label: '90 Jrs' },
+    { value: '120 Jrs', label: '120 Jrs' },
 ];
 
 const emptyForm = {
@@ -24,14 +33,14 @@ const emptyForm = {
     chantier_type: '',
     reglement: '',
     chantier_address: '',
-    budget: '',
-    work_delay: '',
+    work_delay: '', // Échéance
+    budget: '', // Solde Initial
 };
 
 function Field({ label, children, className = '' }) {
     return (
         <div className={className}>
-            <label className="block text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1 truncate text-center">
+            <label className="field-label">
                 {label}
             </label>
             {children}
@@ -45,9 +54,20 @@ const inputClass =
 const readOnlyClass =
     'w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 px-2.5 py-1.5 text-xs text-center cursor-not-allowed';
 
-function formatBudget(value) {
-    const n = Number(value) || 0;
-    return `${n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+function formatSolde(value) {
+    const n = Number(String(value ?? '').replace(',', '.')) || 0;
+    return n.toFixed(2);
+}
+
+function hasSoldeInitial(value) {
+    const n = Number(String(value ?? '').replace(',', '.'));
+    return Number.isFinite(n) && n !== 0;
+}
+
+function parseSoldeInput(value) {
+    if (value === '' || value == null) return '';
+    const n = Number(String(value).replace(',', '.'));
+    return Number.isFinite(n) ? n.toFixed(2) : '';
 }
 
 function buildFicheHtml(row) {
@@ -58,7 +78,7 @@ h1{color:#1e3a5f;margin:0 0 4px;font-size:22px}
 .sub{color:#64748b;font-size:12px;margin-bottom:24px}
 table{width:100%;border-collapse:collapse;margin-top:16px}
 th,td{border:1px solid #e2e8f0;padding:10px 12px;text-align:left;font-size:13px}
-th{background:#f8fafc;width:180px;font-weight:600}
+th{background:#f8fafc;width:180px;font-weight:700}
 .footer{margin-top:32px;font-size:11px;color:#94a3b8;text-align:center}
 .badge{display:inline-block;padding:4px 10px;border-radius:999px;background:#fff7ed;color:#ea580c;font-weight:700}
 </style></head><body>
@@ -70,10 +90,10 @@ th{background:#f8fafc;width:180px;font-weight:600}
 <tr><th>Contact</th><td>${row.contact || '—'}</td></tr>
 <tr><th>Ville</th><td>${row.city || '—'}</td></tr>
 <tr><th>Type</th><td>${row.chantier_type || '—'}</td></tr>
-<tr><th>Règlement</th><td>${row.reglement || '—'}</td></tr>
-<tr><th>Adresse chantier</th><td>${row.chantier_address || '—'}</td></tr>
-<tr><th>Budget</th><td><strong>${formatBudget(row.budget)}</strong></td></tr>
-<tr><th>Délai Travaux</th><td>${row.work_delay || '—'}</td></tr>
+<tr><th>Régl</th><td>${row.reglement || '—'}</td></tr>
+<tr><th>Adresse</th><td>${row.chantier_address || '—'}</td></tr>
+<tr><th>Échéance</th><td>${row.work_delay || row.echeance || '—'}</td></tr>
+<tr><th>Solde Initial</th><td><strong>${formatSolde(row.budget ?? row.initial_balance)}</strong></td></tr>
 <tr><th>Date création</th><td>${row.created_at || '—'}</td></tr>
 </table>
 <p class="footer">© BatiXpert — A2SPRO</p>
@@ -134,15 +154,15 @@ function ViewModal({ row, onClose }) {
                         ['Contact', row.contact],
                         ['Ville', row.city],
                         ['Type', row.chantier_type],
-                        ['Règlement', row.reglement],
-                        ['Adresse chantier', row.chantier_address],
-                        ['Budget', formatBudget(row.budget)],
-                        ['Délai Travaux', row.work_delay],
+                        ['Régl', row.reglement],
+                        ['Adresse', row.chantier_address],
+                        ['Échéance', row.work_delay || row.echeance],
+                        ['Solde Initial', formatSolde(row.budget ?? row.initial_balance), hasSoldeInitial(row.budget ?? row.initial_balance)],
                         ['Date', row.created_at],
-                    ].map(([label, value]) => (
+                    ].map(([label, value, isRed]) => (
                         <div key={label} className="flex justify-between gap-4 py-2 border-b border-slate-100 dark:border-slate-800 last:border-0">
                             <span className="text-slate-500 dark:text-slate-400 shrink-0">{label}</span>
-                            <span className="font-medium text-slate-800 dark:text-white text-right">{value || '—'}</span>
+                            <span className={`font-medium text-right ${isRed ? 'text-red-600 dark:text-red-400 font-bold' : 'text-slate-800 dark:text-white'}`}>{value || '—'}</span>
                         </div>
                     ))}
                 </div>
@@ -201,8 +221,8 @@ export default function FicheClientPage() {
             chantier_type: row.chantier_type || '',
             reglement: row.reglement || '',
             chantier_address: row.chantier_address || '',
-            budget: row.budget ?? '',
-            work_delay: row.work_delay || '',
+            work_delay: row.work_delay || row.echeance || '',
+            budget: parseSoldeInput(row.budget ?? row.initial_balance),
         });
         setEditingId(row.id);
         setError('');
@@ -231,8 +251,8 @@ export default function FicheClientPage() {
             chantier_type: form.chantier_type || null,
             reglement: form.reglement || null,
             chantier_address: form.chantier_address || null,
-            budget: form.budget ? parseFloat(form.budget) : 0,
             work_delay: form.work_delay || null,
+            budget: form.budget === '' ? 0 : Number(parseSoldeInput(form.budget) || 0),
         };
         try {
             if (editingId) {
@@ -265,45 +285,59 @@ export default function FicheClientPage() {
                     </div>
                 )}
 
-                <div className="grid grid-cols-2 sm:grid-cols-5 xl:grid-cols-[80px_80px_1.2fr_0.9fr_0.8fr_0.7fr_0.7fr_1.2fr_0.8fr_0.8fr] gap-2.5 items-end">
-                    <Field label="Date">
-                        <input type="text" readOnly value={meta.date} className={readOnlyClass} />
-                    </Field>
-                    <Field label="CR">
-                        <input type="text" readOnly value={editingId ? rows.find((r) => r.id === editingId)?.code ?? meta.next_id : meta.next_id} className={readOnlyClass} />
-                    </Field>
-                    <Field label="Nom Client">
-                        <input type="text" required value={form.name} onChange={(e) => set('name', e.target.value)} placeholder="Raison sociale" className={inputClass} />
-                    </Field>
-                    <Field label="Contact">
-                        <input type="tel" value={form.phone} onChange={(e) => set('phone', e.target.value)} placeholder="06 XX XX XX XX" className={inputClass} />
-                    </Field>
-                    <Field label="Ville">
-                        <input type="text" value={form.city} onChange={(e) => set('city', e.target.value)} placeholder="Ville" className={inputClass} />
-                    </Field>
-                    <Field label="Type">
-                        <select value={form.chantier_type} onChange={(e) => set('chantier_type', e.target.value)} className={inputClass}>
-                            {TYPE_OPTIONS.map((opt) => (
-                                <option key={opt.value || 'empty'} value={opt.value}>{opt.label}</option>
-                            ))}
-                        </select>
-                    </Field>
-                    <Field label="Règlement">
-                        <select value={form.reglement} onChange={(e) => set('reglement', e.target.value)} className={inputClass}>
-                            {REGLEMENT_OPTIONS.map((opt) => (
-                                <option key={opt.value || 'empty'} value={opt.value}>{opt.label}</option>
-                            ))}
-                        </select>
-                    </Field>
-                    <Field label="Adresse chantier">
-                        <input type="text" value={form.chantier_address} onChange={(e) => set('chantier_address', e.target.value)} placeholder="Adresse chantier" className={inputClass} />
-                    </Field>
-                    <Field label="Budget">
-                        <input type="number" step="0.01" min="0" value={form.budget} onChange={(e) => set('budget', e.target.value)} placeholder="0.00" className={inputClass} />
-                    </Field>
-                    <Field label="Délai Travaux">
-                        <input type="text" value={form.work_delay} onChange={(e) => set('work_delay', e.target.value)} placeholder="ex : 6 mois" className={inputClass} />
-                    </Field>
+                <div className="overflow-x-auto">
+                    <div className="grid grid-cols-[78px_72px_minmax(120px,1.2fr)_95px_90px_minmax(120px,1.1fr)_70px_70px_88px_95px] gap-1.5 items-end min-w-[1100px]">
+                        <Field label="Date">
+                            <input type="text" readOnly value={meta.date} className={readOnlyClass} />
+                        </Field>
+                        <Field label="CR">
+                            <input type="text" readOnly value={editingId ? rows.find((r) => r.id === editingId)?.code ?? meta.next_id : meta.next_id} className={readOnlyClass} />
+                        </Field>
+                        <Field label="Nom Client">
+                            <input type="text" required value={form.name} onChange={(e) => set('name', e.target.value)} placeholder="Raison sociale" className={inputClass} />
+                        </Field>
+                        <Field label="Contact">
+                            <input type="tel" value={form.phone} onChange={(e) => set('phone', e.target.value)} placeholder="06 XX XX XX XX" className={inputClass} />
+                        </Field>
+                        <Field label="Ville">
+                            <input type="text" value={form.city} onChange={(e) => set('city', e.target.value)} placeholder="Ville" className={inputClass} />
+                        </Field>
+                        <Field label="Adresse">
+                            <input type="text" value={form.chantier_address} onChange={(e) => set('chantier_address', e.target.value)} placeholder="Adresse" className={inputClass} />
+                        </Field>
+                        <Field label="Type">
+                            <select value={form.chantier_type} onChange={(e) => set('chantier_type', e.target.value)} className={inputClass}>
+                                {TYPE_OPTIONS.map((opt) => (
+                                    <option key={opt.value || 'empty'} value={opt.value}>{opt.label}</option>
+                                ))}
+                            </select>
+                        </Field>
+                        <Field label="Régl">
+                            <select value={form.reglement} onChange={(e) => set('reglement', e.target.value)} className={inputClass}>
+                                {REGLEMENT_OPTIONS.map((opt) => (
+                                    <option key={opt.value || 'empty'} value={opt.value}>{opt.label}</option>
+                                ))}
+                            </select>
+                        </Field>
+                        <Field label="Échéance">
+                            <select value={form.work_delay} onChange={(e) => set('work_delay', e.target.value)} className={inputClass}>
+                                {ECHEANCE_OPTIONS.map((opt) => (
+                                    <option key={opt.value || 'echeance-empty'} value={opt.value}>{opt.label}</option>
+                                ))}
+                            </select>
+                        </Field>
+                        <Field label="Solde Initial">
+                            <input
+                                type="text"
+                                inputMode="decimal"
+                                value={form.budget}
+                                onChange={(e) => set('budget', e.target.value.replace(/[^\d.,\-]/g, ''))}
+                                onBlur={() => set('budget', parseSoldeInput(form.budget))}
+                                placeholder="0.00"
+                                className={`${inputClass} ${hasSoldeInitial(form.budget) ? 'border-red-400 text-red-600 dark:text-red-400 font-bold bg-red-50 dark:bg-red-950/30 focus:ring-red-400/40 focus:border-red-500' : ''}`}
+                            />
+                        </Field>
+                    </div>
                 </div>
 
                 <div className="flex flex-wrap gap-3 mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
@@ -330,7 +364,7 @@ export default function FicheClientPage() {
                     <table className="w-full text-sm min-w-[1050px]">
                         <thead>
                             <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700">
-                                {['CR', 'Nom Client', 'Contact', 'Ville', 'Type', 'Règlement', 'Adresse chantier', 'Budget', 'Délai Travaux', 'Actions'].map((h) => (
+                                {['CR', 'Nom Client', 'Contact', 'Ville', 'Adresse', 'Type', 'Régl', 'Échéance', 'Solde Initial', 'Actions'].map((h) => (
                                     <th
                                         key={h}
                                         className="px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap text-center"
@@ -362,8 +396,14 @@ export default function FicheClientPage() {
                                                 {row.city || '—'}
                                             </span>
                                         </td>
+                                        <td className="px-4 py-2.5 text-center text-slate-600 dark:text-slate-300 max-w-[160px] truncate mx-auto">{row.chantier_address || '—'}</td>
                                         <td className="px-4 py-2.5 text-center">
-                                            <span className={`inline-flex px-2 py-0.5 rounded-md text-xs font-semibold ${row.chantier_type === 'Public' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' : row.chantier_type === 'Privé' ? 'bg-violet-50 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'}`}>
+                                            <span className={`inline-flex px-2 py-0.5 rounded-md text-xs font-semibold ${
+                                                row.chantier_type === 'Rev' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                                                : row.chantier_type === 'Entr' ? 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
+                                                : row.chantier_type === 'Pro' ? 'bg-violet-50 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300'
+                                                : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
+                                            }`}>
                                                 {row.chantier_type || '—'}
                                             </span>
                                         </td>
@@ -372,9 +412,14 @@ export default function FicheClientPage() {
                                                 {row.reglement || '—'}
                                             </span>
                                         </td>
-                                        <td className="px-4 py-2.5 text-center text-slate-600 dark:text-slate-300 max-w-[160px] truncate mx-auto">{row.chantier_address || '—'}</td>
-                                        <td className="px-4 py-2.5 text-center font-semibold tabular-nums text-brand-navy dark:text-orange-400">{formatBudget(row.budget)}</td>
-                                        <td className="px-4 py-2.5 text-center text-slate-600 dark:text-slate-300">{row.work_delay || '—'}</td>
+                                        <td className="px-4 py-2.5 text-center">
+                                            <span className="inline-flex px-2 py-0.5 rounded-md text-xs font-semibold bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300">
+                                                {row.work_delay || '—'}
+                                            </span>
+                                        </td>
+                                        <td className={`px-4 py-2.5 text-center font-semibold tabular-nums ${hasSoldeInitial(row.budget) ? 'text-red-600 dark:text-red-400' : 'text-brand-navy dark:text-orange-400'}`}>
+                                            {formatSolde(row.budget)}
+                                        </td>
                                         <td className="px-4 py-2.5">
                                             <div className="flex items-center justify-center gap-0.5">
                                                 <ActionBtn title="Voir" icon={Eye} color="blue" onClick={() => setViewRow(row)} />

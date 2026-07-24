@@ -5,12 +5,12 @@
 <form method="POST" action="{{ route('client-invoices.store') }}" class="bg-white rounded-xl shadow-sm border p-6">
     @csrf
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div><label class="block text-sm font-medium mb-1">Client *</label><select name="client_id" required class="w-full rounded-lg border-slate-300 text-sm">@foreach($clients as $c)<option value="{{ $c->id }}">{{ $c->name }}</option>@endforeach</select></div>
-        <div><label class="block text-sm font-medium mb-1">Chantier</label><select name="chantier_id" class="w-full rounded-lg border-slate-300 text-sm"><option value="">--</option>@foreach($chantiers as $ch)<option value="{{ $ch->id }}">{{ $ch->name }}</option>@endforeach</select></div>
-        <div><label class="block text-sm font-medium mb-1">Référence *</label><input type="text" name="reference" value="{{ old('reference', 'FC-'.date('Ymd-His')) }}" required class="w-full rounded-lg border-slate-300 text-sm"></div>
-        <div><label class="block text-sm font-medium mb-1">Date *</label><input type="date" name="invoice_date" value="{{ old('invoice_date', date('Y-m-d')) }}" required class="w-full rounded-lg border-slate-300 text-sm"></div>
-        <div><label class="block text-sm font-medium mb-1">Échéance</label><input type="date" name="due_date" class="w-full rounded-lg border-slate-300 text-sm"></div>
-        <div><label class="block text-sm font-medium mb-1">Statut</label><select name="status" class="w-full rounded-lg border-slate-300 text-sm"><option value="en_attente">En attente</option><option value="brouillon">Brouillon</option></select></div>
+        <div><label class="field-label-form">Client *</label><select name="client_id" required class="w-full rounded-lg border-slate-300 text-sm">@foreach($clients as $c)<option value="{{ $c->id }}">{{ $c->name }}</option>@endforeach</select></div>
+        <div><label class="field-label-form">Chantier</label><select name="chantier_id" class="w-full rounded-lg border-slate-300 text-sm"><option value="">--</option>@foreach($chantiers as $ch)<option value="{{ $ch->id }}">{{ $ch->name }}</option>@endforeach</select></div>
+        <div><label class="field-label-form">Référence *</label><input type="text" name="reference" value="{{ old('reference', 'FC-'.date('Ymd-His')) }}" required class="w-full rounded-lg border-slate-300 text-sm"></div>
+        <div><label class="field-label-form">Date *</label><input type="date" name="invoice_date" value="{{ old('invoice_date', date('Y-m-d')) }}" required class="w-full rounded-lg border-slate-300 text-sm"></div>
+        <div><label class="field-label-form">Échéance</label><input type="date" name="due_date" class="w-full rounded-lg border-slate-300 text-sm"></div>
+        <div><label class="field-label-form">Statut</label><select name="status" class="w-full rounded-lg border-slate-300 text-sm"><option value="en_attente">En attente</option><option value="brouillon">Brouillon</option></select></div>
     </div>
     <h3 class="font-semibold mb-3">Lignes de facture</h3>
     <div id="invoice-lines" class="space-y-2 mb-4">

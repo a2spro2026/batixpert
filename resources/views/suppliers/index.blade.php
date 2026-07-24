@@ -4,7 +4,7 @@
 <x-page-header title="Achats & Fournisseurs" :action="route('suppliers.create')" actionLabel="Nouveau fournisseur" />
 <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
     <table class="w-full text-sm">
-        <thead class="bg-slate-50 text-slate-500 uppercase text-xs">
+        <thead class="bg-slate-50 font-bold text-slate-500 uppercase text-xs">
             <tr><th class="px-5 py-3 text-left">Nom</th><th class="px-5 py-3 text-left">Contact</th><th class="px-5 py-3 text-left">Ville</th><th class="px-5 py-3 text-center">Statut</th><th class="px-5 py-3 text-right">Actions</th></tr>
         </thead>
         <tbody class="divide-y">

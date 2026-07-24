@@ -74,7 +74,7 @@ class ClientApiController extends Controller
             'address' => 'nullable|string',
             'city' => 'nullable|string',
             'ice' => 'nullable|string',
-            'chantier_type' => 'nullable|in:Public,Privé',
+            'chantier_type' => 'nullable|in:Rev,Entr,Pro',
             'reglement' => 'nullable|in:Esp,Chq,Eff,Vir,Vers',
             'chantier_address' => 'nullable|string',
             'budget' => 'nullable|numeric|min:0',
@@ -106,7 +106,9 @@ class ClientApiController extends Controller
             'reglement' => $client->reglement,
             'chantier_address' => $client->chantier_address,
             'budget' => round((float) $client->budget, 2),
+            'initial_balance' => number_format((float) $client->budget, 2, '.', ''),
             'work_delay' => $client->work_delay,
+            'echeance' => $client->work_delay,
             'status' => $client->status,
             'created_at' => $client->created_at?->format('d/m/Y'),
         ];

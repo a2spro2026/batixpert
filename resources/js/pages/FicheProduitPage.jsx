@@ -2,8 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Save, RotateCcw, Eye, Pencil, Trash2, Printer, FileText, X, RefreshCw } from 'lucide-react';
 import api from '../lib/api';
 
-const CONSISTANCE_OPTIONS = ['', 'F', 'M', 'F+M'];
-const UNIT_OPTIONS = ['', 'JEU', 'KG', 'KM', 'KM-UNIF', 'M', 'M²', 'M³', 'ML', 'T', 'U'];
+const UNIT_OPTIONS = ['', 'Kg', 'U', 'Sac', 'ML', 'M²', 'M³', 'Tn', 'M'];
 const STATUT_OPTIONS = [
     { value: 'actif', label: 'Actif' },
     { value: 'inactif', label: 'Inactif' },
@@ -15,9 +14,8 @@ const ETAT_OPTIONS = [
 ];
 
 const emptyForm = {
-    article_id: '',
+    reference: '',
     name: '',
-    consistance: '',
     unit: '',
     famille: '',
     initial_stock: '',
@@ -28,7 +26,7 @@ const emptyForm = {
 function Field({ label, children, className = '', compact = false }) {
     return (
         <div className={className}>
-            <label className={`block font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1 truncate text-center ${compact ? 'text-[9px]' : 'text-[10px]'}`}>
+            <label className={`field-label ${compact ? 'field-label-compact' : ''}`}>
                 {label}
             </label>
             {children}
@@ -38,9 +36,6 @@ function Field({ label, children, className = '', compact = false }) {
 
 const inputClass =
     'w-full rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-1.5 py-1 text-[11px] text-center outline-none focus:ring-2 focus:ring-brand-navy/30 focus:border-brand-navy transition-all min-w-0';
-
-const readOnlyClass =
-    'w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 px-1.5 py-1 text-[11px] text-center cursor-not-allowed min-w-0';
 
 function etatSelectClass(value) {
     const base = 'w-full rounded-lg border px-1.5 py-1 text-[11px] text-center font-semibold outline-none focus:ring-2 transition-all min-w-0 cursor-pointer appearance-none';
@@ -85,18 +80,18 @@ body{font-family:Arial,sans-serif;padding:32px;color:#1e293b}
 h1{color:#1e3a5f;font-size:22px}
 table{width:100%;border-collapse:collapse;margin-top:16px}
 th,td{border:1px solid #e2e8f0;padding:10px;font-size:13px;text-align:center}
-th{background:#f8fafc;font-weight:600;width:160px}
+th{background:#f8fafc;font-weight:700;width:160px}
 .badge{background:#ecfdf5;color:#059669;padding:4px 10px;border-radius:999px;font-weight:700}
 </style></head><body>
 <h1>BATIXPERT — Fiche Produit</h1>
 <table>
 <tr><th>Réf</th><td><span class="badge">${row.reference}</span></td></tr>
-<tr><th>ID Article</th><td>${row.article_id || '—'}</td></tr>
 <tr><th>Désignation</th><td>${row.name || '—'}</td></tr>
-<tr><th>Consistance</th><td>${row.consistance || '—'}</td></tr>
 <tr><th>Unité</th><td>${row.unit || '—'}</td></tr>
 <tr><th>Famille</th><td>${row.famille || '—'}</td></tr>
-<tr><th>Stock Initial</th><td>${row.initial_stock ?? 0}</td></tr>
+<tr><th>Qté saisie</th><td>${row.initial_stock ?? 0}</td></tr>
+<tr><th>Qté bons d'achat</th><td>${row.purchased_qty ?? 0}</td></tr>
+<tr><th>Qté totale</th><td>${row.quantity_in_stock ?? row.initial_stock ?? 0}</td></tr>
 <tr><th>Statut</th><td>${row.statut || '—'}</td></tr>
 <tr><th>État</th><td>${row.etat || '—'}</td></tr>
 </table></body></html>`;
@@ -144,19 +139,19 @@ function ViewModal({ row, onClose }) {
                 </div>
                 <div className="p-5 space-y-3 text-sm">
                     {[
-                        ['ID Article', row.article_id],
                         ['Désignation', row.name],
-                        ['Consistance', row.consistance],
                         ['Unité', row.unit],
                         ['Famille', row.famille],
-                        ['Stock Initial', row.initial_stock],
+                        ['Qté saisie', row.initial_stock ?? 0],
+                        ["Qté bons d'achat", row.purchased_qty ?? 0],
+                        ['Qté totale', row.quantity_in_stock ?? row.initial_stock],
                         ['Statut', row.statut],
                         ['État', row.etat],
                     ].map(([label, val]) => (
                         <div key={label} className="flex justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-2">
                             <span className="text-slate-500 text-xs uppercase">{label}</span>
                             <span className="font-medium text-slate-800 dark:text-white text-right">
-                                {label === 'Statut' ? <StatutBadge value={val} /> : label === 'État' ? <EtatBadge value={val} /> : (val || '—')}
+                                {label === 'Statut' ? <StatutBadge value={val} /> : label === 'État' ? <EtatBadge value={val} /> : (val === 0 ? '0' : val || '—')}
                             </span>
                         </div>
                     ))}
@@ -207,12 +202,11 @@ export default function FicheProduitPage() {
 
     const fillForm = (row) => {
         setForm({
-            article_id: row.article_id || '',
+            reference: row.reference || '',
             name: row.name || '',
-            consistance: row.consistance || '',
             unit: row.unit || '',
             famille: row.famille || '',
-            initial_stock: row.initial_stock ?? '',
+            initial_stock: row.initial_stock ?? row.quantity_in_stock ?? '',
             status: row.status || 'actif',
             etat: row.etat || 'Rupture',
         });
@@ -237,9 +231,8 @@ export default function FicheProduitPage() {
         setError('');
         setSaving(true);
         const payload = {
-            article_id: form.article_id || null,
+            reference: form.reference.trim(),
             name: form.name,
-            consistance: form.consistance || null,
             unit: form.unit,
             famille: form.famille || null,
             initial_stock: parseFloat(form.initial_stock) || 0,
@@ -278,25 +271,35 @@ export default function FicheProduitPage() {
                     </div>
                 )}
 
-                <div className="grid grid-cols-[0.75fr_0.8fr_1.7fr_0.85fr_0.55fr_0.75fr_0.65fr_0.6fr] gap-1.5 items-end w-full">
+                <div className="grid grid-cols-[0.7fr_1.8fr_0.65fr_0.7fr_1fr_0.65fr_0.65fr] gap-1.5 items-end w-full">
                     <Field label="Réf" compact>
-                        <input type="text" readOnly value={currentRef} className={readOnlyClass} />
-                    </Field>
-                    <Field label="ID Article" compact>
-                        <input type="text" value={form.article_id} onChange={(e) => set('article_id', e.target.value)} placeholder="01-01-01" className={inputClass} />
+                        <input
+                            type="text"
+                            required
+                            value={form.reference}
+                            onChange={(e) => set('reference', e.target.value)}
+                            placeholder={currentRef || 'Réf'}
+                            className={inputClass}
+                        />
                     </Field>
                     <Field label="Désignation">
                         <input type="text" required value={form.name} onChange={(e) => set('name', e.target.value)} placeholder="Désignation" className={inputClass} />
-                    </Field>
-                    <Field label="Consistance" compact>
-                        <select value={form.consistance} onChange={(e) => set('consistance', e.target.value)} className={inputClass}>
-                            {CONSISTANCE_OPTIONS.map((v) => <option key={v || 'e'} value={v}>{v || '—'}</option>)}
-                        </select>
                     </Field>
                     <Field label="Unité" compact>
                         <select required value={form.unit} onChange={(e) => set('unit', e.target.value)} className={inputClass}>
                             {UNIT_OPTIONS.map((v) => <option key={v || 'e'} value={v}>{v || '—'}</option>)}
                         </select>
+                    </Field>
+                    <Field label="Qté" compact>
+                        <input
+                            type="number"
+                            step="0.001"
+                            min="0"
+                            value={form.initial_stock}
+                            onChange={(e) => set('initial_stock', e.target.value)}
+                            placeholder="0"
+                            className={inputClass}
+                        />
                     </Field>
                     <Field label="Famille" compact>
                         <input type="text" list="familles-list" value={form.famille} onChange={(e) => set('famille', e.target.value)} placeholder="Famille" className={inputClass} />
@@ -353,7 +356,7 @@ export default function FicheProduitPage() {
                     <table className="w-full text-sm min-w-[1100px] border-collapse">
                         <thead className="sticky top-0 z-10">
                             <tr className="border-b border-slate-200 dark:border-slate-700">
-                                {['Réf', 'ID Article', 'Désignation', 'Consistance', 'Unité', 'Famille', 'Stock Initial', 'Statut', 'État', 'Actions'].map((h) => (
+                                {['Réf', 'Désignation', 'Unité', 'Qté', 'Famille', 'Statut', 'État', 'Actions'].map((h) => (
                                     <th
                                         key={h}
                                         className="px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap text-center bg-slate-50 dark:bg-slate-800 shadow-[0_1px_0_0_rgba(226,232,240,1)] dark:shadow-[0_1px_0_0_rgba(51,65,85,1)]"
@@ -366,7 +369,7 @@ export default function FicheProduitPage() {
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                             {loading ? (
                                 [...Array(5)].map((_, i) => (
-                                    <tr key={i}>{[...Array(10)].map((__, j) => (
+                                    <tr key={i}>{[...Array(8)].map((__, j) => (
                                         <td key={j} className="px-4 py-3 text-center"><div className="h-4 bg-slate-200 dark:bg-slate-700 rounded animate-pulse mx-auto max-w-[80px]" /></td>
                                     ))}</tr>
                                 ))
@@ -374,14 +377,17 @@ export default function FicheProduitPage() {
                                 rows.map((row) => (
                                     <tr key={row.id} className={`hover:bg-emerald-50/40 dark:hover:bg-slate-800/40 transition-colors ${editingId === row.id ? 'bg-amber-50/60 dark:bg-amber-900/10' : ''}`}>
                                         <td className="px-4 py-2.5 text-center font-mono text-xs font-semibold text-brand-navy dark:text-emerald-400">{row.reference}</td>
-                                        <td className="px-4 py-2.5 text-center font-mono text-xs text-slate-600 dark:text-slate-300">{row.article_id || '—'}</td>
                                         <td className="px-4 py-2.5 text-center font-medium text-slate-800 dark:text-white max-w-[200px] truncate" title={row.name}>{row.name || '—'}</td>
-                                        <td className="px-4 py-2.5 text-center text-slate-600 dark:text-slate-300">{row.consistance || '—'}</td>
                                         <td className="px-4 py-2.5 text-center text-slate-600 dark:text-slate-300">{row.unit || '—'}</td>
+                                        <td
+                                            className="px-4 py-2.5 text-center tabular-nums font-semibold text-brand-navy dark:text-emerald-400"
+                                            title={`Saisie : ${Number(row.initial_stock ?? 0).toLocaleString('fr-FR')} + Bons d'achat : ${Number(row.purchased_qty ?? 0).toLocaleString('fr-FR')}`}
+                                        >
+                                            {Number(row.quantity_in_stock ?? row.initial_stock ?? 0).toLocaleString('fr-FR', { maximumFractionDigits: 3 })}
+                                        </td>
                                         <td className="px-4 py-2.5 text-center">
                                             <span className="inline-flex px-2 py-0.5 rounded-md text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 max-w-[160px] truncate" title={row.famille}>{row.famille || '—'}</span>
                                         </td>
-                                        <td className="px-4 py-2.5 text-center tabular-nums font-medium text-slate-700 dark:text-slate-200">{Number(row.initial_stock).toLocaleString('fr-FR')}</td>
                                         <td className="px-4 py-2.5 text-center"><StatutBadge value={row.statut} /></td>
                                         <td className="px-4 py-2.5 text-center"><EtatBadge value={row.etat} /></td>
                                         <td className="px-4 py-2.5">
@@ -396,7 +402,7 @@ export default function FicheProduitPage() {
                                     </tr>
                                 ))
                             ) : (
-                                <tr><td colSpan={10} className="px-4 py-12 text-center text-slate-400">Aucun produit enregistré</td></tr>
+                                <tr><td colSpan={8} className="px-4 py-12 text-center text-slate-400">Aucun produit enregistré</td></tr>
                             )}
                         </tbody>
                     </table>

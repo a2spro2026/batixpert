@@ -11,7 +11,7 @@ function PasswordField({ value, onChange, showPassword, onToggle }) {
 
     return (
         <div className="relative">
-            <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-1.5">
+            <label htmlFor="password" className="field-label-form">
                 Mot de passe
             </label>
             <motion.div
@@ -121,8 +121,8 @@ function PasswordField({ value, onChange, showPassword, onToggle }) {
 }
 
 export default function Login() {
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
+    const [email, setEmail] = useState('admin@batixpert.com');
+    const [password, setPassword] = useState('password');
     const [showPassword, setShowPassword] = useState(false);
     const [remember, setRemember] = useState(false);
     const [error, setError] = useState('');
@@ -243,7 +243,7 @@ export default function Login() {
                                         </AnimatePresence>
 
                                         <div>
-                                            <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-1.5">
+                                            <label htmlFor="email" className="field-label-form">
                                                 Nom d'utilisateur
                                             </label>
                                             <motion.div

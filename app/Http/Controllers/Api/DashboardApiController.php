@@ -11,6 +11,7 @@ use App\Models\Expense;
 use App\Models\Payment;
 use App\Models\Product;
 use App\Models\PurchaseOrder;
+use App\Models\SaleOrder;
 use App\Models\StockMovement;
 use App\Models\SupplierInvoice;
 use App\Models\Task;
@@ -41,6 +42,10 @@ class DashboardApiController extends Controller
         $stockChantiers = max(0, (float) $stockChantiers);
 
         $nombreChantiers = Chantier::where('archived', false)->count();
+
+        $totalAchats = (float) PurchaseOrder::where('status', '!=', 'annule')->sum('total_ttc');
+        $totalVentes = (float) SaleOrder::where('status', '!=', 'annule')->sum('total_ttc');
+        $reliquat = $totalAchats - $totalVentes;
 
         $totalCharges = Expense::sum('amount');
 
@@ -221,6 +226,9 @@ class DashboardApiController extends Controller
 
         return response()->json([
             'kpis' => [
+                'total_achats' => round($totalAchats, 2),
+                'total_ventes' => round($totalVentes, 2),
+                'reliquat' => round($reliquat, 2),
                 'nombre_chantiers' => $nombreChantiers,
                 'valeur_stock_chantiers' => round($stockChantiers, 2),
                 'valeur_stock_depot' => round($stockDepot, 2),

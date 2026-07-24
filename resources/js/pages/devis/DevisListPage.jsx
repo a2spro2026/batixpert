@@ -13,7 +13,7 @@ import {
 function Field({ label, children }) {
     return (
         <div>
-            <label className="block text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1 truncate text-center">
+            <label className="field-label">
                 {label}
             </label>
             {children}

@@ -29,7 +29,7 @@ export default function GenericListPage({ title, subtitle, endpoint, columns }) 
             ) : (
                 <div className="glass-card overflow-hidden shadow-card">
                     <table className="w-full text-sm">
-                        <thead className="bg-slate-50 dark:bg-slate-800/50 text-xs uppercase text-slate-500">
+                        <thead className="bg-slate-50 dark:bg-slate-800/50 text-xs font-bold uppercase text-slate-500">
                             <tr>{columns?.map((c) => <th key={c.key} className="px-5 py-3 text-left">{c.label}</th>)}</tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">

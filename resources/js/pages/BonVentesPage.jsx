@@ -8,13 +8,12 @@ const REGLEMENT_OPTIONS = ['', 'Esp', 'Chq', 'Eff', 'Vir', 'Vers'];
 const ECHEANCE_OPTIONS = ['', '45 Jrs', '60 Jrs', '90 Jrs', '120 Jrs'];
 
 const emptyHeader = {
-    supplier_id: '',
+    client_id: '',
     order_date: '',
     city: '',
-    client_livre: '',
+    address: '',
     reglement: '',
     echeance: '',
-    bc_number: '',
     chauffeur: '',
     matricule: '',
 };
@@ -89,12 +88,12 @@ function buildBonHtml(row) {
 table{width:100%;border-collapse:collapse;margin-top:12px}th,td{border:1px solid #e2e8f0;padding:8px;font-size:12px;text-align:center}
 th{background:#f8fafc;font-weight:700}.badge{background:#fff7ed;color:#ea580c;padding:4px 10px;border-radius:999px;font-weight:700}
 </style></head><body>
-<h1>BATIXPERT — Bon d'Achat <span class="badge">${row.reference}</span></h1>
+<h1>BATIXPERT — Bon de Vente <span class="badge">${row.reference}</span></h1>
 <table>
-<tr><th>Date</th><td>${row.order_date || '—'}</td><th>Fournisseur</th><td>${row.fournisseur || '—'}</td></tr>
-<tr><th>N° Frns</th><td>${row.bc_number || '—'}</td><th>Client Livré</th><td>${row.client_livre || '—'}</td></tr>
-<tr><th>Ville Livraison</th><td>${row.city || '—'}</td><th>Type Rég / Échéance</th><td>${row.reglement || '—'} / ${row.echeance || '—'}</td></tr>
-<tr><th>Chauffeur</th><td>${row.chauffeur || '—'}</td><th>Matricule</th><td>${row.matricule || '—'}</td></tr>
+<tr><th>Date</th><td>${row.order_date || '—'}</td><th>Client</th><td>${row.client || '—'}</td></tr>
+<tr><th>Ville</th><td>${row.city || '—'}</td><th>Adresse Livraison</th><td>${row.address || '—'}</td></tr>
+<tr><th>Type Régl / Échéance</th><td>${row.reglement || '—'} / ${row.echeance || '—'}</td><th>Chauffeur</th><td>${row.chauffeur || '—'}</td></tr>
+<tr><th>Matricule</th><td colspan="3">${row.matricule || '—'}</td></tr>
 </table>
 <table>
 <thead><tr><th>Réf</th><th>Désignation</th><th>U</th><th>Qté</th><th>P/U</th><th>S/Total</th></tr></thead>
@@ -131,16 +130,16 @@ function ActionBtn({ title, onClick, icon: Icon, color = 'slate' }) {
 function ViewModal({ row, onClose }) {
     if (!row) return null;
     const header = [
-        ['Date', row.order_date], ['Réf B-A', row.reference], ['Fournisseur', row.fournisseur],
-        ['N° Frns', row.bc_number], ['Client Livré', row.client_livre], ['Ville Livraison', row.city],
-        ['Type Rég', row.reglement], ['Échéance', row.echeance], ['Chauffeur', row.chauffeur], ['Matricule', row.matricule],
+        ['Date', row.order_date], ['Réf B-V', row.reference], ['Client', row.client],
+        ['Ville', row.city], ['Adresse Livraison', row.address],
+        ['Type Régl', row.reglement], ['Échéance', row.echeance], ['Chauffeur', row.chauffeur], ['Matricule', row.matricule],
     ];
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
             <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-lg border border-slate-200 dark:border-slate-700 overflow-hidden" onClick={(e) => e.stopPropagation()}>
                 <div className="flex items-center justify-between px-5 py-4 bg-gradient-to-r from-brand-navy to-blue-800">
                     <div>
-                        <p className="text-[10px] text-blue-200 uppercase tracking-wider">Bon d'Achat</p>
+                        <p className="text-[10px] text-blue-200 uppercase tracking-wider">Bon de Vente</p>
                         <h3 className="text-white font-bold">{row.reference}</h3>
                     </div>
                     <button type="button" onClick={onClose} className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10"><X className="w-4 h-4" /></button>
@@ -169,12 +168,11 @@ function ViewModal({ row, onClose }) {
     );
 }
 
-export default function BonAchatsPage() {
+export default function BonVentesPage() {
     const navigate = useNavigate();
     const [form, setForm] = useState(emptyHeader);
     const [lines, setLines] = useState([emptyLine()]);
     const [rows, setRows] = useState([]);
-    const [suppliers, setSuppliers] = useState([]);
     const [clients, setClients] = useState([]);
     const [products, setProducts] = useState([]);
     const [meta, setMeta] = useState({ next_ref: '—', date: '—' });
@@ -202,15 +200,13 @@ export default function BonAchatsPage() {
     const load = useCallback(() => {
         setLoading(true);
         Promise.all([
-            api.get('/purchase-orders', { params: { all: 1 } }),
-            api.get('/suppliers', { params: { all: 1 } }),
+            api.get('/sales-orders', { params: { all: 1 } }),
             api.get('/clients', { params: { all: 1 } }),
             api.get('/products', { params: { all: 1 } }),
         ])
-            .then(([ordersRes, suppliersRes, clientsRes, productsRes]) => {
+            .then(([ordersRes, clientsRes, productsRes]) => {
                 setRows(ordersRes.data.data ?? []);
                 setMeta(ordersRes.data.meta ?? { next_ref: '—', date: '—' });
-                setSuppliers(suppliersRes.data.data ?? []);
                 setClients(clientsRes.data.data ?? []);
                 setProducts(productsRes.data.data ?? []);
             })
@@ -240,6 +236,7 @@ export default function BonAchatsPage() {
             article_ref: product.article_id || product.reference || '',
             description: product.name || '',
             unit: product.unit || '',
+            unit_price: product.unit_price != null ? String(product.unit_price) : '',
         });
     };
 
@@ -269,13 +266,12 @@ export default function BonAchatsPage() {
 
     const fillForm = (row) => {
         setForm({
-            supplier_id: row.supplier_id || '',
+            client_id: row.client_id || '',
             order_date: row.order_date_raw || '',
             city: row.city || '',
-            client_livre: row.client_livre || '',
+            address: row.address || '',
             reglement: row.reglement || '',
             echeance: row.echeance || '',
-            bc_number: row.bc_number || '',
             chauffeur: row.chauffeur || '',
             matricule: row.matricule || '',
         });
@@ -307,11 +303,11 @@ export default function BonAchatsPage() {
     const handleDelete = async (row) => {
         if (!window.confirm(`Supprimer le bon « ${row.reference} » ?`)) return;
         try {
-            await api.delete(`/purchase-orders/${row.id}`);
+            await api.delete(`/sales-orders/${row.id}`);
             if (editingId === row.id) resetForm();
             else load();
         } catch {
-            setError('Impossible de supprimer ce bon d\'achat');
+            setError('Impossible de supprimer ce bon de vente');
         }
     };
 
@@ -327,13 +323,12 @@ export default function BonAchatsPage() {
 
         setSaving(true);
         const payload = {
-            supplier_id: form.supplier_id,
+            client_id: form.client_id,
             order_date: form.order_date || new Date().toISOString().slice(0, 10),
             city: form.city || null,
-            client_livre: form.client_livre || null,
+            address: form.address || null,
             reglement: form.reglement || null,
             echeance: form.echeance || null,
-            bc_number: form.bc_number || null,
             chauffeur: form.chauffeur || null,
             matricule: form.matricule || null,
             status: 'valide',
@@ -349,9 +344,9 @@ export default function BonAchatsPage() {
 
         try {
             if (editingId) {
-                await api.put(`/purchase-orders/${editingId}`, payload);
+                await api.put(`/sales-orders/${editingId}`, payload);
             } else {
-                await api.post('/purchase-orders', payload);
+                await api.post('/sales-orders', payload);
             }
             resetForm();
         } catch (err) {
@@ -379,34 +374,27 @@ export default function BonAchatsPage() {
                     </div>
                 )}
 
-                {/* Barre en-tête */}
                 <div className="glass-card p-2.5 shadow-card border border-slate-200/60 dark:border-slate-700/60 overflow-x-auto">
-                    <div className="grid grid-cols-[100px_88px_minmax(130px,1.2fr)_90px_minmax(110px,1fr)_100px_72px_88px_minmax(100px,0.9fr)_95px] gap-1.5 items-end min-w-[1180px]">
+                    <div className="grid grid-cols-[100px_88px_minmax(140px,1.3fr)_100px_minmax(130px,1.1fr)_72px_88px_minmax(100px,0.9fr)_95px] gap-1.5 items-end min-w-[1080px]">
                         <Field label="Date">
                             <input type="date" required value={form.order_date} onChange={(e) => set('order_date', e.target.value)} className={inputClass} />
                         </Field>
-                        <Field label="Réf B-A">
+                        <Field label="Réf B-V">
                             <input type="text" readOnly value={currentRef} className={readOnlyClass} />
                         </Field>
-                        <Field label="Nom Fournisseur">
-                            <select required value={form.supplier_id} onChange={(e) => set('supplier_id', e.target.value)} className={inputClass}>
+                        <Field label="Nom Client">
+                            <select required value={form.client_id} onChange={(e) => set('client_id', e.target.value)} className={inputClass}>
                                 <option value="">—</option>
-                                {suppliers.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                                {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                             </select>
                         </Field>
-                        <Field label="N° Frns">
-                            <input type="text" value={form.bc_number} onChange={(e) => set('bc_number', e.target.value)} placeholder="N° Frns" className={inputClass} />
-                        </Field>
-                        <Field label="Client Livré">
-                            <select value={form.client_livre} onChange={(e) => set('client_livre', e.target.value)} className={inputClass}>
-                                <option value="">—</option>
-                                {clients.map((c) => <option key={c.id} value={c.name}>{c.name}</option>)}
-                            </select>
-                        </Field>
-                        <Field label="Ville Livraison">
+                        <Field label="Ville">
                             <input type="text" value={form.city} onChange={(e) => set('city', e.target.value)} placeholder="Ville" className={inputClass} />
                         </Field>
-                        <Field label="Type Rég">
+                        <Field label="Adresse Livraison">
+                            <input type="text" value={form.address} onChange={(e) => set('address', e.target.value)} placeholder="Adresse livraison" className={inputClass} />
+                        </Field>
+                        <Field label="Type Régl">
                             <select value={form.reglement} onChange={(e) => set('reglement', e.target.value)} className={inputClass}>
                                 {REGLEMENT_OPTIONS.map((v) => <option key={v || 'r'} value={v}>{v || '—'}</option>)}
                             </select>
@@ -425,7 +413,6 @@ export default function BonAchatsPage() {
                     </div>
                 </div>
 
-                {/* Tableau de saisie articles */}
                 <div className="glass-card overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60">
                     <div className="px-4 py-2 bg-gradient-to-r from-brand-navy via-blue-800 to-blue-900 flex items-center justify-between">
                         <h3 className="text-xs font-bold text-white uppercase tracking-wide">Tableau de saisie</h3>
@@ -552,13 +539,13 @@ export default function BonAchatsPage() {
 
             <div className="glass-card overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60">
                 <div className="px-5 py-3.5 bg-gradient-to-r from-amber-500 via-orange-500 to-orange-700 border-b border-white/10">
-                    <h3 className="text-sm font-bold text-white uppercase tracking-wide">Tableau des Bon D'achats</h3>
+                    <h3 className="text-sm font-bold text-white uppercase tracking-wide">Tableau des Bons de Vente</h3>
                 </div>
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm min-w-[1100px]">
                         <thead>
                             <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700">
-                                {['Date', 'Réf B-A', 'Fournisseur', 'N° Frns', 'Client Livré', 'Ville', 'Qté totale', 'Total', 'Échéance', 'Actions'].map((h) => (
+                                {['Date', 'Réf B-V', 'Client', 'Ville', 'Adresse Livraison', 'Qté totale', 'Total', 'Échéance', 'Actions'].map((h) => (
                                     <th key={h} className="px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap text-center">{h}</th>
                                 ))}
                             </tr>
@@ -566,7 +553,7 @@ export default function BonAchatsPage() {
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                             {loading ? (
                                 [...Array(3)].map((_, i) => (
-                                    <tr key={i}>{[...Array(10)].map((__, j) => (
+                                    <tr key={i}>{[...Array(9)].map((__, j) => (
                                         <td key={j} className="px-4 py-3 text-center"><div className="h-4 bg-slate-200 dark:bg-slate-700 rounded animate-pulse mx-auto max-w-[80px]" /></td>
                                     ))}</tr>
                                 ))
@@ -575,10 +562,9 @@ export default function BonAchatsPage() {
                                     <tr key={row.id} className={`hover:bg-orange-50/40 dark:hover:bg-slate-800/40 transition-colors ${editingId === row.id ? 'bg-amber-50/60 dark:bg-amber-900/10' : ''}`}>
                                         <td className="px-4 py-2.5 text-center text-slate-600 dark:text-slate-300">{row.order_date}</td>
                                         <td className="px-4 py-2.5 text-center font-mono text-xs font-semibold text-brand-navy dark:text-orange-400">{row.reference}</td>
-                                        <td className="px-4 py-2.5 text-center font-medium text-slate-800 dark:text-white">{row.fournisseur || '—'}</td>
-                                        <td className="px-4 py-2.5 text-center font-mono text-xs text-slate-600 dark:text-slate-300">{row.bc_number || '—'}</td>
-                                        <td className="px-4 py-2.5 text-center text-slate-600 dark:text-slate-300">{row.client_livre || '—'}</td>
+                                        <td className="px-4 py-2.5 text-center font-medium text-slate-800 dark:text-white">{row.client || '—'}</td>
                                         <td className="px-4 py-2.5 text-center text-slate-600 dark:text-slate-300">{row.city || '—'}</td>
+                                        <td className="px-4 py-2.5 text-center text-slate-600 dark:text-slate-300">{row.address || '—'}</td>
                                         <td className="px-4 py-2.5 text-center font-semibold tabular-nums text-emerald-700 dark:text-emerald-300">
                                             {orderTotalQuantity(row).toLocaleString('fr-FR', { maximumFractionDigits: 3 })}
                                         </td>
@@ -600,7 +586,7 @@ export default function BonAchatsPage() {
                                     </tr>
                                 ))
                             ) : (
-                                <tr><td colSpan={10} className="px-4 py-12 text-center text-slate-400">Aucun bon d'achat enregistré</td></tr>
+                                <tr><td colSpan={9} className="px-4 py-12 text-center text-slate-400">Aucun bon de vente enregistré</td></tr>
                             )}
                         </tbody>
                     </table>

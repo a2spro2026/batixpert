@@ -5,9 +5,9 @@
 <form method="POST" action="{{ route('supplier-invoices.store') }}" class="bg-white rounded-xl shadow-sm border p-6">
     @csrf
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div><label class="block text-sm font-medium mb-1">Fournisseur *</label><select name="supplier_id" required class="w-full rounded-lg border-slate-300 text-sm">@foreach($suppliers as $s)<option value="{{ $s->id }}">{{ $s->name }}</option>@endforeach</select></div>
-        <div><label class="block text-sm font-medium mb-1">Référence *</label><input type="text" name="reference" value="{{ old('reference', 'FF-'.date('Ymd-His')) }}" required class="w-full rounded-lg border-slate-300 text-sm"></div>
-        <div><label class="block text-sm font-medium mb-1">Date *</label><input type="date" name="invoice_date" value="{{ date('Y-m-d') }}" required class="w-full rounded-lg border-slate-300 text-sm"></div>
+        <div><label class="field-label-form">Fournisseur *</label><select name="supplier_id" required class="w-full rounded-lg border-slate-300 text-sm">@foreach($suppliers as $s)<option value="{{ $s->id }}">{{ $s->name }}</option>@endforeach</select></div>
+        <div><label class="field-label-form">Référence *</label><input type="text" name="reference" value="{{ old('reference', 'FF-'.date('Ymd-His')) }}" required class="w-full rounded-lg border-slate-300 text-sm"></div>
+        <div><label class="field-label-form">Date *</label><input type="date" name="invoice_date" value="{{ date('Y-m-d') }}" required class="w-full rounded-lg border-slate-300 text-sm"></div>
         <input type="hidden" name="status" value="en_attente">
     </div>
     <div class="grid grid-cols-12 gap-2 mb-4">

@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
-import { Save, RotateCcw, Eye, Pencil, Trash2, Printer, FileText, X, RefreshCw } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Save, RotateCcw, Eye, Pencil, Trash2, Printer, FileText, X, RefreshCw, Wallet } from 'lucide-react';
 import api from '../lib/api';
 
 const REGLEMENT_OPTIONS = [
@@ -11,6 +11,14 @@ const REGLEMENT_OPTIONS = [
     { value: 'Vers', label: 'Vers' },
 ];
 
+const ECHEANCE_OPTIONS = [
+    { value: '', label: '—' },
+    { value: '45 Jrs', label: '45 Jrs' },
+    { value: '60 Jrs', label: '60 Jrs' },
+    { value: '90 Jrs', label: '90 Jrs' },
+    { value: '120 Jrs', label: '120 Jrs' },
+];
+
 const emptyForm = {
     name: '',
     phone: '',
@@ -18,12 +26,14 @@ const emptyForm = {
     address: '',
     city: '',
     reglement: '',
+    echeance: '',
+    initial_balance: '',
 };
 
 function Field({ label, children, className = '' }) {
     return (
         <div className={className}>
-            <label className="block text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1 truncate text-center">
+            <label className="field-label">
                 {label}
             </label>
             {children}
@@ -38,8 +48,19 @@ const readOnlyClass =
     'w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 px-2.5 py-1.5 text-xs text-center cursor-not-allowed';
 
 function formatSolde(value) {
-    const n = Number(value) || 0;
-    return `${n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const n = Number(String(value ?? '').replace(',', '.')) || 0;
+    return n.toFixed(2);
+}
+
+function parseSoldeInput(value) {
+    if (value === '' || value == null) return '';
+    const n = Number(String(value).replace(',', '.'));
+    return Number.isFinite(n) ? n.toFixed(2) : '';
+}
+
+function hasSoldeInitial(value) {
+    const n = Number(String(value ?? '').replace(',', '.'));
+    return Number.isFinite(n) && n !== 0;
 }
 
 function buildFicheHtml(row) {
@@ -50,7 +71,7 @@ h1{color:#1e3a5f;margin:0 0 4px;font-size:22px}
 .sub{color:#64748b;font-size:12px;margin-bottom:24px}
 table{width:100%;border-collapse:collapse;margin-top:16px}
 th,td{border:1px solid #e2e8f0;padding:10px 12px;text-align:left;font-size:13px}
-th{background:#f8fafc;width:180px;font-weight:600}
+th{background:#f8fafc;width:180px;font-weight:700}
 .footer{margin-top:32px;font-size:11px;color:#94a3b8;text-align:center}
 .badge{display:inline-block;padding:4px 10px;border-radius:999px;background:#fff7ed;color:#ea580c;font-weight:700}
 </style></head><body>
@@ -64,7 +85,8 @@ th{background:#f8fafc;width:180px;font-weight:600}
 <tr><th>Adresse</th><td>${row.address || '—'}</td></tr>
 <tr><th>Ville</th><td>${row.city || '—'}</td></tr>
 <tr><th>Règlement</th><td>${row.reglement || '—'}</td></tr>
-<tr><th>Solde</th><td><strong>${formatSolde(row.solde)}</strong></td></tr>
+<tr><th>Échéance</th><td>${row.echeance || row.payment_terms || '—'}</td></tr>
+<tr><th>Solde Initial</th><td><strong>${formatSolde(row.initial_balance ?? row.solde)}</strong></td></tr>
 <tr><th>Date création</th><td>${row.created_at || '—'}</td></tr>
 </table>
 <p class="footer">© BatiXpert — A2SPRO</p>
@@ -131,12 +153,13 @@ function ViewModal({ row, onClose }) {
                         ['Adresse', row.address],
                         ['Ville', row.city],
                         ['Règlement', row.reglement],
-                        ['Solde', formatSolde(row.solde)],
+                        ['Échéance', row.echeance || row.payment_terms],
+                        ['Solde Initial', formatSolde(row.initial_balance ?? row.solde), hasSoldeInitial(row.initial_balance ?? row.solde)],
                         ['Date', row.created_at],
-                    ].map(([label, value]) => (
+                    ].map(([label, value, isRed]) => (
                         <div key={label} className="flex justify-between gap-4 py-2 border-b border-slate-100 dark:border-slate-800 last:border-0">
                             <span className="text-slate-500 dark:text-slate-400 shrink-0">{label}</span>
-                            <span className="font-medium text-slate-800 dark:text-white text-right">{value || '—'}</span>
+                            <span className={`font-medium text-right ${isRed ? 'text-red-600 dark:text-red-400 font-bold' : 'text-slate-800 dark:text-white'}`}>{value || '—'}</span>
                         </div>
                     ))}
                 </div>
@@ -178,6 +201,11 @@ export default function FicheFournisseurPage() {
         load();
     }, [load]);
 
+    const totalSoldes = useMemo(
+        () => rows.reduce((sum, r) => sum + (Number(r.initial_balance ?? r.solde) || 0), 0),
+        [rows]
+    );
+
     const set = (key, value) => setForm((f) => ({ ...f, [key]: value }));
 
     const resetForm = () => {
@@ -195,6 +223,8 @@ export default function FicheFournisseurPage() {
             address: row.address || '',
             city: row.city || '',
             reglement: row.reglement || '',
+            echeance: row.echeance || row.payment_terms || '',
+            initial_balance: parseSoldeInput(row.initial_balance ?? row.solde),
         });
         setEditingId(row.id);
         setError('');
@@ -223,6 +253,8 @@ export default function FicheFournisseurPage() {
             address: form.address || null,
             city: form.city || null,
             reglement: form.reglement || null,
+            payment_terms: form.echeance || null,
+            initial_balance: form.initial_balance === '' ? 0 : Number(parseSoldeInput(form.initial_balance) || 0),
         };
         try {
             if (editingId) {
@@ -255,7 +287,7 @@ export default function FicheFournisseurPage() {
                     </div>
                 )}
 
-                <div className="grid grid-cols-2 sm:grid-cols-5 xl:grid-cols-[80px_80px_1.2fr_0.9fr_1fr_1.1fr_0.7fr_0.7fr] gap-2.5 items-end">
+                <div className="grid grid-cols-2 sm:grid-cols-5 xl:grid-cols-[70px_70px_1.1fr_0.8fr_1fr_1fr_0.65fr_0.7fr_0.75fr_0.85fr] gap-2.5 items-end">
                     <Field label="Date">
                         <input type="text" readOnly value={meta.date} className={readOnlyClass} />
                     </Field>
@@ -284,9 +316,27 @@ export default function FicheFournisseurPage() {
                             ))}
                         </select>
                     </Field>
+                    <Field label="Échéance">
+                        <select value={form.echeance} onChange={(e) => set('echeance', e.target.value)} className={inputClass}>
+                            {ECHEANCE_OPTIONS.map((opt) => (
+                                <option key={opt.value || 'echeance-empty'} value={opt.value}>{opt.label}</option>
+                            ))}
+                        </select>
+                    </Field>
+                    <Field label="Solde Initial">
+                        <input
+                            type="text"
+                            inputMode="decimal"
+                            value={form.initial_balance}
+                            onChange={(e) => set('initial_balance', e.target.value.replace(/[^\d.,\-]/g, ''))}
+                            onBlur={() => set('initial_balance', parseSoldeInput(form.initial_balance))}
+                            placeholder="0.00"
+                            className={`${inputClass} ${hasSoldeInitial(form.initial_balance) ? 'border-red-400 text-red-600 dark:text-red-400 font-bold bg-red-50 dark:bg-red-950/30 focus:ring-red-400/40 focus:border-red-500' : ''}`}
+                        />
+                    </Field>
                 </div>
 
-                <div className="flex flex-wrap gap-3 mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+                <div className="flex flex-wrap items-center gap-3 mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
                     <button type="submit" disabled={saving} className="btn-primary text-sm">
                         <Save className="w-4 h-4" />
                         {saving ? 'Enregistrement...' : editingId ? 'Mettre à jour' : 'Enregistrer'}
@@ -299,6 +349,18 @@ export default function FicheFournisseurPage() {
                         <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
                         Actualiser
                     </button>
+
+                    <div className={`ml-auto flex items-center gap-3 px-4 py-2 rounded-xl border shadow-sm ${totalSoldes !== 0 ? 'bg-gradient-to-r from-red-50 to-rose-50 dark:from-red-950/40 dark:to-rose-950/40 border-red-200 dark:border-red-800' : 'bg-gradient-to-r from-slate-50 to-blue-50 dark:from-slate-800/60 dark:to-blue-950/40 border-slate-200 dark:border-slate-700'}`}>
+                        <div className={`p-2 rounded-lg ${totalSoldes !== 0 ? 'bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400' : 'bg-blue-100 dark:bg-blue-900/50 text-brand-navy dark:text-blue-300'}`}>
+                            <Wallet className="w-4 h-4" />
+                        </div>
+                        <div className="text-right">
+                            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Total Soldes Fournisseurs</p>
+                            <p className={`text-base font-bold tabular-nums leading-tight ${totalSoldes !== 0 ? 'text-red-600 dark:text-red-400' : 'text-brand-navy dark:text-blue-300'}`}>
+                                {formatSolde(totalSoldes)}
+                            </p>
+                        </div>
+                    </div>
                 </div>
             </form>
 
@@ -310,7 +372,7 @@ export default function FicheFournisseurPage() {
                     <table className="w-full text-sm min-w-[960px]">
                         <thead>
                             <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700">
-                                {['ID', 'Nom Fournisseur', 'Contact', 'Adresse', 'Ville', 'Règlement', 'Solde', 'Actions'].map((h) => (
+                                {['ID', 'Nom Fournisseur', 'Contact', 'Adresse', 'Ville', 'Règlement', 'Échéance', 'Solde Initial', 'Actions'].map((h) => (
                                     <th
                                         key={h}
                                         className="px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap text-center"
@@ -324,7 +386,7 @@ export default function FicheFournisseurPage() {
                             {loading ? (
                                 [...Array(3)].map((_, i) => (
                                     <tr key={i}>
-                                        {[...Array(8)].map((__, j) => (
+                                        {[...Array(9)].map((__, j) => (
                                             <td key={j} className="px-4 py-3 text-center">
                                                 <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded animate-pulse mx-auto max-w-[80px]" />
                                             </td>
@@ -348,7 +410,14 @@ export default function FicheFournisseurPage() {
                                                 {row.reglement || '—'}
                                             </span>
                                         </td>
-                                        <td className="px-4 py-2.5 text-center font-semibold tabular-nums text-brand-navy dark:text-orange-400">{formatSolde(row.solde)}</td>
+                                        <td className="px-4 py-2.5 text-center">
+                                            <span className="inline-flex px-2 py-0.5 rounded-md text-xs font-semibold bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300">
+                                                {row.echeance || row.payment_terms || '—'}
+                                            </span>
+                                        </td>
+                                        <td className={`px-4 py-2.5 text-center font-semibold tabular-nums ${hasSoldeInitial(row.initial_balance ?? row.solde) ? 'text-red-600 dark:text-red-400' : 'text-brand-navy dark:text-orange-400'}`}>
+                                            {formatSolde(row.initial_balance ?? row.solde)}
+                                        </td>
                                         <td className="px-4 py-2.5">
                                             <div className="flex items-center justify-center gap-0.5">
                                                 <ActionBtn title="Voir" icon={Eye} color="blue" onClick={() => setViewRow(row)} />
@@ -362,7 +431,7 @@ export default function FicheFournisseurPage() {
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan={8} className="px-4 py-12 text-center text-slate-400">
+                                    <td colSpan={9} className="px-4 py-12 text-center text-slate-400">
                                         Aucun fournisseur enregistré
                                     </td>
                                 </tr>

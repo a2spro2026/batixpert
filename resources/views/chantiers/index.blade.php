@@ -4,7 +4,7 @@
 <x-page-header title="Suivi de chantier" :action="route('chantiers.create')" actionLabel="Nouveau chantier" />
 <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
     <table class="w-full text-sm">
-        <thead class="bg-slate-50 text-slate-500 uppercase text-xs">
+        <thead class="bg-slate-50 font-bold text-slate-500 uppercase text-xs">
             <tr><th class="px-5 py-3 text-left">Réf.</th><th class="px-5 py-3 text-left">Chantier</th><th class="px-5 py-3 text-left">Client</th><th class="px-5 py-3 text-left">Ville</th><th class="px-5 py-3 text-center">Progression</th><th class="px-5 py-3 text-center">Statut</th><th class="px-5 py-3 text-right">Actions</th></tr>
         </thead>
         <tbody class="divide-y">

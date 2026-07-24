@@ -31,6 +31,49 @@
         @apply w-full rounded-xl border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-navy focus:border-transparent text-sm;
     }
 
+    /* Labels des barres de saisie — gras + design pro */
+    .field-label {
+        @apply relative block text-[10px] font-bold uppercase tracking-[0.12em] text-brand-navy dark:text-blue-300 mb-1.5 truncate text-center;
+        letter-spacing: 0.1em;
+    }
+
+    .field-label::after {
+        content: '';
+        display: block;
+        width: 18px;
+        height: 2px;
+        margin: 4px auto 0;
+        border-radius: 999px;
+        background: linear-gradient(90deg, #f97316, #1e3a5f);
+        opacity: 0.85;
+    }
+
+    .field-label-compact {
+        @apply text-[9px] mb-1;
+    }
+
+    .field-label-compact::after {
+        width: 12px;
+        height: 1.5px;
+        margin-top: 3px;
+    }
+
+    /* Labels formulaires Blade (alignés à gauche) */
+    .field-label-form {
+        @apply relative block text-xs font-bold uppercase tracking-[0.1em] text-brand-navy mb-1.5;
+    }
+
+    .field-label-form::after {
+        content: '';
+        display: block;
+        width: 22px;
+        height: 2px;
+        margin-top: 4px;
+        border-radius: 999px;
+        background: linear-gradient(90deg, #f97316, #1e3a5f);
+        opacity: 0.85;
+    }
+
     /* Login — carte & mot de passe */
     @keyframes login-float {
         0%, 100% { transform: translateY(0); }
@@ -309,15 +352,17 @@
         @apply bg-slate-50/50 dark:bg-slate-800/20;
     }
 
-    /* En-têtes de colonnes — gras sur tout le projet */
-    table thead th {
-        @apply font-bold;
-    }
-
     /* Titres de panneaux au-dessus des tableaux */
     .glass-card .border-b h3,
     .bg-white.rounded-xl .border-b h3,
     div:has(> table) > h3 {
         @apply font-bold;
     }
+}
+
+/* En-têtes de colonnes — gras sur tous les tableaux du projet.
+   Hors @layer pour primer sur les utilitaires Tailwind. */
+table thead th,
+table thead td {
+    font-weight: 700;
 }

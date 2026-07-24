@@ -38,7 +38,7 @@ export default function ChantiersPage() {
 
             <div className="glass-card overflow-hidden shadow-card">
                 <table className="w-full text-sm">
-                    <thead className="bg-slate-50 dark:bg-slate-800/50 text-xs uppercase text-slate-500">
+                    <thead className="bg-slate-50 dark:bg-slate-800/50 text-xs font-bold uppercase text-slate-500">
                         <tr>
                             <th className="px-5 py-3 text-left">N° Chantier</th>
                             <th className="px-5 py-3 text-left">Nom</th>

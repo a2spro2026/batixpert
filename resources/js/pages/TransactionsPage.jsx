@@ -79,7 +79,7 @@ const emptyForm = {
 function Field({ label, children, compact = false }) {
     return (
         <div>
-            <label className={`block font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1 truncate text-center ${compact ? 'text-[9px]' : 'text-[10px]'}`}>
+            <label className={`field-label ${compact ? 'field-label-compact' : ''}`}>
                 {label}
             </label>
             {children}
@@ -149,7 +149,7 @@ function buildPrintHtml(row) {
     return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Transaction</title>
 <style>body{font-family:Arial,sans-serif;padding:28px;color:#1e293b}h1{color:#1e3a5f;font-size:18px;margin-bottom:16px}
 table{width:100%;border-collapse:collapse}th,td{border:1px solid #e2e8f0;padding:8px 10px;font-size:12px;text-align:left}
-th{background:#f8fafc;width:140px;font-weight:600}</style></head><body>
+th{background:#f8fafc;width:140px;font-weight:700}</style></head><body>
 <h1>BATIXPERT — Transaction</h1>
 <table>
 <tr><th>Date</th><td>${row.transaction_date || '—'}</td></tr>

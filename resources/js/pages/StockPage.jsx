@@ -43,7 +43,7 @@ export default function StockPage() {
 
             <div className="glass-card overflow-hidden shadow-card">
                 <table className="w-full text-sm">
-                    <thead className="bg-slate-50 dark:bg-slate-800/50 text-xs uppercase text-slate-500">
+                    <thead className="bg-slate-50 dark:bg-slate-800/50 text-xs font-bold uppercase text-slate-500">
                         <tr>
                             <th className="px-5 py-3 text-left">Référence</th>
                             <th className="px-5 py-3 text-left">Désignation</th>

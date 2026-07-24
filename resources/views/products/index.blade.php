@@ -10,7 +10,7 @@
 </div>
 <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
     <table class="w-full text-sm">
-        <thead class="bg-slate-50 text-slate-500 uppercase text-xs">
+        <thead class="bg-slate-50 font-bold text-slate-500 uppercase text-xs">
             <tr><th class="px-5 py-3 text-left">Réf.</th><th class="px-5 py-3 text-left">Produit</th><th class="px-5 py-3 text-right">Stock</th><th class="px-5 py-3 text-right">Prix unit.</th><th class="px-5 py-3 text-center">Alerte</th><th class="px-5 py-3 text-right">Actions</th></tr>
         </thead>
         <tbody class="divide-y">

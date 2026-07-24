@@ -54,6 +54,7 @@ export const navigation = [
         children: [
             { to: '/fournisseurs/fiches', label: 'Fiche Fournisseur', icon: Contact },
             { to: '/fournisseurs/bons-achats', label: 'Bon Achats', icon: ClipboardList },
+            { to: '/chantiers/bons-commande', label: 'Bon de Commande', icon: ClipboardCheck },
             { to: '/fournisseurs/reglements-achats', label: 'Règlement Achats', icon: Banknote },
             { to: '/fournisseurs/factures-achats', label: 'Facture Achats', icon: FileInput },
             { to: '/fournisseurs/reglements-factures', label: 'Règlement Facture', icon: CreditCard },
@@ -68,8 +69,7 @@ export const navigation = [
         perm: 'clients.view',
         children: [
             { to: '/clients/fiches', label: 'Fiche Client', icon: ContactRound },
-            { to: '/clients/devis', label: 'Devis', icon: FileSignature },
-            { to: '/clients/bons-vente', label: "Bon D'Execution", icon: FileCheck },
+            { to: '/clients/bons-de-vente', label: 'Bon de Vente', icon: ClipboardList },
             { to: '/clients/reglements-vente', label: 'Etat Paiement', icon: CircleDollarSign },
             { to: '/clients/factures-ventes', label: 'Facture Ventes', icon: Receipt },
             { to: '/clients/reglements-factures', label: 'Règlement Facture', icon: Wallet },
@@ -95,7 +95,8 @@ export const navigation = [
         perm: 'chantiers.view',
         children: [
             { to: '/chantiers/carte', label: 'Carte Chantiers', icon: MapPin },
-            { to: '/chantiers/bons-commande', label: 'Bon de Commande', icon: ClipboardCheck },
+            { to: '/clients/devis', label: 'Devis', icon: FileSignature },
+            { to: '/clients/bons-vente', label: "Bon D'Execution", icon: FileCheck },
             { to: '/chantiers/suivi-depenses', label: 'Suivi Dépenses', icon: TrendingDown },
         ],
     },

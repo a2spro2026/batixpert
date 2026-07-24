@@ -5,16 +5,18 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class PurchaseOrderItem extends Model
+class SaleOrderItem extends Model
 {
+    protected $table = 'sales_order_items';
+
     protected $fillable = [
-        'purchase_order_id', 'product_id', 'article_ref', 'description', 'unit',
+        'sales_order_id', 'product_id', 'article_ref', 'description', 'unit',
         'quantity', 'unit_price', 'tva_rate', 'total',
     ];
 
     public function order(): BelongsTo
     {
-        return $this->belongsTo(PurchaseOrder::class, 'purchase_order_id');
+        return $this->belongsTo(SaleOrder::class, 'sales_order_id');
     }
 
     public function product(): BelongsTo

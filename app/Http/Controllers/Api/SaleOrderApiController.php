@@ -3,15 +3,15 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\PurchaseOrder;
+use App\Models\SaleOrder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
-class PurchaseOrderApiController extends Controller
+class SaleOrderApiController extends Controller
 {
     public function index(Request $request)
     {
-        $query = PurchaseOrder::with(['supplier', 'items'])
+        $query = SaleOrder::with(['client', 'items'])
             ->when($request->search, fn ($q, $s) => $q->where('reference', 'like', "%{$s}%")
                 ->orWhere('designation', 'like', "%{$s}%"))
             ->latest('order_date');
@@ -40,14 +40,14 @@ class PurchaseOrderApiController extends Controller
             $subtotal = collect($items)->sum('total');
             $first = $items[0] ?? null;
 
-            $order = PurchaseOrder::create([
-                'supplier_id' => $validated['supplier_id'],
+            $order = SaleOrder::create([
+                'client_id' => $validated['client_id'],
                 'order_date' => $validated['order_date'],
                 'bc_number' => $validated['bc_number'] ?? null,
                 'reglement' => $validated['reglement'] ?? null,
                 'echeance' => $validated['echeance'] ?? null,
                 'city' => $validated['city'] ?? null,
-                'client_livre' => $validated['client_livre'] ?? null,
+                'address' => $validated['address'] ?? null,
                 'chauffeur' => $validated['chauffeur'] ?? null,
                 'matricule' => $validated['matricule'] ?? null,
                 'designation' => $first['description'] ?? null,
@@ -55,7 +55,7 @@ class PurchaseOrderApiController extends Controller
                 'unit' => $first['unit'] ?? null,
                 'unit_price' => $first['unit_price'] ?? 0,
                 'quantity' => $first['quantity'] ?? 1,
-                'reference' => 'BA-PENDING',
+                'reference' => 'BV-PENDING',
                 'subtotal' => $subtotal,
                 'total_ht' => $subtotal,
                 'tva' => 0,
@@ -67,80 +67,80 @@ class PurchaseOrderApiController extends Controller
             $order->update(['reference' => $this->referenceFor($order->id)]);
             $this->syncItems($order, $items);
 
-            return $order->fresh(['supplier', 'items']);
+            return $order->fresh(['client', 'items']);
         });
 
         return response()->json($this->formatOrder($order), 201);
     }
 
-    public function show(PurchaseOrder $purchaseOrder)
+    public function show(SaleOrder $sales_order)
     {
-        return response()->json($this->formatOrder($purchaseOrder->load(['supplier', 'items'])));
+        return response()->json($this->formatOrder($sales_order->load(['client', 'items'])));
     }
 
-    public function update(Request $request, PurchaseOrder $purchaseOrder)
+    public function update(Request $request, SaleOrder $sales_order)
     {
         $validated = $this->validated($request, true);
         $items = $this->normalizeItems($validated);
         $subtotal = collect($items)->sum('total');
         $first = $items[0] ?? null;
 
-        DB::transaction(function () use ($purchaseOrder, $validated, $items, $subtotal, $first) {
-            $purchaseOrder->update([
-                'supplier_id' => $validated['supplier_id'] ?? $purchaseOrder->supplier_id,
-                'order_date' => $validated['order_date'] ?? $purchaseOrder->order_date,
-                'bc_number' => array_key_exists('bc_number', $validated) ? $validated['bc_number'] : $purchaseOrder->bc_number,
-                'reglement' => array_key_exists('reglement', $validated) ? $validated['reglement'] : $purchaseOrder->reglement,
-                'echeance' => array_key_exists('echeance', $validated) ? $validated['echeance'] : $purchaseOrder->echeance,
-                'city' => array_key_exists('city', $validated) ? $validated['city'] : $purchaseOrder->city,
-                'client_livre' => array_key_exists('client_livre', $validated) ? $validated['client_livre'] : $purchaseOrder->client_livre,
-                'chauffeur' => array_key_exists('chauffeur', $validated) ? $validated['chauffeur'] : $purchaseOrder->chauffeur,
-                'matricule' => array_key_exists('matricule', $validated) ? $validated['matricule'] : $purchaseOrder->matricule,
-                'designation' => $first['description'] ?? $purchaseOrder->designation,
-                'article_ref' => $first['article_ref'] ?? $purchaseOrder->article_ref,
-                'unit' => $first['unit'] ?? $purchaseOrder->unit,
-                'unit_price' => $first['unit_price'] ?? $purchaseOrder->unit_price,
-                'quantity' => $first['quantity'] ?? $purchaseOrder->quantity,
+        DB::transaction(function () use ($sales_order, $validated, $items, $subtotal, $first) {
+            $sales_order->update([
+                'client_id' => $validated['client_id'] ?? $sales_order->client_id,
+                'order_date' => $validated['order_date'] ?? $sales_order->order_date,
+                'bc_number' => array_key_exists('bc_number', $validated) ? $validated['bc_number'] : $sales_order->bc_number,
+                'reglement' => array_key_exists('reglement', $validated) ? $validated['reglement'] : $sales_order->reglement,
+                'echeance' => array_key_exists('echeance', $validated) ? $validated['echeance'] : $sales_order->echeance,
+                'city' => array_key_exists('city', $validated) ? $validated['city'] : $sales_order->city,
+                'address' => array_key_exists('address', $validated) ? $validated['address'] : $sales_order->address,
+                'chauffeur' => array_key_exists('chauffeur', $validated) ? $validated['chauffeur'] : $sales_order->chauffeur,
+                'matricule' => array_key_exists('matricule', $validated) ? $validated['matricule'] : $sales_order->matricule,
+                'designation' => $first['description'] ?? $sales_order->designation,
+                'article_ref' => $first['article_ref'] ?? $sales_order->article_ref,
+                'unit' => $first['unit'] ?? $sales_order->unit,
+                'unit_price' => $first['unit_price'] ?? $sales_order->unit_price,
+                'quantity' => $first['quantity'] ?? $sales_order->quantity,
                 'subtotal' => $subtotal,
                 'total_ht' => $subtotal,
                 'tva' => 0,
                 'total_ttc' => $subtotal,
-                'status' => $validated['status'] ?? $purchaseOrder->status,
+                'status' => $validated['status'] ?? $sales_order->status,
             ]);
 
-            $this->syncItems($purchaseOrder, $items);
+            $this->syncItems($sales_order, $items);
         });
 
-        return response()->json($this->formatOrder($purchaseOrder->fresh(['supplier', 'items'])));
+        return response()->json($this->formatOrder($sales_order->fresh(['client', 'items'])));
     }
 
-    public function validateOrder(PurchaseOrder $purchaseOrder)
+    public function validateOrder(SaleOrder $sales_order)
     {
-        $purchaseOrder->update(['status' => 'valide']);
+        $sales_order->update(['status' => 'valide']);
 
-        return response()->json($this->formatOrder($purchaseOrder));
+        return response()->json($this->formatOrder($sales_order));
     }
 
-    public function destroy(PurchaseOrder $purchaseOrder)
+    public function destroy(SaleOrder $sales_order)
     {
-        $purchaseOrder->delete();
+        $sales_order->delete();
 
-        return response()->json(['message' => 'Bon d\'achat supprimé']);
+        return response()->json(['message' => 'Bon de vente supprimé']);
     }
 
     private function validated(Request $request, bool $partial = false): array
     {
         $rules = [
-            'supplier_id' => ($partial ? 'sometimes' : 'required').'|exists:suppliers,id',
+            'client_id' => ($partial ? 'sometimes' : 'required').'|exists:clients,id',
             'order_date' => ($partial ? 'sometimes' : 'required').'|date',
             'bc_number' => 'nullable|string|max:50',
             'reglement' => 'nullable|in:Esp,Chq,Eff,Vir,Vers',
             'echeance' => 'nullable|string|max:20',
             'city' => 'nullable|string|max:255',
-            'client_livre' => 'nullable|string|max:255',
+            'address' => 'nullable|string|max:255',
             'chauffeur' => 'nullable|string|max:255',
             'matricule' => 'nullable|string|max:50',
-            'status' => 'nullable|in:en_attente,valide,annule,recu_partiel,recu',
+            'status' => 'nullable|in:en_attente,valide,annule,livre',
             'items' => ($partial ? 'sometimes' : 'required').'|array|min:1',
             'items.*.product_id' => 'nullable|exists:products,id',
             'items.*.article_ref' => 'nullable|string|max:100',
@@ -148,7 +148,6 @@ class PurchaseOrderApiController extends Controller
             'items.*.unit' => 'nullable|string|max:20',
             'items.*.quantity' => 'required|numeric|min:0.001',
             'items.*.unit_price' => 'required|numeric|min:0',
-            // compat ancien format mono-ligne
             'designation' => 'nullable|string|max:255',
             'article_ref' => 'nullable|string|max:100',
             'unit' => 'nullable|string|max:20',
@@ -185,7 +184,7 @@ class PurchaseOrderApiController extends Controller
         return [[
             'product_id' => null,
             'article_ref' => $validated['article_ref'] ?? null,
-            'description' => $validated['designation'] ?? 'Bon d\'achat',
+            'description' => $validated['designation'] ?? 'Bon de vente',
             'unit' => $validated['unit'] ?? null,
             'quantity' => $qty,
             'unit_price' => $price,
@@ -193,7 +192,7 @@ class PurchaseOrderApiController extends Controller
         ]];
     }
 
-    private function syncItems(PurchaseOrder $order, array $items): void
+    private function syncItems(SaleOrder $order, array $items): void
     {
         $order->items()->delete();
         foreach ($items as $item) {
@@ -212,19 +211,19 @@ class PurchaseOrderApiController extends Controller
 
     private function nextReference(): string
     {
-        $next = (PurchaseOrder::max('id') ?? 0) + 1;
+        $next = (SaleOrder::max('id') ?? 0) + 1;
 
         return $this->referenceFor($next);
     }
 
     private function referenceFor(int $id): string
     {
-        return 'BA-'.str_pad((string) $id, 4, '0', STR_PAD_LEFT);
+        return 'BV-'.str_pad((string) $id, 4, '0', STR_PAD_LEFT);
     }
 
-    private function formatOrder(PurchaseOrder $order): array
+    private function formatOrder(SaleOrder $order): array
     {
-        $order->loadMissing(['supplier', 'items']);
+        $order->loadMissing(['client', 'items']);
 
         return [
             'id' => $order->id,
@@ -232,8 +231,8 @@ class PurchaseOrderApiController extends Controller
             'bc_number' => $order->bc_number,
             'order_date' => $order->order_date?->format('d/m/Y'),
             'order_date_raw' => $order->order_date?->format('Y-m-d'),
-            'supplier_id' => $order->supplier_id,
-            'fournisseur' => $order->supplier?->name,
+            'client_id' => $order->client_id,
+            'client' => $order->client?->name,
             'designation' => $order->designation,
             'article_ref' => $order->article_ref,
             'unit' => $order->unit,
@@ -244,7 +243,7 @@ class PurchaseOrderApiController extends Controller
             'reglement' => $order->reglement,
             'echeance' => $order->echeance,
             'city' => $order->city,
-            'client_livre' => $order->client_livre,
+            'address' => $order->address,
             'chauffeur' => $order->chauffeur,
             'matricule' => $order->matricule,
             'status' => $order->status,

@@ -4,7 +4,7 @@
 <x-page-header title="Clients" :action="route('clients.create')" actionLabel="Nouveau client" actionPermission="clients.create" />
 <div class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
     <table class="w-full text-sm">
-        <thead class="bg-slate-50 text-slate-500 uppercase text-xs">
+        <thead class="bg-slate-50 font-bold text-slate-500 uppercase text-xs">
             <tr>
                 <th class="px-5 py-3 text-left">Nom</th>
                 <th class="px-5 py-3 text-left">Contact</th>
