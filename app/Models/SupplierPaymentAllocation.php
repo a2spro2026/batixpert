@@ -5,10 +5,10 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class ClientPaymentAllocation extends Model
+class SupplierPaymentAllocation extends Model
 {
     protected $fillable = [
-        'client_payment_id', 'client_order_id', 'amount', 'action',
+        'supplier_payment_id', 'purchase_order_id', 'amount', 'action',
     ];
 
     protected function casts(): array
@@ -20,11 +20,11 @@ class ClientPaymentAllocation extends Model
 
     public function payment(): BelongsTo
     {
-        return $this->belongsTo(ClientPayment::class, 'client_payment_id');
+        return $this->belongsTo(SupplierPayment::class, 'supplier_payment_id');
     }
 
-    public function clientOrder(): BelongsTo
+    public function purchaseOrder(): BelongsTo
     {
-        return $this->belongsTo(ClientOrder::class);
+        return $this->belongsTo(PurchaseOrder::class);
     }
 }

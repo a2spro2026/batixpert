@@ -13,6 +13,7 @@ use App\Models\Product;
 use App\Models\PurchaseOrder;
 use App\Models\SaleOrder;
 use App\Models\StockMovement;
+use App\Models\Supplier;
 use App\Models\SupplierInvoice;
 use App\Models\Task;
 use Illuminate\Support\Facades\DB;
@@ -51,6 +52,8 @@ class DashboardApiController extends Controller
 
         $tresorerie = (float) Payment::where('type', 'client')->sum('amount')
             - (float) Payment::whereIn('type', ['fournisseur', 'personnel'])->sum('amount');
+
+        $soldeFournisseur = (float) Supplier::sum('initial_balance');
 
         $chantiersActifs = Chantier::where('status', 'en_cours')->where('archived', false)->count();
         $chantiersTermines = Chantier::where('status', 'termine')->count();
@@ -233,6 +236,7 @@ class DashboardApiController extends Controller
                 'valeur_stock_chantiers' => round($stockChantiers, 2),
                 'valeur_stock_depot' => round($stockDepot, 2),
                 'total_charges' => round($totalCharges, 2),
+                'solde_fournisseur' => round($soldeFournisseur, 2),
                 'tresorerie' => round($tresorerie, 2),
                 'chantiers_actifs' => $chantiersActifs,
                 'chantiers_termines' => $chantiersTermines,

@@ -13,7 +13,7 @@ class PurchaseOrder extends Model
         'designation', 'article_ref', 'consistance', 'unit', 'unit_price', 'quantity', 'subtotal',
         'reglement', 'echeance', 'city', 'client_livre', 'chauffeur', 'matricule',
         'address', 'chantier_type', 'responsible_name',
-        'total_ht', 'tva', 'total_ttc', 'status', 'notes', 'user_id',
+        'total_ht', 'tva', 'total_ttc', 'montant_paye', 'payment_action', 'status', 'notes', 'user_id',
     ];
 
     protected function casts(): array
@@ -23,6 +23,8 @@ class PurchaseOrder extends Model
             'unit_price' => 'decimal:2',
             'quantity' => 'decimal:3',
             'subtotal' => 'decimal:2',
+            'total_ttc' => 'decimal:2',
+            'montant_paye' => 'decimal:2',
         ];
     }
 

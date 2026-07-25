@@ -3,18 +3,18 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\ClientOrder;
-use App\Models\ClientPayment;
+use App\Models\PurchaseOrder;
+use App\Models\SupplierPayment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
-class ClientPaymentApiController extends Controller
+class SupplierPaymentApiController extends Controller
 {
     private const STATUTS = ['Inst', 'Payé', 'Report', 'Imp', 'Dévalidé'];
 
     public function index(Request $request)
     {
-        $query = ClientPayment::with(['client', 'allocations.clientOrder']);
+        $query = SupplierPayment::with(['supplier', 'allocations.purchaseOrder']);
 
         if ($request->filled('statut')) {
             $query->where('statut', $request->statut);
@@ -28,14 +28,18 @@ class ClientPaymentApiController extends Controller
         if ($request->filled('montant')) {
             $query->where('montant', (float) str_replace(',', '.', $request->montant));
         }
-        if ($request->filled('mois') && preg_match('/^\d{4}-\d{2}$/', $request->mois)) {
-            [$year, $month] = explode('-', $request->mois);
-            $query->whereYear('payment_date', $year)->whereMonth('payment_date', $month);
+        if ($request->filled('mois')) {
+            // mois = YYYY-MM
+            $mois = $request->mois;
+            if (preg_match('/^\d{4}-\d{2}$/', $mois)) {
+                [$year, $month] = explode('-', $mois);
+                $query->whereYear('payment_date', $year)->whereMonth('payment_date', $month);
+            }
         }
 
         $payments = $query->latest('payment_date')->latest('id')->get();
 
-        $allForTotals = ClientPayment::query();
+        $allForTotals = SupplierPayment::query();
         $totalReglement = round((float) (clone $allForTotals)->sum('montant'), 2);
         $totalDecaisse = round((float) (clone $allForTotals)->where('statut', 'Payé')->sum('montant'), 2);
         $totalImpaye = round((float) (clone $allForTotals)->where('statut', 'Imp')->sum('montant'), 2);
@@ -50,10 +54,10 @@ class ClientPaymentApiController extends Controller
         ]);
     }
 
-    public function show(ClientPayment $clientPayment)
+    public function show(SupplierPayment $supplierPayment)
     {
         return response()->json([
-            'data' => $this->formatPayment($clientPayment->load(['client', 'allocations.clientOrder'])),
+            'data' => $this->formatPayment($supplierPayment->load(['supplier', 'allocations.purchaseOrder'])),
         ]);
     }
 
@@ -70,11 +74,11 @@ class ClientPaymentApiController extends Controller
     public function orders(Request $request)
     {
         $request->validate([
-            'client_id' => 'required|exists:clients,id',
+            'supplier_id' => 'required|exists:suppliers,id',
         ]);
 
-        $orders = ClientOrder::with(['client', 'quote'])
-            ->where('client_id', $request->client_id)
+        $orders = PurchaseOrder::with('supplier')
+            ->where('supplier_id', $request->supplier_id)
             ->where('status', '!=', 'annule')
             ->latest('order_date')
             ->get()
@@ -96,7 +100,7 @@ class ClientPaymentApiController extends Controller
     {
         $validated = $request->validate([
             'payment_date' => 'required|date',
-            'client_id' => 'required|exists:clients,id',
+            'supplier_id' => 'required|exists:suppliers,id',
             'reglement' => 'nullable|in:Esp,Chq,Eff,Vir,Vers',
             'numero' => 'nullable|string|max:50',
             'banque' => 'nullable|string|max:100',
@@ -106,22 +110,21 @@ class ClientPaymentApiController extends Controller
             'remarque' => 'nullable|string|max:1000',
             'statut' => 'nullable|in:'.implode(',', self::STATUTS),
             'allocations' => 'required|array|min:1',
-            'allocations.*.client_order_id' => 'required|exists:client_orders,id',
+            'allocations.*.purchase_order_id' => 'required|exists:purchase_orders,id',
             'allocations.*.amount' => 'nullable|numeric|min:0',
             'allocations.*.action' => 'nullable|in:Inst,Payé,Report,Imp,Dévalidé',
         ]);
 
         $payment = DB::transaction(function () use ($validated, $request) {
-            $orderIds = collect($validated['allocations'])->pluck('client_order_id')->all();
-            $orders = ClientOrder::with('client')
-                ->whereIn('id', $orderIds)
-                ->where('client_id', $validated['client_id'])
+            $orderIds = collect($validated['allocations'])->pluck('purchase_order_id')->all();
+            $orders = PurchaseOrder::whereIn('id', $orderIds)
+                ->where('supplier_id', $validated['supplier_id'])
                 ->lockForUpdate()
                 ->get()
                 ->keyBy('id');
 
             if ($orders->count() !== count($orderIds)) {
-                abort(422, 'Certaines commandes sont invalides pour ce client');
+                abort(422, 'Certaines commandes sont invalides pour ce fournisseur');
             }
 
             $paymentAmount = round((float) $validated['montant'], 2);
@@ -129,7 +132,7 @@ class ClientPaymentApiController extends Controller
             $built = [];
 
             foreach ($validated['allocations'] as $row) {
-                $order = $orders->get($row['client_order_id']);
+                $order = $orders->get($row['purchase_order_id']);
                 $action = $row['action'] ?? 'Payé';
                 $due = round(max((float) $order->total_ttc - (float) ($order->montant_paye ?? 0), 0), 2);
 
@@ -164,16 +167,10 @@ class ClientPaymentApiController extends Controller
                 $statut = 'Payé';
             }
 
-            $first = $orders->first();
-
-            $payment = ClientPayment::create([
-                'reference' => 'RC-PENDING',
+            $payment = SupplierPayment::create([
+                'reference' => 'RF-PENDING',
                 'payment_date' => $validated['payment_date'],
-                'client_id' => $validated['client_id'],
-                'client_name' => $first?->client?->name,
-                'ville_chantier' => $first?->city,
-                'chantier_type' => $first?->chantier_type,
-                'montant_total' => $totalTtc,
+                'supplier_id' => $validated['supplier_id'],
                 'reglement' => $validated['reglement'] ?? null,
                 'numero' => $validated['numero'] ?? null,
                 'banque' => $validated['banque'] ?? null,
@@ -181,7 +178,8 @@ class ClientPaymentApiController extends Controller
                 'montant' => $paymentAmount,
                 'date_decaissement' => $validated['date_decaissement'] ?? null,
                 'remarque' => $validated['remarque'] ?? null,
-                'solde' => round($soldeAvant - $paymentAmount, 2),
+                'total_ttc' => $totalTtc,
+                'solde_ttc' => round($soldeAvant - $paymentAmount, 2),
                 'statut' => $statut,
                 'user_id' => $request->user()->id,
             ]);
@@ -190,7 +188,7 @@ class ClientPaymentApiController extends Controller
 
             foreach ($built as $row) {
                 $payment->allocations()->create([
-                    'client_order_id' => $row['order']->id,
+                    'purchase_order_id' => $row['order']->id,
                     'amount' => $row['amount'],
                     'action' => $row['action'],
                 ]);
@@ -209,7 +207,7 @@ class ClientPaymentApiController extends Controller
                 ]);
             }
 
-            return $payment->fresh(['client', 'allocations.clientOrder']);
+            return $payment->fresh(['supplier', 'allocations.purchaseOrder']);
         });
 
         return response()->json([
@@ -218,11 +216,11 @@ class ClientPaymentApiController extends Controller
         ], 201);
     }
 
-    public function update(Request $request, ClientPayment $clientPayment)
+    public function update(Request $request, SupplierPayment $supplierPayment)
     {
         $validated = $request->validate([
             'payment_date' => 'sometimes|required|date',
-            'client_id' => 'sometimes|required|exists:clients,id',
+            'supplier_id' => 'sometimes|required|exists:suppliers,id',
             'reglement' => 'nullable|in:Esp,Chq,Eff,Vir,Vers',
             'numero' => 'nullable|string|max:50',
             'banque' => 'nullable|string|max:100',
@@ -233,51 +231,46 @@ class ClientPaymentApiController extends Controller
             'statut' => 'nullable|in:'.implode(',', self::STATUTS),
         ]);
 
-        if (isset($validated['client_id'])) {
-            $client = \App\Models\Client::find($validated['client_id']);
-            $validated['client_name'] = $client?->name;
-        }
-
-        $clientPayment->update($validated);
+        $supplierPayment->update($validated);
 
         return response()->json([
             'message' => 'Règlement mis à jour',
-            'data' => $this->formatPayment($clientPayment->fresh(['client', 'allocations.clientOrder'])),
+            'data' => $this->formatPayment($supplierPayment->fresh(['supplier', 'allocations.purchaseOrder'])),
         ]);
     }
 
-    public function updateStatut(Request $request, ClientPayment $clientPayment)
+    public function updateStatut(Request $request, SupplierPayment $supplierPayment)
     {
         $validated = $request->validate([
             'statut' => 'required|in:'.implode(',', self::STATUTS),
         ]);
 
-        $clientPayment->update(['statut' => $validated['statut']]);
+        $supplierPayment->update(['statut' => $validated['statut']]);
 
         return response()->json([
             'message' => 'Statut mis à jour',
-            'data' => $this->formatPayment($clientPayment->fresh(['client', 'allocations.clientOrder'])),
+            'data' => $this->formatPayment($supplierPayment->fresh(['supplier', 'allocations.purchaseOrder'])),
         ]);
     }
 
-    public function updateAction(Request $request, ClientOrder $clientOrder)
+    public function updateAction(Request $request, PurchaseOrder $purchaseOrder)
     {
         $validated = $request->validate([
             'payment_action' => 'required|in:Inst,Payé,Report,Imp,Dévalidé',
         ]);
 
-        $clientOrder->update(['payment_action' => $validated['payment_action']]);
+        $purchaseOrder->update(['payment_action' => $validated['payment_action']]);
 
-        return response()->json($this->formatOrder($clientOrder->fresh(['client', 'quote'])));
+        return response()->json($this->formatOrder($purchaseOrder->fresh('supplier')));
     }
 
-    public function destroy(ClientPayment $clientPayment)
+    public function destroy(SupplierPayment $supplierPayment)
     {
-        DB::transaction(function () use ($clientPayment) {
-            $clientPayment->load('allocations.clientOrder');
+        DB::transaction(function () use ($supplierPayment) {
+            $supplierPayment->load('allocations.purchaseOrder');
 
-            foreach ($clientPayment->allocations as $allocation) {
-                $order = $allocation->clientOrder;
+            foreach ($supplierPayment->allocations as $allocation) {
+                $order = $allocation->purchaseOrder;
                 if ($order) {
                     $order->update([
                         'montant_paye' => round(max((float) ($order->montant_paye ?? 0) - (float) $allocation->amount, 0), 2),
@@ -286,7 +279,7 @@ class ClientPaymentApiController extends Controller
                 $allocation->delete();
             }
 
-            $clientPayment->delete();
+            $supplierPayment->delete();
         });
 
         return response()->json(['message' => 'Règlement supprimé']);
@@ -294,15 +287,15 @@ class ClientPaymentApiController extends Controller
 
     private function nextReference(): string
     {
-        return $this->referenceFor((ClientPayment::max('id') ?? 0) + 1);
+        return $this->referenceFor((SupplierPayment::max('id') ?? 0) + 1);
     }
 
     private function referenceFor(int $id): string
     {
-        return 'RC-'.str_pad((string) $id, 4, '0', STR_PAD_LEFT);
+        return 'RF-'.str_pad((string) $id, 4, '0', STR_PAD_LEFT);
     }
 
-    private function formatOrder(ClientOrder $order): array
+    private function formatOrder(PurchaseOrder $order): array
     {
         $montantBon = round((float) $order->total_ttc, 2);
         $montantPaye = round((float) ($order->montant_paye ?? 0), 2);
@@ -313,11 +306,9 @@ class ClientPaymentApiController extends Controller
             'reference' => $order->reference,
             'order_date' => $order->order_date?->format('d/m/Y'),
             'order_date_raw' => $order->order_date?->format('Y-m-d'),
-            'client_id' => $order->client_id,
-            'client' => $order->client?->name,
-            'ville' => $order->city,
-            'chantier_type' => $order->chantier_type,
-            'designation' => $order->designation,
+            'supplier_id' => $order->supplier_id,
+            'fournisseur' => $order->supplier?->name,
+            'client_livre' => $order->client_livre,
             'montant_bon' => number_format($montantBon, 2, '.', ''),
             'montant_paye' => number_format($montantPaye, 2, '.', ''),
             'solde' => number_format($solde, 2, '.', ''),
@@ -326,20 +317,17 @@ class ClientPaymentApiController extends Controller
         ];
     }
 
-    private function formatPayment(ClientPayment $payment): array
+    private function formatPayment(SupplierPayment $payment): array
     {
-        $payment->loadMissing(['client', 'allocations.clientOrder']);
+        $payment->loadMissing(['supplier', 'allocations.purchaseOrder']);
 
         return [
             'id' => $payment->id,
             'reference' => $payment->reference,
             'payment_date' => $payment->payment_date?->format('d/m/Y'),
             'payment_date_raw' => $payment->payment_date?->format('Y-m-d'),
-            'client_id' => $payment->client_id,
-            'client' => $payment->client_name ?: $payment->client?->name,
-            'fournisseur' => $payment->client_name ?: $payment->client?->name, // alias UI
-            'ville_chantier' => $payment->ville_chantier,
-            'chantier_type' => $payment->chantier_type,
+            'supplier_id' => $payment->supplier_id,
+            'fournisseur' => $payment->supplier?->name,
             'reglement' => $payment->reglement,
             'numero' => $payment->numero,
             'banque' => $payment->banque,
@@ -348,13 +336,13 @@ class ClientPaymentApiController extends Controller
             'date_decaissement' => $payment->date_decaissement?->format('d/m/Y'),
             'date_decaissement_raw' => $payment->date_decaissement?->format('Y-m-d'),
             'remarque' => $payment->remarque,
-            'total_ttc' => number_format((float) $payment->montant_total, 2, '.', ''),
-            'solde_ttc' => number_format((float) $payment->solde, 2, '.', ''),
+            'total_ttc' => number_format((float) $payment->total_ttc, 2, '.', ''),
+            'solde_ttc' => number_format((float) $payment->solde_ttc, 2, '.', ''),
             'statut' => $payment->statut ?: 'Inst',
             'allocations' => $payment->allocations->map(fn ($a) => [
                 'id' => $a->id,
-                'client_order_id' => $a->client_order_id,
-                'bon' => $a->clientOrder?->reference,
+                'purchase_order_id' => $a->purchase_order_id,
+                'bon' => $a->purchaseOrder?->reference,
                 'amount' => number_format((float) $a->amount, 2, '.', ''),
                 'action' => $a->action,
             ])->values()->all(),

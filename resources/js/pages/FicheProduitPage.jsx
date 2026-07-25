@@ -332,7 +332,7 @@ export default function FicheProduitPage() {
                         <Save className="w-4 h-4" />
                         {saving ? 'Enregistrement...' : editingId ? 'Mettre à jour' : 'Enregistrer'}
                     </button>
-                    <button type="button" onClick={handleNew} className="btn-secondary text-sm bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600">
+                    <button type="button" onClick={handleNew} className="btn-muted">
                         <RotateCcw className="w-4 h-4" />
                         Nouveau
                     </button>

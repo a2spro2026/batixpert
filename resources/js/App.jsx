@@ -7,6 +7,8 @@ import Dashboard from './pages/Dashboard';
 import ChantiersPage from './pages/ChantiersPage';
 import BonAchatsPage from './pages/BonAchatsPage';
 import BonVentesPage from './pages/BonVentesPage';
+import ReglementFournisseurPage from './pages/ReglementFournisseurPage';
+import ReglementClientPage from './pages/ReglementClientPage';
 import FicheProduitPage from './pages/FicheProduitPage';
 import GenericListPage from './pages/GenericListPage';
 import ModulePage from './pages/ModulePage';
@@ -14,7 +16,6 @@ import FicheFournisseurPage from './pages/FicheFournisseurPage';
 import FicheClientPage from './pages/FicheClientPage';
 import BonExecutionListPage from './pages/clients/BonExecutionListPage';
 import ClientBalancePage from './pages/clients/ClientBalancePage';
-import EtatPaiementPage from './pages/clients/EtatPaiementPage';
 import DevisListPage from './pages/devis/DevisListPage';
 import DevisFormPage from './pages/devis/DevisFormPage';
 import TransactionsPage from './pages/TransactionsPage';
@@ -48,9 +49,6 @@ function AppRoutes() {
                 {/* Fournisseur */}
                 <Route path="fournisseurs/fiches" element={<FicheFournisseurPage />} />
                 <Route path="fournisseurs/bons-achats" element={<BonAchatsPage />} />
-                <Route path="fournisseurs/reglements-achats" element={<ModulePage />} />
-                <Route path="fournisseurs/factures-achats" element={<ModulePage />} />
-                <Route path="fournisseurs/reglements-factures" element={<ModulePage />} />
                 <Route path="fournisseurs/balance" element={<ModulePage />} />
                 <Route path="fournisseurs/releve-compte" element={<ModulePage />} />
 
@@ -61,11 +59,20 @@ function AppRoutes() {
                 <Route path="clients/devis/:id" element={<DevisFormPage />} />
                 <Route path="clients/devis" element={<DevisListPage />} />
                 <Route path="clients/bons-vente" element={<BonExecutionListPage />} />
-                <Route path="clients/reglements-vente" element={<EtatPaiementPage />} />
+                <Route path="clients/reglements-vente" element={<ReglementClientPage />} />
+                <Route path="clients/reglements" element={<ReglementClientPage />} />
                 <Route path="clients/factures-ventes" element={<ModulePage />} />
                 <Route path="clients/reglements-factures" element={<ModulePage />} />
                 <Route path="clients/balance" element={<ClientBalancePage />} />
                 <Route path="clients/releve-compte" element={<ModulePage />} />
+
+                {/* Facturation */}
+                <Route path="facturation/factures-achats" element={<ModulePage />} />
+                <Route path="facturation/reglement" element={<ReglementFournisseurPage />} />
+                <Route path="facturation/factures-ventes" element={<ModulePage />} />
+                <Route path="facturation/reglements" element={<ReglementClientPage />} />
+                <Route path="facturation/balance" element={<ModulePage />} />
+                <Route path="fournisseurs/reglements-achats" element={<ReglementFournisseurPage />} />
 
                 {/* Stock */}
                 <Route path="stock/produits" element={<FicheProduitPage />} />

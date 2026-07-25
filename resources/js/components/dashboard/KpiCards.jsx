@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
-    ShoppingCart, ShoppingBag, Scale, Receipt, Vault, TrendingUp, TrendingDown,
+    ShoppingCart, ShoppingBag, Scale, Receipt, Truck, TrendingUp, TrendingDown,
 } from 'lucide-react';
 import api from '../../lib/api';
 
@@ -40,9 +40,9 @@ const cards = [
         glow: 'rgba(244, 63, 94, 0.35)',
     },
     {
-        key: 'tresorerie',
-        label: 'Trésorerie',
-        icon: Vault,
+        key: 'solde_fournisseur',
+        label: 'Solde Fournisseur',
+        icon: Truck,
         format: 'currency',
         gradient: 'from-violet-500 via-purple-600 to-indigo-900',
         glow: 'rgba(139, 92, 246, 0.4)',

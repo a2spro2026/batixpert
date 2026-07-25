@@ -11,6 +11,7 @@ import { useNavigate } from 'react-router-dom';
 const sectionColors = {
     fournisseurs: 'from-amber-500/20 to-orange-600/10',
     clients: 'from-blue-500/20 to-cyan-600/10',
+    facturation: 'from-indigo-500/20 to-blue-700/10',
     stock: 'from-emerald-500/20 to-teal-600/10',
     chantiers: 'from-yellow-500/20 to-amber-600/10',
     personnel: 'from-violet-500/20 to-purple-600/10',

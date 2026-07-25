@@ -20,11 +20,96 @@
     }
 
     .btn-primary {
-        @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-brand-orange hover:bg-orange-600 text-white font-medium text-sm transition-all duration-200 shadow-lg shadow-orange-500/25 hover:shadow-orange-500/40;
+        @apply relative inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl
+            text-white font-semibold text-sm tracking-wide
+            bg-gradient-to-br from-orange-400 via-brand-orange to-orange-700
+            border border-white/15
+            shadow-lg shadow-orange-500/30
+            transition-all duration-200
+            hover:shadow-xl hover:shadow-orange-500/40 hover:-translate-y-0.5
+            active:translate-y-0 active:shadow-md
+            disabled:opacity-60 disabled:pointer-events-none disabled:translate-y-0;
     }
 
     .btn-secondary {
-        @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-brand-navy hover:bg-blue-900 text-white font-medium text-sm transition-all duration-200;
+        @apply relative inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl
+            text-white font-semibold text-sm tracking-wide
+            bg-gradient-to-br from-blue-600 via-brand-navy to-slate-900
+            border border-white/10
+            shadow-lg shadow-brand-navy/30
+            transition-all duration-200
+            hover:shadow-xl hover:shadow-brand-navy/40 hover:-translate-y-0.5
+            active:translate-y-0 active:shadow-md
+            disabled:opacity-60 disabled:pointer-events-none disabled:translate-y-0;
+    }
+
+    .btn-danger {
+        @apply relative inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl
+            text-white font-semibold text-sm tracking-wide
+            bg-gradient-to-br from-red-500 via-rose-600 to-red-800
+            border border-white/15
+            shadow-lg shadow-red-500/30
+            transition-all duration-200
+            hover:shadow-xl hover:shadow-red-500/40 hover:-translate-y-0.5
+            active:translate-y-0 active:shadow-md
+            disabled:opacity-60 disabled:pointer-events-none disabled:translate-y-0;
+    }
+
+    .btn-muted {
+        @apply relative inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl
+            text-slate-800 dark:text-white font-semibold text-sm tracking-wide
+            bg-gradient-to-br from-slate-100 via-slate-200 to-slate-300
+            dark:from-slate-600 dark:via-slate-700 dark:to-slate-800
+            border border-slate-300/60 dark:border-slate-500/40
+            shadow-md shadow-slate-400/20 dark:shadow-black/30
+            transition-all duration-200
+            hover:shadow-lg hover:-translate-y-0.5
+            active:translate-y-0 active:shadow-sm
+            disabled:opacity-60 disabled:pointer-events-none disabled:translate-y-0;
+    }
+
+    .btn-action {
+        @apply px-1.5 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wide
+            border border-transparent shadow-sm transition-all duration-150
+            hover:-translate-y-px hover:shadow-md active:translate-y-0;
+    }
+
+    .btn-action-inst {
+        @apply px-1.5 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wide border border-transparent
+            shadow-sm transition-all duration-150 hover:-translate-y-px hover:shadow-md active:translate-y-0
+            bg-gradient-to-br from-slate-200 to-slate-400 text-slate-800
+            dark:from-slate-600 dark:to-slate-800 dark:text-slate-100;
+    }
+
+    .btn-action-paye {
+        @apply px-1.5 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wide border border-transparent
+            shadow-sm transition-all duration-150 hover:-translate-y-px hover:shadow-md active:translate-y-0
+            bg-gradient-to-br from-emerald-400 to-emerald-700 text-white shadow-emerald-500/25;
+    }
+
+    .btn-action-report {
+        @apply px-1.5 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wide border border-transparent
+            shadow-sm transition-all duration-150 hover:-translate-y-px hover:shadow-md active:translate-y-0
+            bg-gradient-to-br from-orange-400 to-orange-600 text-white shadow-orange-500/25;
+    }
+
+    .btn-action-imp {
+        @apply px-1.5 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wide border border-transparent
+            shadow-sm transition-all duration-150 hover:-translate-y-px hover:shadow-md active:translate-y-0
+            bg-gradient-to-br from-red-400 to-red-700 text-white shadow-red-500/25;
+    }
+
+    .btn-action-devalide {
+        @apply px-1.5 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wide border border-transparent
+            shadow-sm transition-all duration-150 hover:-translate-y-px hover:shadow-md active:translate-y-0
+            bg-gradient-to-br from-violet-400 to-violet-700 text-white shadow-violet-500/25;
+    }
+
+    .btn-action-idle {
+        @apply px-1.5 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wide border border-transparent
+            transition-all duration-150
+            bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500
+            shadow-none hover:opacity-90;
     }
 
     .input-field {

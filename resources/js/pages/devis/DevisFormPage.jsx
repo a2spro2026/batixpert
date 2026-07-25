@@ -566,7 +566,7 @@ export default function DevisFormPage() {
                         <Printer className="w-4 h-4" />
                         Imprimer
                     </button>
-                    <button type="button" onClick={goToList} className="btn-secondary text-sm bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600">
+                    <button type="button" onClick={goToList} className="btn-muted">
                         Annuler
                     </button>
                 </div>

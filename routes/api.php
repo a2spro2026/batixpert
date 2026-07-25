@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\ExpenseApiController;
 use App\Http\Controllers\Api\ProductApiController;
 use App\Http\Controllers\Api\PurchaseOrderApiController;
 use App\Http\Controllers\Api\SaleOrderApiController;
+use App\Http\Controllers\Api\SupplierPaymentApiController;
 use App\Http\Controllers\Api\QuoteApiController;
 use App\Http\Controllers\Api\SupplierApiController;
 use App\Http\Controllers\Api\TaskApiController;
@@ -31,10 +32,13 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::apiResource('clients', ClientApiController::class);
     Route::get('client-payments/meta', [ClientPaymentApiController::class, 'meta']);
+    Route::get('client-payments/orders', [ClientPaymentApiController::class, 'orders']);
+    Route::patch('client-payments/orders/{client_order}/action', [ClientPaymentApiController::class, 'updateAction']);
     Route::get('client-payments', [ClientPaymentApiController::class, 'index']);
     Route::post('client-payments', [ClientPaymentApiController::class, 'store']);
     Route::get('client-payments/{client_payment}', [ClientPaymentApiController::class, 'show']);
     Route::put('client-payments/{client_payment}', [ClientPaymentApiController::class, 'update']);
+    Route::patch('client-payments/{client_payment}/statut', [ClientPaymentApiController::class, 'updateStatut']);
     Route::delete('client-payments/{client_payment}', [ClientPaymentApiController::class, 'destroy']);
     Route::apiResource('client-orders', ClientOrderApiController::class)->only(['index', 'show']);
     Route::apiResource('quotes', QuoteApiController::class);
@@ -46,6 +50,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('purchase-orders/{purchase_order}/validate', [PurchaseOrderApiController::class, 'validateOrder']);
     Route::apiResource('sales-orders', SaleOrderApiController::class);
     Route::post('sales-orders/{sales_order}/validate', [SaleOrderApiController::class, 'validateOrder']);
+
+    Route::get('supplier-payments/meta', [SupplierPaymentApiController::class, 'meta']);
+    Route::get('supplier-payments/orders', [SupplierPaymentApiController::class, 'orders']);
+    Route::patch('supplier-payments/orders/{purchase_order}/action', [SupplierPaymentApiController::class, 'updateAction']);
+    Route::get('supplier-payments', [SupplierPaymentApiController::class, 'index']);
+    Route::post('supplier-payments', [SupplierPaymentApiController::class, 'store']);
+    Route::get('supplier-payments/{supplier_payment}', [SupplierPaymentApiController::class, 'show']);
+    Route::put('supplier-payments/{supplier_payment}', [SupplierPaymentApiController::class, 'update']);
+    Route::patch('supplier-payments/{supplier_payment}/statut', [SupplierPaymentApiController::class, 'updateStatut']);
+    Route::delete('supplier-payments/{supplier_payment}', [SupplierPaymentApiController::class, 'destroy']);
 
     Route::apiResource('employees', EmployeeApiController::class);
     Route::apiResource('expenses', ExpenseApiController::class);

@@ -36,6 +36,7 @@ import {
     // Monétaire
     Coins,
     Vault,
+    FileText,
 } from 'lucide-react';
 
 export const navigation = [
@@ -56,8 +57,6 @@ export const navigation = [
             { to: '/fournisseurs/bons-achats', label: 'Bon Achats', icon: ClipboardList },
             { to: '/chantiers/bons-commande', label: 'Bon de Commande', icon: ClipboardCheck },
             { to: '/fournisseurs/reglements-achats', label: 'Règlement Achats', icon: Banknote },
-            { to: '/fournisseurs/factures-achats', label: 'Facture Achats', icon: FileInput },
-            { to: '/fournisseurs/reglements-factures', label: 'Règlement Facture', icon: CreditCard },
             { to: '/fournisseurs/balance', label: 'Balance', icon: Scale },
             { to: '/fournisseurs/releve-compte', label: 'Relevé Compte', icon: ScrollText },
         ],
@@ -70,11 +69,22 @@ export const navigation = [
         children: [
             { to: '/clients/fiches', label: 'Fiche Client', icon: ContactRound },
             { to: '/clients/bons-de-vente', label: 'Bon de Vente', icon: ClipboardList },
-            { to: '/clients/reglements-vente', label: 'Etat Paiement', icon: CircleDollarSign },
-            { to: '/clients/factures-ventes', label: 'Facture Ventes', icon: Receipt },
-            { to: '/clients/reglements-factures', label: 'Règlement Facture', icon: Wallet },
+            { to: '/clients/reglements-vente', label: 'Règlement Client', icon: CircleDollarSign },
             { to: '/clients/balance', label: 'Balance', icon: Scale },
             { to: '/clients/releve-compte', label: 'Relevé Compte', icon: ScrollText },
+        ],
+    },
+    {
+        id: 'facturation',
+        label: 'Facturation',
+        icon: FileText,
+        perm: 'factures_clients.view',
+        children: [
+            { to: '/facturation/factures-achats', label: 'Facture Achats', icon: FileInput },
+            { to: '/facturation/reglement', label: 'Règlement', icon: CreditCard },
+            { to: '/facturation/factures-ventes', label: 'Facture Ventes', icon: Receipt },
+            { to: '/facturation/reglements', label: 'Règlements', icon: Wallet },
+            { to: '/facturation/balance', label: 'Balance', icon: Scale },
         ],
     },
     {

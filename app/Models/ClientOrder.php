@@ -12,7 +12,7 @@ class ClientOrder extends Model
         'reference', 'quote_id', 'client_id', 'order_date',
         'contact', 'city', 'chantier_type', 'budget', 'work_delay',
         'type_travaux', 'designation', 'consistance', 'unit', 'quantity', 'unit_price', 'subtotal',
-        'total_ht', 'tva', 'total_ttc', 'montant_paye', 'status', 'user_id',
+        'total_ht', 'tva', 'total_ttc', 'montant_paye', 'payment_action', 'status', 'user_id',
     ];
 
     protected function casts(): array
