@@ -64,7 +64,7 @@ class SaleOrderApiController extends Controller
                 'user_id' => $request->user()->id,
             ]);
 
-            $order->update(['reference' => $this->referenceFor($order->id)]);
+            $order->update(['reference' => $this->nextReference()]);
             $this->syncItems($order, $items);
 
             return $order->fresh(['client', 'items']);
@@ -211,14 +211,18 @@ class SaleOrderApiController extends Controller
 
     private function nextReference(): string
     {
-        $next = (SaleOrder::max('id') ?? 0) + 1;
+        $prefix = 'B-V'.now()->format('y').'/';
+        $last = SaleOrder::where('reference', 'like', $prefix.'%')
+            ->pluck('reference')
+            ->map(fn ($reference) => (int) substr($reference, strrpos($reference, '/') + 1))
+            ->max() ?? 0;
 
-        return $this->referenceFor($next);
+        return $this->referenceFor($last + 1);
     }
 
     private function referenceFor(int $id): string
     {
-        return 'BV-'.str_pad((string) $id, 4, '0', STR_PAD_LEFT);
+        return 'B-V'.now()->format('y').'/'.str_pad((string) $id, 4, '0', STR_PAD_LEFT);
     }
 
     private function formatOrder(SaleOrder $order): array

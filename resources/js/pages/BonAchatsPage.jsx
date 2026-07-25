@@ -131,7 +131,7 @@ function ActionBtn({ title, onClick, icon: Icon, color = 'slate' }) {
 function ViewModal({ row, onClose }) {
     if (!row) return null;
     const header = [
-        ['Date', row.order_date], ['Réf B-A', row.reference], ['Fournisseur', row.fournisseur],
+        ['Date', row.order_date], ['N° B-A', row.reference], ['Fournisseur', row.fournisseur],
         ['N° Frns', row.bc_number], ['Client Livré', row.client_livre], ['Ville Livraison', row.city],
         ['Type Rég', row.reglement], ['Échéance', row.echeance], ['Chauffeur', row.chauffeur], ['Matricule', row.matricule],
     ];
@@ -385,7 +385,7 @@ export default function BonAchatsPage() {
                         <Field label="Date">
                             <input type="date" required value={form.order_date} onChange={(e) => set('order_date', e.target.value)} className={inputClass} />
                         </Field>
-                        <Field label="Réf B-A">
+                        <Field label="N° B-A">
                             <input type="text" readOnly value={currentRef} className={readOnlyClass} />
                         </Field>
                         <Field label="Nom Fournisseur">
@@ -558,7 +558,7 @@ export default function BonAchatsPage() {
                     <table className="w-full text-sm min-w-[1100px]">
                         <thead>
                             <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700">
-                                {['Date', 'Réf B-A', 'Fournisseur', 'N° Frns', 'Client Livré', 'Ville', 'Qté totale', 'Total', 'Échéance', 'Actions'].map((h) => (
+                                {['Date', 'N° B-A', 'Fournisseur', 'N° Frns', 'Client Livré', 'Ville', 'Qté totale', 'Total', 'Échéance', 'Actions'].map((h) => (
                                     <th key={h} className="px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap text-center">{h}</th>
                                 ))}
                             </tr>

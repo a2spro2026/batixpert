@@ -64,7 +64,7 @@ class PurchaseOrderApiController extends Controller
                 'user_id' => $request->user()->id,
             ]);
 
-            $order->update(['reference' => $this->referenceFor($order->id)]);
+            $order->update(['reference' => $this->nextReference()]);
             $this->syncItems($order, $items);
 
             return $order->fresh(['supplier', 'items']);
@@ -212,14 +212,18 @@ class PurchaseOrderApiController extends Controller
 
     private function nextReference(): string
     {
-        $next = (PurchaseOrder::max('id') ?? 0) + 1;
+        $prefix = 'B-A'.now()->format('y').'/';
+        $last = PurchaseOrder::where('reference', 'like', $prefix.'%')
+            ->pluck('reference')
+            ->map(fn ($reference) => (int) substr($reference, strrpos($reference, '/') + 1))
+            ->max() ?? 0;
 
-        return $this->referenceFor($next);
+        return $this->referenceFor($last + 1);
     }
 
     private function referenceFor(int $id): string
     {
-        return 'BA-'.str_pad((string) $id, 4, '0', STR_PAD_LEFT);
+        return 'B-A'.now()->format('y').'/'.str_pad((string) $id, 4, '0', STR_PAD_LEFT);
     }
 
     private function formatOrder(PurchaseOrder $order): array

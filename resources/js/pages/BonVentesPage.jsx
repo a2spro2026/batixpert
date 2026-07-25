@@ -130,7 +130,7 @@ function ActionBtn({ title, onClick, icon: Icon, color = 'slate' }) {
 function ViewModal({ row, onClose }) {
     if (!row) return null;
     const header = [
-        ['Date', row.order_date], ['Réf B-V', row.reference], ['Client', row.client],
+        ['Date', row.order_date], ['N° B-V', row.reference], ['Client', row.client],
         ['Ville', row.city], ['Adresse Livraison', row.address],
         ['Type Régl', row.reglement], ['Échéance', row.echeance], ['Chauffeur', row.chauffeur], ['Matricule', row.matricule],
     ];
@@ -379,7 +379,7 @@ export default function BonVentesPage() {
                         <Field label="Date">
                             <input type="date" required value={form.order_date} onChange={(e) => set('order_date', e.target.value)} className={inputClass} />
                         </Field>
-                        <Field label="Réf B-V">
+                        <Field label="N° B-V">
                             <input type="text" readOnly value={currentRef} className={readOnlyClass} />
                         </Field>
                         <Field label="Nom Client">
@@ -545,7 +545,7 @@ export default function BonVentesPage() {
                     <table className="w-full text-sm min-w-[1100px]">
                         <thead>
                             <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700">
-                                {['Date', 'Réf B-V', 'Client', 'Ville', 'Adresse Livraison', 'Qté totale', 'Total', 'Échéance', 'Actions'].map((h) => (
+                                {['Date', 'N° B-V', 'Client', 'Ville', 'Adresse Livraison', 'Qté totale', 'Total', 'Échéance', 'Actions'].map((h) => (
                                     <th key={h} className="px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap text-center">{h}</th>
                                 ))}
                             </tr>
