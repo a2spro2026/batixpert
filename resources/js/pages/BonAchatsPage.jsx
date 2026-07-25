@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle2, Plus, PlusCircle, XCircle, Eye, Pencil, Trash2, Printer, FileText, X, Package, Wallet } from 'lucide-react';
+import { CheckCircle2, Plus, PlusCircle, XCircle, Eye, Pencil, Trash2, Printer, FileText, X, Package, Wallet, Scale } from 'lucide-react';
 import api from '../lib/api';
 
 const UNIT_OPTIONS = ['', 'Kg', 'U', 'Sac', 'ML', 'M²', 'M³', 'Tn', 'M'];
@@ -177,7 +177,7 @@ export default function BonAchatsPage() {
     const [suppliers, setSuppliers] = useState([]);
     const [clients, setClients] = useState([]);
     const [products, setProducts] = useState([]);
-    const [meta, setMeta] = useState({ next_ref: '—', date: '—' });
+    const [meta, setMeta] = useState({ next_ref: '—', date: '—', total_reglements: 0, reliquat: 0 });
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
@@ -199,6 +199,17 @@ export default function BonAchatsPage() {
         [rows],
     );
 
+    const totalReglements = useMemo(
+        () => Number(meta.total_reglements) || 0,
+        [meta.total_reglements],
+    );
+
+    // Reliquat = Montant total des bons − Montant des règlements saisis
+    const reliquat = useMemo(
+        () => Math.round((totalMontantBons - totalReglements) * 100) / 100,
+        [totalMontantBons, totalReglements],
+    );
+
     const load = useCallback(() => {
         setLoading(true);
         Promise.all([
@@ -209,7 +220,7 @@ export default function BonAchatsPage() {
         ])
             .then(([ordersRes, suppliersRes, clientsRes, productsRes]) => {
                 setRows(ordersRes.data.data ?? []);
-                setMeta(ordersRes.data.meta ?? { next_ref: '—', date: '—' });
+                setMeta(ordersRes.data.meta ?? { next_ref: '—', date: '—', total_reglements: 0, reliquat: 0 });
                 setSuppliers(suppliersRes.data.data ?? []);
                 setClients(clientsRes.data.data ?? []);
                 setProducts(productsRes.data.data ?? []);
@@ -543,6 +554,17 @@ export default function BonAchatsPage() {
                                 <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Total Montant</p>
                                 <p className="text-base font-bold tabular-nums leading-tight text-brand-navy dark:text-orange-300">
                                     {formatMontantDisplay(totalMontantBons)}
+                                </p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-3 px-4 py-2 rounded-xl border shadow-sm bg-gradient-to-r from-rose-50 to-red-50 dark:from-rose-950/40 dark:to-red-950/40 border-rose-200 dark:border-rose-800">
+                            <div className="p-2 rounded-lg bg-rose-100 dark:bg-rose-900/50 text-rose-700 dark:text-rose-300">
+                                <Scale className="w-4 h-4" />
+                            </div>
+                            <div className="text-right">
+                                <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Reliquat</p>
+                                <p className={`text-base font-bold tabular-nums leading-tight ${reliquat < 0 ? 'text-emerald-700 dark:text-emerald-300' : 'text-rose-700 dark:text-rose-300'}`}>
+                                    {formatMontantDisplay(reliquat)}
                                 </p>
                             </div>
                         </div>

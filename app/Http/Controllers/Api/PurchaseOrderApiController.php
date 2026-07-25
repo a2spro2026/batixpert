@@ -18,12 +18,17 @@ class PurchaseOrderApiController extends Controller
 
         if ($request->boolean('all')) {
             $orders = $query->get()->map(fn ($o) => $this->formatOrder($o));
+            $totalMontant = round($orders->sum(fn ($o) => (float) $o['montant']), 2);
+            $totalReglements = round((float) \App\Models\SupplierPayment::sum('montant'), 2);
 
             return response()->json([
                 'data' => $orders,
                 'meta' => [
                     'next_ref' => $this->nextReference(),
                     'date' => now()->format('d/m/Y'),
+                    'total_montant' => number_format($totalMontant, 2, '.', ''),
+                    'total_reglements' => number_format($totalReglements, 2, '.', ''),
+                    'reliquat' => number_format(round($totalMontant - $totalReglements, 2), 2, '.', ''),
                 ],
             ]);
         }
@@ -245,6 +250,7 @@ class PurchaseOrderApiController extends Controller
             'quantity' => (float) $order->quantity,
             'subtotal' => number_format((float) $order->subtotal, 2, '.', ''),
             'montant' => number_format((float) $order->total_ttc, 2, '.', ''),
+            'montant_paye' => number_format((float) ($order->montant_paye ?? 0), 2, '.', ''),
             'reglement' => $order->reglement,
             'echeance' => $order->echeance,
             'city' => $order->city,
