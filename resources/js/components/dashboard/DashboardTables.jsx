@@ -93,7 +93,7 @@ export default function DashboardTables({ tables, loading }) {
                 />
 
                 <ReportTable
-                    title="5 Régl à Décaisser"
+                    title="5 Régl à Décaisser — Semaine en cours"
                     icon={Banknote}
                     columns={reglADecaisserColumns}
                     rows={tables?.regl_a_decaisser}

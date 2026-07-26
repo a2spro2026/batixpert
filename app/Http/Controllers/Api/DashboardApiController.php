@@ -18,6 +18,7 @@ use App\Models\Supplier;
 use App\Models\SupplierInvoice;
 use App\Models\SupplierPayment;
 use App\Models\Task;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class DashboardApiController extends Controller
@@ -188,9 +189,20 @@ class DashboardApiController extends Controller
                 'date_decaiss' => $c->date_decaissement?->format('d/m/Y') ?? '—',
             ]);
 
+        // Semaine en cours (lundi → dimanche), bornée au mois opérationnel
+        $today = Carbon::today();
+        $monthStart = $today->copy()->startOfMonth()->startOfDay();
+        $monthEnd = $today->copy()->endOfMonth()->endOfDay();
+        $weekStart = $today->copy()->startOfWeek(Carbon::MONDAY)->startOfDay();
+        $weekEnd = $today->copy()->endOfWeek(Carbon::SUNDAY)->endOfDay();
+        $opWeekStart = $weekStart->greaterThan($monthStart) ? $weekStart : $monthStart;
+        $opWeekEnd = $weekEnd->lessThan($monthEnd) ? $weekEnd : $monthEnd;
+
         $reglADecaisser = SupplierPayment::query()
             ->whereIn('statut', ['Inst', 'Report', 'Imp'])
-            ->orderByRaw('CASE WHEN date_decaissement IS NULL THEN 1 ELSE 0 END')
+            ->whereNotNull('date_decaissement')
+            ->whereDate('date_decaissement', '>=', $opWeekStart->toDateString())
+            ->whereDate('date_decaissement', '<=', $opWeekEnd->toDateString())
             ->orderBy('date_decaissement')
             ->orderByDesc('id')
             ->limit(5)
