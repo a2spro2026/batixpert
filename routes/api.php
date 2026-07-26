@@ -33,7 +33,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('clients', ClientApiController::class);
     Route::get('client-payments/meta', [ClientPaymentApiController::class, 'meta']);
     Route::get('client-payments/orders', [ClientPaymentApiController::class, 'orders']);
-    Route::patch('client-payments/orders/{client_order}/action', [ClientPaymentApiController::class, 'updateAction']);
+    Route::patch('client-payments/orders/{sales_order}/action', [ClientPaymentApiController::class, 'updateAction']);
     Route::get('client-payments', [ClientPaymentApiController::class, 'index']);
     Route::post('client-payments', [ClientPaymentApiController::class, 'store']);
     Route::get('client-payments/{client_payment}', [ClientPaymentApiController::class, 'show']);

@@ -1,0 +1,14 @@
+---
+description: URL locale BatiXpert — toujours utiliser ce lien pour le projet
+alwaysApply: true
+---
+
+# URL locale BatiXpert
+
+L’application locale tourne sur :
+
+**http://127.0.0.1:6501/**
+
+- SPA : **http://127.0.0.1:6501/app**
+- Ne pas indiquer le port 6500 ni un autre host/port.
+- Production : https://batixpert.a2spr.com

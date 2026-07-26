@@ -494,7 +494,7 @@ export default function ReglementClientPage() {
                     date_decaissement: form.date_decaissement || null,
                     remarque: form.remarque || null,
                     allocations: selectedIds.map((id) => ({
-                        client_order_id: id,
+                        sales_order_id: id,
                         amount: previewById[id]?.allocation ?? 0,
                         action: actions[id] || 'Payé',
                     })),
@@ -816,7 +816,7 @@ export default function ReglementClientPage() {
                         <table className="w-full text-sm min-w-[1100px]">
                             <thead>
                                 <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700">
-                                    {['N° Bon', 'Date Commande', 'Ville', 'Montant Bon', 'Montant Payé', 'Solde', 'Sélection', 'Action'].map((h) => (
+                                    {['N° Bon', 'Date Commande', 'Adresse Livraison', 'Montant Bon', 'Montant Payé', 'Solde', 'Sélection', 'Action'].map((h) => (
                                         <th key={h} className="px-3 py-3 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap text-center">{h}</th>
                                     ))}
                                 </tr>
@@ -850,7 +850,7 @@ export default function ReglementClientPage() {
                                                 <tr key={row.id} className={`hover:bg-orange-50/40 dark:hover:bg-slate-800/40 transition-colors ${selected[row.id] ? 'bg-amber-50/50 dark:bg-amber-900/10' : ''}`}>
                                                     <td className="px-3 py-2.5 text-center font-mono text-xs font-semibold text-brand-navy dark:text-orange-400">{row.reference}</td>
                                                     <td className="px-3 py-2.5 text-center text-slate-600 dark:text-slate-300">{row.order_date}</td>
-                                                    <td className="px-3 py-2.5 text-center text-slate-600 dark:text-slate-300">{row.ville || '—'}</td>
+                                                    <td className="px-3 py-2.5 text-center text-slate-600 dark:text-slate-300">{row.client_livre || row.address || row.ville || '—'}</td>
                                                     <td className="px-3 py-2.5 text-center font-semibold tabular-nums text-brand-navy dark:text-orange-400">{formatMontant(row.montant_bon)}</td>
                                                     <td className={`px-3 py-2.5 text-center tabular-nums font-semibold ${shown.isPreview ? 'text-emerald-600 dark:text-emerald-400' : 'text-emerald-700 dark:text-emerald-300'}`}>
                                                         {formatMontant(shown.montant_paye)}

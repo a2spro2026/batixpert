@@ -14,7 +14,7 @@ class SaleOrder extends Model
         'reference', 'bc_number', 'order_date', 'client_id',
         'designation', 'article_ref', 'unit', 'unit_price', 'quantity', 'subtotal',
         'reglement', 'echeance', 'city', 'address', 'chauffeur', 'matricule',
-        'total_ht', 'tva', 'total_ttc', 'status', 'notes', 'user_id',
+        'total_ht', 'tva', 'total_ttc', 'montant_paye', 'payment_action', 'status', 'notes', 'user_id',
     ];
 
     protected function casts(): array
@@ -27,6 +27,7 @@ class SaleOrder extends Model
             'total_ht' => 'decimal:2',
             'tva' => 'decimal:2',
             'total_ttc' => 'decimal:2',
+            'montant_paye' => 'decimal:2',
         ];
     }
 

@@ -3,8 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\ClientOrder;
+use App\Models\Client;
 use App\Models\ClientPayment;
+use App\Models\SaleOrder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -14,7 +15,7 @@ class ClientPaymentApiController extends Controller
 
     public function index(Request $request)
     {
-        $query = ClientPayment::with(['client', 'allocations.clientOrder']);
+        $query = ClientPayment::with(['client', 'allocations.saleOrder']);
 
         if ($request->filled('statut')) {
             $query->where('statut', $request->statut);
@@ -53,7 +54,7 @@ class ClientPaymentApiController extends Controller
     public function show(ClientPayment $clientPayment)
     {
         return response()->json([
-            'data' => $this->formatPayment($clientPayment->load(['client', 'allocations.clientOrder'])),
+            'data' => $this->formatPayment($clientPayment->load(['client', 'allocations.saleOrder'])),
         ]);
     }
 
@@ -73,7 +74,7 @@ class ClientPaymentApiController extends Controller
             'client_id' => 'required|exists:clients,id',
         ]);
 
-        $orders = ClientOrder::with(['client', 'quote'])
+        $orders = SaleOrder::with('client')
             ->where('client_id', $request->client_id)
             ->where('status', '!=', 'annule')
             ->latest('order_date')
@@ -106,14 +107,14 @@ class ClientPaymentApiController extends Controller
             'remarque' => 'nullable|string|max:1000',
             'statut' => 'nullable|in:'.implode(',', self::STATUTS),
             'allocations' => 'required|array|min:1',
-            'allocations.*.client_order_id' => 'required|exists:client_orders,id',
+            'allocations.*.sales_order_id' => 'required|exists:sales_orders,id',
             'allocations.*.amount' => 'nullable|numeric|min:0',
             'allocations.*.action' => 'nullable|in:Inst,Payé,Report,Imp,Dévalidé',
         ]);
 
         $payment = DB::transaction(function () use ($validated, $request) {
-            $orderIds = collect($validated['allocations'])->pluck('client_order_id')->all();
-            $orders = ClientOrder::with('client')
+            $orderIds = collect($validated['allocations'])->pluck('sales_order_id')->all();
+            $orders = SaleOrder::with('client')
                 ->whereIn('id', $orderIds)
                 ->where('client_id', $validated['client_id'])
                 ->lockForUpdate()
@@ -129,7 +130,7 @@ class ClientPaymentApiController extends Controller
             $built = [];
 
             foreach ($validated['allocations'] as $row) {
-                $order = $orders->get($row['client_order_id']);
+                $order = $orders->get($row['sales_order_id']);
                 $action = $row['action'] ?? 'Payé';
                 $due = round(max((float) $order->total_ttc - (float) ($order->montant_paye ?? 0), 0), 2);
 
@@ -164,15 +165,16 @@ class ClientPaymentApiController extends Controller
                 $statut = 'Payé';
             }
 
+            $client = Client::find($validated['client_id']);
             $first = $orders->first();
 
             $payment = ClientPayment::create([
                 'reference' => 'RC-PENDING',
                 'payment_date' => $validated['payment_date'],
                 'client_id' => $validated['client_id'],
-                'client_name' => $first?->client?->name,
+                'client_name' => $client?->name,
                 'ville_chantier' => $first?->city,
-                'chantier_type' => $first?->chantier_type,
+                'chantier_type' => null,
                 'montant_total' => $totalTtc,
                 'reglement' => $validated['reglement'] ?? null,
                 'numero' => $validated['numero'] ?? null,
@@ -190,7 +192,8 @@ class ClientPaymentApiController extends Controller
 
             foreach ($built as $row) {
                 $payment->allocations()->create([
-                    'client_order_id' => $row['order']->id,
+                    'sales_order_id' => $row['order']->id,
+                    'client_order_id' => null,
                     'amount' => $row['amount'],
                     'action' => $row['action'],
                 ]);
@@ -209,7 +212,7 @@ class ClientPaymentApiController extends Controller
                 ]);
             }
 
-            return $payment->fresh(['client', 'allocations.clientOrder']);
+            return $payment->fresh(['client', 'allocations.saleOrder']);
         });
 
         return response()->json([
@@ -234,15 +237,14 @@ class ClientPaymentApiController extends Controller
         ]);
 
         if (isset($validated['client_id'])) {
-            $client = \App\Models\Client::find($validated['client_id']);
-            $validated['client_name'] = $client?->name;
+            $validated['client_name'] = Client::find($validated['client_id'])?->name;
         }
 
         $clientPayment->update($validated);
 
         return response()->json([
             'message' => 'Règlement mis à jour',
-            'data' => $this->formatPayment($clientPayment->fresh(['client', 'allocations.clientOrder'])),
+            'data' => $this->formatPayment($clientPayment->fresh(['client', 'allocations.saleOrder'])),
         ]);
     }
 
@@ -256,29 +258,29 @@ class ClientPaymentApiController extends Controller
 
         return response()->json([
             'message' => 'Statut mis à jour',
-            'data' => $this->formatPayment($clientPayment->fresh(['client', 'allocations.clientOrder'])),
+            'data' => $this->formatPayment($clientPayment->fresh(['client', 'allocations.saleOrder'])),
         ]);
     }
 
-    public function updateAction(Request $request, ClientOrder $clientOrder)
+    public function updateAction(Request $request, SaleOrder $sales_order)
     {
         $validated = $request->validate([
             'payment_action' => 'required|in:Inst,Payé,Report,Imp,Dévalidé',
         ]);
 
-        $clientOrder->update(['payment_action' => $validated['payment_action']]);
+        $sales_order->update(['payment_action' => $validated['payment_action']]);
 
-        return response()->json($this->formatOrder($clientOrder->fresh(['client', 'quote'])));
+        return response()->json($this->formatOrder($sales_order->fresh('client')));
     }
 
     public function destroy(ClientPayment $clientPayment)
     {
         DB::transaction(function () use ($clientPayment) {
-            $clientPayment->load('allocations.clientOrder');
+            $clientPayment->load(['allocations.saleOrder', 'allocations.clientOrder']);
 
             foreach ($clientPayment->allocations as $allocation) {
-                $order = $allocation->clientOrder;
-                if ($order) {
+                $order = $allocation->saleOrder ?: $allocation->clientOrder;
+                if ($order && isset($order->montant_paye)) {
                     $order->update([
                         'montant_paye' => round(max((float) ($order->montant_paye ?? 0) - (float) $allocation->amount, 0), 2),
                     ]);
@@ -302,7 +304,7 @@ class ClientPaymentApiController extends Controller
         return 'RC-'.str_pad((string) $id, 4, '0', STR_PAD_LEFT);
     }
 
-    private function formatOrder(ClientOrder $order): array
+    private function formatOrder(SaleOrder $order): array
     {
         $montantBon = round((float) $order->total_ttc, 2);
         $montantPaye = round((float) ($order->montant_paye ?? 0), 2);
@@ -315,9 +317,9 @@ class ClientPaymentApiController extends Controller
             'order_date_raw' => $order->order_date?->format('Y-m-d'),
             'client_id' => $order->client_id,
             'client' => $order->client?->name,
+            'client_livre' => $order->address ?: $order->city,
             'ville' => $order->city,
-            'chantier_type' => $order->chantier_type,
-            'designation' => $order->designation,
+            'address' => $order->address,
             'montant_bon' => number_format($montantBon, 2, '.', ''),
             'montant_paye' => number_format($montantPaye, 2, '.', ''),
             'solde' => number_format($solde, 2, '.', ''),
@@ -328,7 +330,7 @@ class ClientPaymentApiController extends Controller
 
     private function formatPayment(ClientPayment $payment): array
     {
-        $payment->loadMissing(['client', 'allocations.clientOrder']);
+        $payment->loadMissing(['client', 'allocations.saleOrder', 'allocations.clientOrder']);
 
         return [
             'id' => $payment->id,
@@ -337,9 +339,6 @@ class ClientPaymentApiController extends Controller
             'payment_date_raw' => $payment->payment_date?->format('Y-m-d'),
             'client_id' => $payment->client_id,
             'client' => $payment->client_name ?: $payment->client?->name,
-            'fournisseur' => $payment->client_name ?: $payment->client?->name, // alias UI
-            'ville_chantier' => $payment->ville_chantier,
-            'chantier_type' => $payment->chantier_type,
             'reglement' => $payment->reglement,
             'numero' => $payment->numero,
             'banque' => $payment->banque,
@@ -353,8 +352,8 @@ class ClientPaymentApiController extends Controller
             'statut' => $payment->statut ?: 'Inst',
             'allocations' => $payment->allocations->map(fn ($a) => [
                 'id' => $a->id,
-                'client_order_id' => $a->client_order_id,
-                'bon' => $a->clientOrder?->reference,
+                'sales_order_id' => $a->sales_order_id,
+                'bon' => $a->saleOrder?->reference ?: $a->clientOrder?->reference,
                 'amount' => number_format((float) $a->amount, 2, '.', ''),
                 'action' => $a->action,
             ])->values()->all(),
