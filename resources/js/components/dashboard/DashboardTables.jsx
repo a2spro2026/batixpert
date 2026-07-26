@@ -1,87 +1,106 @@
-import { Banknote, Package, Receipt } from 'lucide-react';
+import { Banknote, ClipboardList, ShoppingBag, Wallet } from 'lucide-react';
 import ReportTable from './ReportTable';
 
-function StatutBadge({ value }) {
-    const isActif = value === 'Actif';
-    return (
-        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
-            isActif
-                ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400'
-                : 'bg-slate-200/80 dark:bg-slate-700 text-slate-600 dark:text-slate-400'
-        }`}>
-            {value}
-        </span>
-    );
+function formatMontant(value) {
+    return (Number(value) || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-function EtatBadge({ value }) {
-    const styles = {
-        Dispo: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400',
-        Faible: 'bg-amber-500/15 text-amber-700 dark:text-amber-400',
-        Rupture: 'bg-red-500/15 text-red-700 dark:text-red-400',
-    };
-
-    return (
-        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${styles[value] ?? 'bg-slate-100 text-slate-600'}`}>
-            {value}
-        </span>
-    );
+function formatQte(value) {
+    return (Number(value) || 0).toLocaleString('fr-FR', { maximumFractionDigits: 3 });
 }
 
-const debitColumns = [
+function SoldeCell({ value }) {
+    const n = Number(value) || 0;
+    const color = n > 0
+        ? 'text-red-600 dark:text-red-400'
+        : n < 0
+            ? 'text-emerald-600 dark:text-emerald-400'
+            : 'text-slate-500';
+    return <span className={`font-semibold tabular-nums ${color}`}>{formatMontant(n)}</span>;
+}
+
+const bonsAchatsColumns = [
     { key: 'date', label: 'Date' },
-    { key: 'fournisseur', label: 'Nom Fournisseur' },
-    { key: 'type_regl', label: 'Type Règl.' },
-    { key: 'numero', label: 'N°' },
-    { key: 'montant', label: 'Montant', align: 'right' },
-    { key: 'date_decaiss', label: 'Date Décaiss.' },
+    { key: 'fournisseur', label: 'Fournisseurs' },
+    { key: 'bn_numero', label: 'BN N°', render: (v) => <span className="font-mono text-xs font-semibold text-brand-navy dark:text-orange-400">{v || '—'}</span> },
+    { key: 'qte', label: 'Qte', align: 'right', render: (v) => formatQte(v) },
+    { key: 'montant_bon', label: 'Montant Bon', align: 'right', render: (v) => <span className="font-semibold tabular-nums text-brand-navy dark:text-orange-400">{formatMontant(v)}</span> },
+    { key: 'solde', label: 'Solde', align: 'right', render: (v) => <SoldeCell value={v} /> },
 ];
 
-const consommationColumns = [
-    { key: 'ref', label: 'Réf' },
-    { key: 'designation', label: 'Désignation' },
-    { key: 'qte', label: 'Qté', align: 'right', render: (v) => Number(v).toLocaleString('fr-FR') },
-    { key: 'destination', label: 'Destination' },
-    { key: 'statut', label: 'Statut', render: (v) => <StatutBadge value={v} /> },
-    { key: 'etat', label: 'État', render: (v) => <EtatBadge value={v} /> },
+const bonsVentesColumns = [
+    { key: 'date', label: 'Date' },
+    { key: 'client', label: 'Client' },
+    { key: 'bn_numero', label: 'BN N°', render: (v) => <span className="font-mono text-xs font-semibold text-brand-navy dark:text-blue-400">{v || '—'}</span> },
+    { key: 'qte', label: 'Qte', align: 'right', render: (v) => formatQte(v) },
+    { key: 'montant_bon', label: 'Montant Bon', align: 'right', render: (v) => <span className="font-semibold tabular-nums text-brand-navy dark:text-blue-400">{formatMontant(v)}</span> },
+    { key: 'solde', label: 'Solde', align: 'right', render: (v) => <SoldeCell value={v} /> },
 ];
 
-const chargesColumns = [
+const bonsChargeColumns = [
     { key: 'date', label: 'Date' },
     { key: 'designation', label: 'Désignation' },
-    { key: 'montant', label: 'Montant', align: 'right' },
-    { key: 'destination', label: 'Destination' },
+    { key: 'beneficiaire', label: 'Bénéficiaire' },
+    { key: 'regl', label: 'Régl', render: (v) => <span className="font-semibold text-slate-700 dark:text-slate-200">{v || '—'}</span> },
+    { key: 'date_decaiss', label: 'Date Décaiss' },
+];
+
+const reglADecaisserColumns = [
+    { key: 'type_reg', label: 'Type Rég', render: (v) => <span className="font-semibold text-slate-700 dark:text-slate-200">{v || '—'}</span> },
+    { key: 'numero', label: 'N°', render: (v) => <span className="font-mono text-xs font-semibold">{v || '—'}</span> },
+    { key: 'bnq', label: 'Bnq' },
+    { key: 'tire', label: 'Tiré' },
+    { key: 'montant', label: 'Montant', align: 'right', render: (v) => <span className="font-semibold tabular-nums text-rose-600 dark:text-rose-400">{formatMontant(v)}</span> },
+    { key: 'date_decaiss', label: 'Date Décaiss' },
 ];
 
 export default function DashboardTables({ tables, loading }) {
     return (
         <div className="space-y-6 pb-2">
-            <ReportTable
-                title="Etat Débit"
-                icon={Banknote}
-                columns={debitColumns}
-                rows={tables?.etat_debit}
-                loading={loading}
-                accent="from-brand-navy via-blue-800 to-blue-900"
-            />
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                <ReportTable
+                    title="5 Derniers Bons Achats"
+                    icon={ClipboardList}
+                    columns={bonsAchatsColumns}
+                    rows={tables?.derniers_bons_achats}
+                    loading={loading}
+                    accent="from-amber-500 via-orange-500 to-orange-700"
+                    headerStyle="gray"
+                    showCount={false}
+                />
+                <ReportTable
+                    title="5 Derniers Bons Ventes"
+                    icon={ShoppingBag}
+                    columns={bonsVentesColumns}
+                    rows={tables?.derniers_bons_ventes}
+                    loading={loading}
+                    accent="from-blue-600 via-blue-700 to-slate-800"
+                    headerStyle="gray"
+                    showCount={false}
+                />
+            </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                 <ReportTable
-                    title="Etat Consommation — Top 5"
-                    icon={Package}
-                    columns={consommationColumns}
-                    rows={tables?.etat_consommation}
+                    title="5 Derniers Bon Charge"
+                    icon={Wallet}
+                    columns={bonsChargeColumns}
+                    rows={tables?.derniers_bons_charge}
                     loading={loading}
-                    accent="from-amber-500 via-orange-500 to-orange-700"
+                    accent="from-teal-600 via-cyan-700 to-slate-800"
+                    headerStyle="gray"
+                    showCount={false}
                 />
 
                 <ReportTable
-                    title="Etat Charges"
-                    icon={Receipt}
-                    columns={chargesColumns}
-                    rows={tables?.etat_charges}
+                    title="5 Régl à Décaisser"
+                    icon={Banknote}
+                    columns={reglADecaisserColumns}
+                    rows={tables?.regl_a_decaisser}
                     loading={loading}
                     accent="from-rose-500 via-red-500 to-rose-800"
+                    headerStyle="gray"
+                    showCount={false}
                 />
             </div>
         </div>

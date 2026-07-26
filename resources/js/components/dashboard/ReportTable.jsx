@@ -5,10 +5,17 @@ function formatMontant(value) {
     return `${n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-export default function ReportTable({ title, icon: Icon, columns, rows, loading, accent = 'from-brand-navy to-blue-700' }) {
-    const totalMontant = rows?.reduce((sum, row) => sum + (Number(row.montant) || 0), 0);
-    const montantIdx = columns.findIndex((c) => c.key === 'montant');
-    const hasMontantTotal = !loading && rows?.length > 0 && totalMontant > 0 && montantIdx >= 0;
+export default function ReportTable({
+    title,
+    icon: Icon,
+    columns,
+    rows,
+    loading,
+    accent = 'from-brand-navy to-blue-700',
+    headerStyle = 'default',
+    showCount = true,
+}) {
+    const grayHeader = headerStyle === 'gray';
 
     return (
         <div className="report-table rounded-2xl border border-slate-200/80 dark:border-slate-700/80 bg-white dark:bg-slate-900 shadow-lg overflow-hidden">
@@ -17,21 +24,28 @@ export default function ReportTable({ title, icon: Icon, columns, rows, loading,
                     {Icon && <Icon className="w-5 h-5 text-white shrink-0" strokeWidth={2} />}
                     <h3 className="text-sm font-bold text-white uppercase tracking-wide truncate">{title}</h3>
                 </div>
-                <span className="text-[10px] font-semibold text-white/80 bg-white/15 px-2 py-1 rounded-full shrink-0">
-                    {loading ? '…' : `${rows?.length ?? 0} ligne(s)`}
-                </span>
+                {showCount && (
+                    <span className="text-[10px] font-semibold text-white/80 bg-white/15 px-2 py-1 rounded-full shrink-0">
+                        {loading ? '…' : `${rows?.length ?? 0} ligne(s)`}
+                    </span>
+                )}
             </div>
 
             <div className="overflow-x-auto">
                 <table className="w-full text-sm min-w-[640px]">
                     <thead>
-                        <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700">
+                        <tr className={grayHeader
+                            ? 'bg-gradient-to-r from-slate-100 via-slate-200/90 to-slate-100 dark:from-slate-800 dark:via-slate-700/80 dark:to-slate-800 border-b-2 border-slate-300 dark:border-slate-600'
+                            : 'bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700'
+                        }>
                             {columns.map((col) => (
                                 <th
                                     key={col.key}
-                                    className={`px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap ${
-                                        col.align === 'right' ? 'text-right' : 'text-left'
-                                    }`}
+                                    className={`px-4 py-3.5 text-[11px] font-bold uppercase tracking-[0.12em] whitespace-nowrap ${
+                                        grayHeader
+                                            ? 'text-slate-600 dark:text-slate-300'
+                                            : 'text-xs text-slate-500 dark:text-slate-400'
+                                    } ${col.align === 'right' ? 'text-right' : 'text-center'}`}
                                 >
                                     {col.label}
                                 </th>
@@ -59,7 +73,7 @@ export default function ReportTable({ title, icon: Icon, columns, rows, loading,
                                         <td
                                             key={col.key}
                                             className={`px-4 py-2.5 text-slate-700 dark:text-slate-300 ${
-                                                col.align === 'right' ? 'text-right font-semibold tabular-nums' : ''
+                                                col.align === 'right' ? 'text-right font-semibold tabular-nums' : 'text-center'
                                             }`}
                                         >
                                             {col.render ? col.render(row[col.key], row) : (
@@ -88,21 +102,6 @@ export default function ReportTable({ title, icon: Icon, columns, rows, loading,
                             </tr>
                         )}
                     </tbody>
-                    {hasMontantTotal && (
-                        <tfoot>
-                            <tr className="bg-slate-50 dark:bg-slate-800/50 border-t-2 border-slate-200 dark:border-slate-700">
-                                <td colSpan={montantIdx} className="px-4 py-3 text-right text-xs font-bold uppercase text-slate-500">
-                                    Total
-                                </td>
-                                <td className="px-4 py-3 text-right font-bold text-brand-orange tabular-nums">
-                                    {formatMontant(totalMontant)}
-                                </td>
-                                {montantIdx < columns.length - 1 && (
-                                    <td colSpan={columns.length - montantIdx - 1} />
-                                )}
-                            </tr>
-                        </tfoot>
-                    )}
                 </table>
             </div>
         </div>
