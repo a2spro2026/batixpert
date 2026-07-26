@@ -4,11 +4,11 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Attendance;
+use App\Models\Charge;
 use App\Models\Chantier;
 use App\Models\ClientInvoice;
 use App\Models\Employee;
 use App\Models\Expense;
-use App\Models\MonetaryTransaction;
 use App\Models\Payment;
 use App\Models\Product;
 use App\Models\PurchaseOrder;
@@ -175,18 +175,17 @@ class DashboardApiController extends Controller
                 ];
             });
 
-        $derniersBonsCharge = MonetaryTransaction::query()
-            ->whereIn('statut', ['Sortie', 'Débit'])
-            ->latest('transaction_date')
+        $derniersBonsCharge = Charge::query()
+            ->latest('charge_date')
             ->latest('id')
             ->limit(5)
             ->get()
-            ->map(fn ($t) => [
-                'date' => $t->transaction_date?->format('d/m/Y'),
-                'designation' => $t->motif ?: '—',
-                'beneficiaire' => $t->beneficiary ?: '—',
-                'regl' => $t->type_reglement ?: '—',
-                'date_decaiss' => $t->transaction_date?->format('d/m/Y') ?? '—',
+            ->map(fn ($c) => [
+                'date' => $c->charge_date?->format('d/m/Y'),
+                'designation' => $c->designation ?: '—',
+                'beneficiaire' => $c->beneficiaire ?: '—',
+                'regl' => $c->type_reglement ?: '—',
+                'date_decaiss' => $c->date_decaissement?->format('d/m/Y') ?? '—',
             ]);
 
         $reglADecaisser = SupplierPayment::query()

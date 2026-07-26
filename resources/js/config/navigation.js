@@ -127,6 +127,7 @@ export const navigation = [
         perm: 'reglements.view',
         children: [
             { to: '/monetaire/transactions', label: 'Transaction et Charges', icon: ArrowLeftRight },
+            { to: '/monetaire/charges', label: 'Charge', icon: Wallet },
             { to: '/monetaire/salaires', label: 'Salaire', icon: Coins },
             { to: '/monetaire/tresorerie', label: 'Trésorerie', icon: Vault },
         ],

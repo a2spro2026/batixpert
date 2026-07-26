@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\ChargeApiController;
 use App\Http\Controllers\Api\ChantierApiController;
 use App\Http\Controllers\Api\ClientOrderApiController;
 use App\Http\Controllers\Api\ClientPaymentApiController;
@@ -63,6 +64,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::apiResource('employees', EmployeeApiController::class);
     Route::apiResource('expenses', ExpenseApiController::class);
+    Route::get('charges/meta', [ChargeApiController::class, 'meta']);
+    Route::apiResource('charges', ChargeApiController::class);
     Route::apiResource('transactions', TransactionApiController::class)
         ->parameters(['transactions' => 'monetary_transaction']);
     Route::apiResource('documents', DocumentApiController::class)->except(['update']);

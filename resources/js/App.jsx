@@ -19,6 +19,7 @@ import ClientBalancePage from './pages/clients/ClientBalancePage';
 import DevisListPage from './pages/devis/DevisListPage';
 import DevisFormPage from './pages/devis/DevisFormPage';
 import TransactionsPage from './pages/TransactionsPage';
+import ChargesPage from './pages/ChargesPage';
 
 function ProtectedRoute({ children }) {
     const { user, loading } = useAuth();
@@ -90,6 +91,7 @@ function AppRoutes() {
 
                 {/* Suivi Monétaire */}
                 <Route path="monetaire/transactions" element={<TransactionsPage />} />
+                <Route path="monetaire/charges" element={<ChargesPage />} />
                 <Route path="monetaire/salaires" element={<ModulePage />} />
                 <Route path="monetaire/tresorerie" element={<ModulePage />} />
 
