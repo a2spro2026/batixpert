@@ -3,7 +3,10 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Client;
 use App\Models\ClientOrder;
+use App\Models\ClientPayment;
+use App\Models\SaleOrder;
 use Illuminate\Http\Request;
 
 class ClientOrderApiController extends Controller
@@ -27,6 +30,115 @@ class ClientOrderApiController extends Controller
         }
 
         return response()->json($query->paginate(15)->through(fn ($o) => $this->formatOrder($o)));
+    }
+
+    public function balance(Request $request)
+    {
+        $mois = $request->mois;
+        $clientId = $request->client_id;
+        $monthFilter = $mois && preg_match('/^\d{4}-\d{2}$/', $mois);
+
+        $ventesFromSales = $this->ventesGroupedByClient(
+            SaleOrder::query()->where('status', '!=', 'annule'),
+            $clientId,
+            $monthFilter,
+            $mois,
+            'order_date'
+        );
+
+        $ventesFromExecution = $this->ventesGroupedByClient(
+            ClientOrder::query()->where('status', '!=', 'annule'),
+            $clientId,
+            $monthFilter,
+            $mois,
+            'order_date'
+        );
+
+        $paiementsQuery = ClientPayment::query()
+            ->whereNotNull('client_id')
+            ->when($clientId, fn ($q, $id) => $q->where('client_id', $id))
+            ->when($monthFilter, function ($q) use ($mois) {
+                [$year, $month] = explode('-', $mois);
+                $q->whereYear('payment_date', $year)->whereMonth('payment_date', $month);
+            });
+
+        $paiementsByClient = $paiementsQuery
+            ->selectRaw('client_id, SUM(montant) as montant_paye, MAX(payment_date) as dernier_paiement')
+            ->groupBy('client_id')
+            ->get()
+            ->keyBy('client_id');
+
+        $clientIds = $ventesFromSales->keys()
+            ->merge($ventesFromExecution->keys())
+            ->merge($paiementsByClient->keys())
+            ->unique()
+            ->filter()
+            ->values();
+
+        $clients = Client::whereIn('id', $clientIds)->get()->keyBy('id');
+
+        $rows = $clientIds->map(function ($cid) use ($ventesFromSales, $ventesFromExecution, $paiementsByClient, $clients) {
+            $ventesSale = $ventesFromSales->get($cid);
+            $ventesExec = $ventesFromExecution->get($cid);
+            $paiements = $paiementsByClient->get($cid);
+
+            $totalVentes = round(
+                (float) ($ventesSale->total_ventes ?? 0) + (float) ($ventesExec->total_ventes ?? 0),
+                2
+            );
+            $montantPaye = round((float) ($paiements->montant_paye ?? 0), 2);
+            $solde = round(max($totalVentes - $montantPaye, 0), 2);
+            $reliquat = round(max($montantPaye - $totalVentes, 0), 2);
+
+            $derniereActivite = collect([
+                $ventesSale->derniere_commande ?? null,
+                $ventesExec->derniere_commande ?? null,
+                $paiements->dernier_paiement ?? null,
+            ])
+                ->filter()
+                ->map(fn ($d) => $d instanceof \Carbon\Carbon ? $d : \Carbon\Carbon::parse($d))
+                ->sortDesc()
+                ->first();
+
+            return [
+                'id' => $cid,
+                'client_id' => $cid,
+                'date' => $derniereActivite?->format('d/m/Y'),
+                'client' => $clients->get($cid)?->name ?? '—',
+                'total_ventes' => $totalVentes,
+                'montant_paye' => $montantPaye,
+                'solde' => $solde,
+                'reliquat' => $reliquat,
+            ];
+        })->sortByDesc(fn ($row) => $row['date'] ?? '')->values();
+
+        $totalVentes = round($rows->sum(fn ($r) => (float) $r['total_ventes']), 2);
+        $soldeTotal = round($rows->sum(fn ($r) => (float) $r['solde']), 2);
+        $reliquatTotal = round($rows->sum(fn ($r) => (float) $r['reliquat']), 2);
+
+        return response()->json([
+            'data' => $rows->all(),
+            'meta' => [
+                'total_ventes' => number_format($totalVentes, 2, '.', ''),
+                'solde_total' => number_format($soldeTotal, 2, '.', ''),
+                'reliquat_total' => number_format($reliquatTotal, 2, '.', ''),
+            ],
+        ]);
+    }
+
+    private function ventesGroupedByClient($query, $clientId, bool $monthFilter, ?string $mois, string $dateColumn)
+    {
+        return $query
+            ->whereNotNull('client_id')
+            ->when($clientId, fn ($q, $id) => $q->where('client_id', $id))
+            ->when($monthFilter, function ($q) use ($mois, $dateColumn) {
+                [$year, $month] = explode('-', $mois);
+                $q->whereYear($dateColumn, $year)->whereMonth($dateColumn, $month);
+            })
+            ->selectRaw("client_id, SUM(total_ttc) as total_ventes, MAX({$dateColumn}) as derniere_commande")
+            ->groupBy('client_id')
+            ->get()
+            ->keyBy('client_id');
     }
 
     public function show(ClientOrder $clientOrder)

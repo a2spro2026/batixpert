@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\PurchaseOrder;
+use App\Models\Supplier;
+use App\Models\SupplierPayment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -34,6 +36,90 @@ class PurchaseOrderApiController extends Controller
         }
 
         return response()->json($query->paginate(15)->through(fn ($o) => $this->formatOrder($o)));
+    }
+
+    public function balance(Request $request)
+    {
+        $mois = $request->mois;
+        $supplierId = $request->supplier_id;
+        $monthFilter = $mois && preg_match('/^\d{4}-\d{2}$/', $mois);
+
+        $achatsQuery = PurchaseOrder::query()
+            ->where('status', '!=', 'annule')
+            ->when($supplierId, fn ($q, $id) => $q->where('supplier_id', $id))
+            ->when($monthFilter, function ($q) use ($mois) {
+                [$year, $month] = explode('-', $mois);
+                $q->whereYear('order_date', $year)->whereMonth('order_date', $month);
+            });
+
+        $achatsBySupplier = $achatsQuery
+            ->selectRaw('supplier_id, SUM(total_ttc) as total_achats, MAX(order_date) as derniere_commande')
+            ->groupBy('supplier_id')
+            ->get()
+            ->keyBy('supplier_id');
+
+        $paiementsQuery = SupplierPayment::query()
+            ->when($supplierId, fn ($q, $id) => $q->where('supplier_id', $id))
+            ->when($monthFilter, function ($q) use ($mois) {
+                [$year, $month] = explode('-', $mois);
+                $q->whereYear('payment_date', $year)->whereMonth('payment_date', $month);
+            });
+
+        $paiementsBySupplier = $paiementsQuery
+            ->selectRaw('supplier_id, SUM(montant) as montant_paye, MAX(payment_date) as dernier_paiement')
+            ->groupBy('supplier_id')
+            ->get()
+            ->keyBy('supplier_id');
+
+        $supplierIds = $achatsBySupplier->keys()
+            ->merge($paiementsBySupplier->keys())
+            ->unique()
+            ->filter()
+            ->values();
+
+        $suppliers = Supplier::whereIn('id', $supplierIds)->get()->keyBy('id');
+
+        $rows = $supplierIds->map(function ($sid) use ($achatsBySupplier, $paiementsBySupplier, $suppliers) {
+            $achats = $achatsBySupplier->get($sid);
+            $paiements = $paiementsBySupplier->get($sid);
+
+            $totalAchats = round((float) ($achats->total_achats ?? 0), 2);
+            $montantPaye = round((float) ($paiements->montant_paye ?? 0), 2);
+            $solde = round(max($totalAchats - $montantPaye, 0), 2);
+            $reliquat = round(max($montantPaye - $totalAchats, 0), 2);
+
+            $derniereCommande = $achats->derniere_commande ?? null;
+            $dernierPaiement = $paiements->dernier_paiement ?? null;
+            $derniereActivite = collect([$derniereCommande, $dernierPaiement])
+                ->filter()
+                ->map(fn ($d) => $d instanceof \Carbon\Carbon ? $d : \Carbon\Carbon::parse($d))
+                ->sortDesc()
+                ->first();
+
+            return [
+                'id' => $sid,
+                'supplier_id' => $sid,
+                'date' => $derniereActivite?->format('d/m/Y'),
+                'fournisseur' => $suppliers->get($sid)?->name ?? '—',
+                'total_achats' => $totalAchats,
+                'montant_paye' => $montantPaye,
+                'solde' => $solde,
+                'reliquat' => $reliquat,
+            ];
+        })->sortByDesc(fn ($row) => $row['date'] ?? '')->values();
+
+        $totalAchats = round($rows->sum(fn ($r) => (float) $r['total_achats']), 2);
+        $soldeTotal = round($rows->sum(fn ($r) => (float) $r['solde']), 2);
+        $reliquatTotal = round($rows->sum(fn ($r) => (float) $r['reliquat']), 2);
+
+        return response()->json([
+            'data' => $rows->all(),
+            'meta' => [
+                'total_achats' => number_format($totalAchats, 2, '.', ''),
+                'solde_total' => number_format($soldeTotal, 2, '.', ''),
+                'reliquat_total' => number_format($reliquatTotal, 2, '.', ''),
+            ],
+        ]);
     }
 
     public function store(Request $request)

@@ -20,6 +20,8 @@ import DevisListPage from './pages/devis/DevisListPage';
 import DevisFormPage from './pages/devis/DevisFormPage';
 import TransactionsPage from './pages/TransactionsPage';
 import ChargesPage from './pages/ChargesPage';
+import FactureAchatsPage from './pages/FactureAchatsPage';
+import SupplierBalancePage from './pages/SupplierBalancePage';
 
 function ProtectedRoute({ children }) {
     const { user, loading } = useAuth();
@@ -50,7 +52,7 @@ function AppRoutes() {
                 {/* Fournisseur */}
                 <Route path="fournisseurs/fiches" element={<FicheFournisseurPage />} />
                 <Route path="fournisseurs/bons-achats" element={<BonAchatsPage />} />
-                <Route path="fournisseurs/balance" element={<ModulePage />} />
+                <Route path="fournisseurs/balance" element={<SupplierBalancePage />} />
                 <Route path="fournisseurs/releve-compte" element={<ModulePage />} />
 
                 {/* Client */}
@@ -68,7 +70,9 @@ function AppRoutes() {
                 <Route path="clients/releve-compte" element={<ModulePage />} />
 
                 {/* Facturation */}
-                <Route path="facturation/factures-achats" element={<ModulePage />} />
+                <Route path="facturation/factures-achats" element={<FactureAchatsPage />} />
+                <Route path="facturation/depot-a" element={<FactureAchatsPage depotFilter="depot_a" pageTitle="Depot A" pageSubtitle="Factures achats — destination Depot A" />} />
+                <Route path="facturation/depot-b" element={<FactureAchatsPage depotFilter="depot_b" pageTitle="Depot B" pageSubtitle="Factures achats — destination Depot B" />} />
                 <Route path="facturation/reglement" element={<ReglementFournisseurPage />} />
                 <Route path="facturation/factures-ventes" element={<ModulePage />} />
                 <Route path="facturation/reglements" element={<ReglementClientPage />} />

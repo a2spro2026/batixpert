@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 class SupplierInvoice extends Model
 {
     protected $fillable = [
-        'supplier_id', 'chantier_id', 'reference', 'invoice_date', 'due_date',
+        'supplier_id', 'chantier_id', 'depot', 'reference', 'invoice_date', 'due_date',
         'total_ht', 'tva', 'total_ttc', 'amount_paid', 'status', 'notes',
     ];
 

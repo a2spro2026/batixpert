@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\ExpenseApiController;
 use App\Http\Controllers\Api\ProductApiController;
 use App\Http\Controllers\Api\PurchaseOrderApiController;
 use App\Http\Controllers\Api\SaleOrderApiController;
+use App\Http\Controllers\Api\SupplierInvoiceApiController;
 use App\Http\Controllers\Api\SupplierPaymentApiController;
 use App\Http\Controllers\Api\QuoteApiController;
 use App\Http\Controllers\Api\SupplierApiController;
@@ -41,16 +42,21 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('client-payments/{client_payment}', [ClientPaymentApiController::class, 'update']);
     Route::patch('client-payments/{client_payment}/statut', [ClientPaymentApiController::class, 'updateStatut']);
     Route::delete('client-payments/{client_payment}', [ClientPaymentApiController::class, 'destroy']);
+    Route::get('client-orders/balance', [ClientOrderApiController::class, 'balance']);
     Route::apiResource('client-orders', ClientOrderApiController::class)->only(['index', 'show']);
     Route::apiResource('quotes', QuoteApiController::class);
     Route::post('quotes/{quote}/send', [QuoteApiController::class, 'send']);
     Route::post('quotes/{quote}/validate', [QuoteApiController::class, 'validateQuote']);
     Route::apiResource('suppliers', SupplierApiController::class);
     Route::apiResource('products', ProductApiController::class);
+    Route::get('purchase-orders/balance', [PurchaseOrderApiController::class, 'balance']);
     Route::apiResource('purchase-orders', PurchaseOrderApiController::class);
     Route::post('purchase-orders/{purchase_order}/validate', [PurchaseOrderApiController::class, 'validateOrder']);
     Route::apiResource('sales-orders', SaleOrderApiController::class);
     Route::post('sales-orders/{sales_order}/validate', [SaleOrderApiController::class, 'validateOrder']);
+
+    Route::get('supplier-invoices/meta', [SupplierInvoiceApiController::class, 'meta']);
+    Route::apiResource('supplier-invoices', SupplierInvoiceApiController::class);
 
     Route::get('supplier-payments/meta', [SupplierPaymentApiController::class, 'meta']);
     Route::get('supplier-payments/orders', [SupplierPaymentApiController::class, 'orders']);

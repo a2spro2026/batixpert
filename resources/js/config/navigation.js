@@ -37,6 +37,7 @@ import {
     Coins,
     Vault,
     FileText,
+    Warehouse,
 } from 'lucide-react';
 
 export const navigation = [
@@ -81,6 +82,8 @@ export const navigation = [
         perm: 'factures_clients.view',
         children: [
             { to: '/facturation/factures-achats', label: 'Facture Achats', icon: FileInput },
+            { to: '/facturation/depot-a', label: 'Depot A', icon: Warehouse },
+            { to: '/facturation/depot-b', label: 'Depot B', icon: Warehouse },
             { to: '/facturation/reglement', label: 'Règlement', icon: CreditCard },
             { to: '/facturation/factures-ventes', label: 'Facture Ventes', icon: Receipt },
             { to: '/facturation/reglements', label: 'Règlements', icon: Wallet },

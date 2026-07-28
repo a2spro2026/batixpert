@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { RefreshCw, Search, Scale, Wallet, Receipt } from 'lucide-react';
-import api from '../../lib/api';
-import { ReliquatCell } from './clientAmountUtils';
+import api from '../lib/api';
+import { ReliquatCell } from './clients/clientAmountUtils';
 
 const emptyFilters = {
     mois: '',
-    client_id: '',
+    supplier_id: '',
 };
 
 function Field({ label, children }) {
@@ -24,7 +24,7 @@ function formatMontant(value) {
     return (Number(value) || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-function SoldeClientCell({ value }) {
+function SoldeFournisseurCell({ value }) {
     const n = Number(value) || 0;
     if (n <= 0) {
         return <span className="tabular-nums text-slate-400">—</span>;
@@ -70,14 +70,14 @@ function monthOptions() {
     return options;
 }
 
-const columns = ['Date', 'Client', 'Total Ventes', 'Montant Payé', 'Solde', 'Reliquat'];
+const columns = ['Date', 'Fournisseur', 'Total Achats', 'Montant Payé', 'Solde', 'Reliquat'];
 
-export default function ClientBalancePage() {
+export default function SupplierBalancePage() {
     const [filters, setFilters] = useState(emptyFilters);
     const [appliedFilters, setAppliedFilters] = useState(emptyFilters);
     const [rows, setRows] = useState([]);
-    const [summary, setSummary] = useState({ total_ventes: 0, solde_total: 0, reliquat_total: 0 });
-    const [clients, setClients] = useState([]);
+    const [summary, setSummary] = useState({ total_achats: 0, solde_total: 0, reliquat_total: 0 });
+    const [suppliers, setSuppliers] = useState([]);
     const [loading, setLoading] = useState(true);
     const months = monthOptions();
 
@@ -85,28 +85,28 @@ export default function ClientBalancePage() {
         setLoading(true);
         const params = {};
         if (appliedFilters.mois) params.mois = appliedFilters.mois;
-        if (appliedFilters.client_id) params.client_id = appliedFilters.client_id;
+        if (appliedFilters.supplier_id) params.supplier_id = appliedFilters.supplier_id;
 
-        api.get('/client-orders/balance', { params })
+        api.get('/purchase-orders/balance', { params })
             .then((res) => {
                 setRows(res.data.data ?? []);
                 setSummary({
-                    total_ventes: Number(res.data.meta?.total_ventes) || 0,
+                    total_achats: Number(res.data.meta?.total_achats) || 0,
                     solde_total: Number(res.data.meta?.solde_total) || 0,
                     reliquat_total: Number(res.data.meta?.reliquat_total) || 0,
                 });
             })
             .catch(() => {
                 setRows([]);
-                setSummary({ total_ventes: 0, solde_total: 0, reliquat_total: 0 });
+                setSummary({ total_achats: 0, solde_total: 0, reliquat_total: 0 });
             })
             .finally(() => setLoading(false));
     }, [appliedFilters]);
 
     useEffect(() => {
-        api.get('/clients', { params: { all: 1 } })
-            .then((r) => setClients(r.data.data ?? []))
-            .catch(() => setClients([]));
+        api.get('/suppliers', { params: { all: 1 } })
+            .then((r) => setSuppliers(r.data.data ?? []))
+            .catch(() => setSuppliers([]));
     }, []);
 
     useEffect(() => {
@@ -120,14 +120,14 @@ export default function ClientBalancePage() {
     return (
         <div className="space-y-4">
             <div>
-                <h1 className="text-xl font-bold text-slate-900 dark:text-white">Balance Client</h1>
-                <p className="text-sm text-slate-500 dark:text-slate-400">Situation consolidée par client</p>
+                <h1 className="text-xl font-bold text-slate-900 dark:text-white">Balance Fournisseur</h1>
+                <p className="text-sm text-slate-500 dark:text-slate-400">Situation consolidée par fournisseur</p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <SummaryCard
-                    label="Total Ventes"
-                    value={summary.total_ventes}
+                    label="Total Achats"
+                    value={summary.total_achats}
                     gradient="from-brand-navy via-blue-800 to-indigo-900"
                     glow="rgba(30, 58, 95, 0.45)"
                     icon={Receipt}
@@ -157,11 +157,11 @@ export default function ClientBalancePage() {
                             ))}
                         </select>
                     </Field>
-                    <Field label="Client">
-                        <select value={filters.client_id} onChange={(e) => setFilter('client_id', e.target.value)} className={filterClass}>
-                            <option value="">Tous les clients</option>
-                            {clients.map((c) => (
-                                <option key={c.id} value={c.id}>{c.name}</option>
+                    <Field label="Fournisseur">
+                        <select value={filters.supplier_id} onChange={(e) => setFilter('supplier_id', e.target.value)} className={filterClass}>
+                            <option value="">Tous les fournisseurs</option>
+                            {suppliers.map((s) => (
+                                <option key={s.id} value={s.id}>{s.name}</option>
                             ))}
                         </select>
                     </Field>
@@ -172,8 +172,8 @@ export default function ClientBalancePage() {
             </div>
 
             <div className="glass-card overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60">
-                <div className="px-5 py-3.5 bg-gradient-to-r from-slate-700 via-slate-800 to-brand-navy border-b border-white/10 flex items-center justify-between">
-                    <h3 className="text-sm font-bold text-white uppercase tracking-wide">Balance clients</h3>
+                <div className="px-5 py-3.5 bg-gradient-to-r from-orange-600 via-amber-600 to-orange-700 border-b border-white/10 flex items-center justify-between">
+                    <h3 className="text-sm font-bold text-white uppercase tracking-wide">Balance fournisseurs</h3>
                     <button type="button" onClick={load} disabled={loading} className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors" title="Actualiser">
                         <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
                     </button>
@@ -206,13 +206,13 @@ export default function ClientBalancePage() {
                                 ))
                             ) : rows.length ? (
                                 rows.map((row) => (
-                                    <tr key={row.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors">
+                                    <tr key={row.id} className="hover:bg-orange-50/40 dark:hover:bg-slate-800/40 transition-colors">
                                         <td className="px-4 py-2.5 text-center text-slate-600 dark:text-slate-300">{row.date || '—'}</td>
-                                        <td className="px-4 py-2.5 text-center font-medium text-slate-800 dark:text-white">{row.client}</td>
-                                        <td className="px-4 py-2.5 text-center font-semibold tabular-nums text-brand-navy dark:text-violet-400">{formatMontant(row.total_ventes)}</td>
+                                        <td className="px-4 py-2.5 text-center font-medium text-slate-800 dark:text-white">{row.fournisseur}</td>
+                                        <td className="px-4 py-2.5 text-center font-semibold tabular-nums text-brand-navy dark:text-orange-400">{formatMontant(row.total_achats)}</td>
                                         <td className="px-4 py-2.5 text-center tabular-nums text-emerald-700 dark:text-emerald-300">{formatMontant(row.montant_paye)}</td>
                                         <td className="px-4 py-2.5 text-center">
-                                            <SoldeClientCell value={row.solde} />
+                                            <SoldeFournisseurCell value={row.solde} />
                                         </td>
                                         <td className="px-4 py-2.5 text-center">
                                             <ReliquatCell value={row.reliquat} />

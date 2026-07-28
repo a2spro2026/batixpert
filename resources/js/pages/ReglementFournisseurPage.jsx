@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
     CheckCircle2, XCircle, Receipt, Scale, Plus, Eye, Pencil, Trash2, Printer,
-    Banknote, Wallet, AlertCircle, Search, X, RefreshCw,
+    Banknote, Wallet, AlertCircle, Search, X, RefreshCw, Download,
 } from 'lucide-react';
 import api from '../lib/api';
 
@@ -190,6 +190,112 @@ function monthOptions() {
     return options;
 }
 
+function ImportReglModal({ open, rows, selected, loading, onToggle, onToggleAll, onClose, onApply }) {
+    if (!open) return null;
+
+    const selectedCount = Object.values(selected).filter(Boolean).length;
+    const allSelected = rows.length > 0 && selectedCount === rows.length;
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
+            <div
+                className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-5xl border border-slate-200 dark:border-slate-700 overflow-hidden max-h-[90vh] flex flex-col"
+                onClick={(e) => e.stopPropagation()}
+            >
+                <div className="flex items-center justify-between px-5 py-4 bg-gradient-to-r from-emerald-600 to-teal-800 shrink-0">
+                    <div>
+                        <p className="text-[10px] text-emerald-100 uppercase tracking-wider">Endossement</p>
+                        <h3 className="text-white font-bold text-sm">Importer Règlement Client</h3>
+                    </div>
+                    <button type="button" onClick={onClose} className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10">
+                        <X className="w-4 h-4" />
+                    </button>
+                </div>
+
+                <p className="px-5 py-3 text-xs text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800 shrink-0">
+                    Sélectionnez un ou plusieurs règlements client reçus pour remplir le règlement fournisseur (même chèque / effet / virement).
+                </p>
+
+                <div className="overflow-auto flex-1 min-h-0">
+                    <table className="w-full text-sm min-w-[900px]">
+                        <thead className="sticky top-0 z-10">
+                            <tr className="bg-slate-50 dark:bg-slate-800/90 border-b border-slate-200 dark:border-slate-700">
+                                <th className="px-3 py-3 w-10">
+                                    <input
+                                        type="checkbox"
+                                        checked={allSelected}
+                                        onChange={onToggleAll}
+                                        className="rounded border-slate-300 text-brand-navy focus:ring-brand-navy/30"
+                                    />
+                                </th>
+                                {['Réf', 'Date', 'Client', 'Type', 'N°', 'Banq', 'Tiré', 'Montant', 'Date Décaiss', 'Statut'].map((h) => (
+                                    <th key={h} className="px-3 py-3 text-xs font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap text-center">{h}</th>
+                                ))}
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                            {loading ? (
+                                [...Array(4)].map((_, i) => (
+                                    <tr key={i}>
+                                        {[...Array(11)].map((__, j) => (
+                                            <td key={j} className="px-3 py-3 text-center">
+                                                <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded animate-pulse mx-auto max-w-[72px]" />
+                                            </td>
+                                        ))}
+                                    </tr>
+                                ))
+                            ) : rows.length ? (
+                                rows.map((row) => (
+                                    <tr
+                                        key={row.id}
+                                        className={`cursor-pointer transition-colors ${selected[row.id] ? 'bg-emerald-50/70 dark:bg-emerald-900/20' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'}`}
+                                        onClick={() => onToggle(row.id)}
+                                    >
+                                        <td className="px-3 py-2.5 text-center" onClick={(e) => e.stopPropagation()}>
+                                            <input
+                                                type="checkbox"
+                                                checked={!!selected[row.id]}
+                                                onChange={() => onToggle(row.id)}
+                                                className="rounded border-slate-300 text-brand-navy focus:ring-brand-navy/30"
+                                            />
+                                        </td>
+                                        <td className="px-3 py-2.5 text-center font-mono text-xs font-semibold">{row.reference}</td>
+                                        <td className="px-3 py-2.5 text-center text-slate-600 dark:text-slate-300">{row.payment_date}</td>
+                                        <td className="px-3 py-2.5 text-center font-medium">{row.client}</td>
+                                        <td className="px-3 py-2.5 text-center">{row.reglement || '—'}</td>
+                                        <td className="px-3 py-2.5 text-center font-mono text-xs">{row.numero || '—'}</td>
+                                        <td className="px-3 py-2.5 text-center">{row.banque || '—'}</td>
+                                        <td className="px-3 py-2.5 text-center">{row.nom_tire || '—'}</td>
+                                        <td className="px-3 py-2.5 text-center font-semibold tabular-nums text-emerald-700 dark:text-emerald-400">{formatMontant(row.montant)}</td>
+                                        <td className="px-3 py-2.5 text-center">{row.date_decaissement || '—'}</td>
+                                        <td className="px-3 py-2.5 text-center text-xs">{row.statut}</td>
+                                    </tr>
+                                ))
+                            ) : (
+                                <tr>
+                                    <td colSpan={11} className="px-4 py-12 text-center text-slate-400">Aucun règlement client disponible</td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div className="flex justify-end gap-2 px-5 py-4 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 shrink-0">
+                    <button type="button" onClick={onClose} className="btn-secondary text-xs px-4">Fermer</button>
+                    <button
+                        type="button"
+                        onClick={onApply}
+                        disabled={!selectedCount}
+                        className="btn-primary text-xs px-4 disabled:opacity-50"
+                    >
+                        Importer ({selectedCount})
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 export default function ReglementFournisseurPage() {
     const [view, setView] = useState('list'); // list | form
     const [editingId, setEditingId] = useState(null);
@@ -209,6 +315,10 @@ export default function ReglementFournisseurPage() {
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
     const [viewRow, setViewRow] = useState(null);
+    const [importOpen, setImportOpen] = useState(false);
+    const [importRows, setImportRows] = useState([]);
+    const [importSelected, setImportSelected] = useState({});
+    const [importLoading, setImportLoading] = useState(false);
 
     const set = (key, value) => setForm((f) => ({ ...f, [key]: value }));
     const setFilter = (key, value) => setFilters((f) => ({ ...f, [key]: value }));
@@ -441,6 +551,59 @@ export default function ReglementFournisseurPage() {
         } catch (err) {
             setError(err.response?.data?.message || 'Erreur lors de la suppression');
         }
+    };
+
+    const openImportModal = () => {
+        setImportOpen(true);
+        setImportSelected({});
+        setImportLoading(true);
+        api.get('/client-payments')
+            .then((r) => {
+                const rows = (r.data.data ?? []).filter((p) => p.statut !== 'Dévalidé');
+                setImportRows(rows);
+            })
+            .catch(() => setImportRows([]))
+            .finally(() => setImportLoading(false));
+    };
+
+    const toggleImportSelect = (id) => {
+        setImportSelected((prev) => ({ ...prev, [id]: !prev[id] }));
+    };
+
+    const toggleImportSelectAll = () => {
+        const ids = importRows.map((r) => r.id);
+        const allOn = ids.length > 0 && ids.every((id) => importSelected[id]);
+        if (allOn) {
+            setImportSelected({});
+            return;
+        }
+        const next = {};
+        ids.forEach((id) => { next[id] = true; });
+        setImportSelected(next);
+    };
+
+    const applyImport = () => {
+        const picked = importRows.filter((r) => importSelected[r.id]);
+        if (!picked.length) return;
+
+        const first = picked[0];
+        const totalMontant = picked.reduce((sum, r) => sum + (Number(r.montant) || 0), 0);
+        const refs = picked.map((r) => r.reference).join(', ');
+        const clients = [...new Set(picked.map((r) => r.client).filter(Boolean))].join(' / ');
+
+        setForm((f) => ({
+            ...f,
+            reglement: first.reglement || f.reglement,
+            numero: first.numero || '',
+            banque: first.banque || '',
+            nom_tire: first.nom_tire || '',
+            montant: totalMontant.toFixed(2),
+            date_decaissement: first.date_decaissement_raw || f.date_decaissement,
+            remarque: [f.remarque, `Import client: ${refs}${clients ? ` (${clients})` : ''}`].filter(Boolean).join(' — '),
+        }));
+
+        setImportOpen(false);
+        setImportSelected({});
     };
 
     const handleSearch = (e) => {
@@ -684,6 +847,17 @@ export default function ReglementFournisseurPage() {
     /* ───────────── FORM VIEW (Nouveau / Modifier) ───────────── */
     return (
         <div className="space-y-4">
+            <ImportReglModal
+                open={importOpen}
+                rows={importRows}
+                selected={importSelected}
+                loading={importLoading}
+                onToggle={toggleImportSelect}
+                onToggleAll={toggleImportSelectAll}
+                onClose={() => setImportOpen(false)}
+                onApply={applyImport}
+            />
+
             <form onSubmit={handleSubmit} className="space-y-3">
                 {error && (
                     <div className="p-3 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm border border-red-100 dark:border-red-800">{error}</div>
@@ -698,6 +872,12 @@ export default function ReglementFournisseurPage() {
                         <XCircle className="w-4 h-4" />
                         Fermer
                     </button>
+                    {!editingId && (
+                        <button type="button" onClick={openImportModal} className="btn-secondary">
+                            <Download className="w-4 h-4" />
+                            Importer Régl
+                        </button>
+                    )}
                     <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 ml-1">
                         {editingId ? `Modifier ${meta.next_ref}` : 'Nouveau Règlement'}
                     </span>
