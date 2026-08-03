@@ -15,6 +15,7 @@ class AuthController extends Controller
         $request->validate([
             'email' => 'required|email',
             'password' => 'required',
+            'status' => 'required|in:administrateur,commercial,facturation',
         ]);
 
         $user = User::with('role.permissions')->where('email', $request->email)->first();
@@ -31,7 +32,19 @@ class AuthController extends Controller
             ]);
         }
 
-        $token = $user->createToken('batixpert-spa')->plainTextToken;
+        $statusRoles = [
+            'administrateur' => ['administrateur'],
+            'commercial' => ['commercial'],
+            'facturation' => ['facturation', 'comptable'],
+        ];
+
+        if (! in_array($user->role?->slug, $statusRoles[$request->status], true)) {
+            throw ValidationException::withMessages([
+                'status' => ['Le statut sélectionné ne correspond pas à ce compte.'],
+            ]);
+        }
+
+        $token = $user->createToken('autopilote-spa')->plainTextToken;
 
         return response()->json([
             'token' => $token,

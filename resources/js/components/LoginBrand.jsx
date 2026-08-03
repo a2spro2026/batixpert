@@ -14,7 +14,7 @@ export function LoginBrandLogo({ large = false }) {
                         <line x1="40" y1="14" x2="58" y2="14" stroke="white" strokeWidth="2.5" />
                     </svg>
                     <span className={`${bx} font-black text-white relative z-10 tracking-tighter`}>
-                        B<span className="text-brand-orange">X</span>
+                        A<span className="text-brand-orange">P</span>
                     </span>
                 </div>
             </div>
@@ -29,26 +29,26 @@ export function LoginBrandLogo({ large = false }) {
 
 export function LoginBranding({ compact = false }) {
     return (
-        <div className={compact ? 'text-center mb-8' : ''}>
-            <div className={`flex items-center gap-4 ${compact ? 'justify-center' : ''}`}>
+        <div className={`text-center ${compact ? 'mb-8' : ''}`}>
+            <div className="flex items-center justify-center gap-4">
                 <LoginBrandLogo large={!compact} />
                 <div className={compact ? '' : 'pt-1'}>
                     <h1 className={`font-black tracking-wide leading-none text-white ${compact ? 'text-2xl' : 'text-4xl xl:text-5xl'}`}>
-                        BATI<span className="text-brand-orange">XPERT</span>
+                        <span className="text-brand-orange">Autopilote</span>
                     </h1>
                     <p className="text-[10px] sm:text-xs text-blue-200/80 uppercase tracking-[0.2em] mt-1.5 font-medium">
-                        Système de gestion BTP
+                        Gestion commerciale
                     </p>
                 </div>
             </div>
 
             <p className={`text-brand-orange font-semibold ${compact ? 'text-sm mt-4' : 'text-lg xl:text-xl mt-8'} leading-snug`}>
-                Pilotez vos chantiers en toute simplicité.
+                Pilotez vos opérations en toute simplicité.
             </p>
 
-            <p className={`text-white/75 leading-relaxed ${compact ? 'text-xs mt-3 max-w-xs mx-auto' : 'text-sm xl:text-base mt-4 max-w-md'}`}>
-                Vos équipes, vos tâches, votre réussite… le tout dans{' '}
-                <span className="text-white font-semibold">BatiXpert</span>.
+            <p className={`text-white/75 leading-relaxed mx-auto ${compact ? 'text-xs mt-3 max-w-xs' : 'text-sm xl:text-base mt-4 max-w-md'}`}>
+                Vos équipes, vos tâches… tout dans{' '}
+                <span className="text-white font-semibold">Autopilote</span>.
             </p>
         </div>
     );

@@ -53,7 +53,7 @@ body { font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #1e293
 </head>
 <body>
 <div class="header">
-    <div class="brand"><h1>BatiXpert</h1><p>État de Paiement Client</p></div>
+    <div class="brand"><h1>Autopilote</h1><p>État de Paiement Client</p></div>
     <div class="doc-title">
         <h2>Reçu de Paiement</h2>
         <p><strong>Réf :</strong> ${esc(payment.reference)}</p>

@@ -1,7 +1,7 @@
 {
-    "name": "BatiXpert ERP",
-    "short_name": "BatiXpert",
-    "description": "Construisons l'avenir avec une gestion intelligente",
+    "name": "Autopilote",
+    "short_name": "Autopilote",
+    "description": "Pilotez vos opérations en toute simplicité",
     "start_url": "/app",
     "display": "standalone",
     "background_color": "#1E3A8A",

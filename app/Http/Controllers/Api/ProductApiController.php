@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Product;
+use App\Models\ProductCategory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -15,11 +16,14 @@ class ProductApiController extends Controller
     public function index(Request $request)
     {
         $query = Product::query()
+            ->with('category')
             ->when($request->search, fn ($q, $s) => $q->where(function ($q) use ($s) {
                 $q->where('name', 'like', "%{$s}%")
                     ->orWhere('reference', 'like', "%{$s}%")
                     ->orWhere('article_id', 'like', "%{$s}%")
-                    ->orWhere('famille', 'like', "%{$s}%");
+                    ->orWhere('code_barre', 'like', "%{$s}%")
+                    ->orWhere('famille', 'like', "%{$s}%")
+                    ->orWhere('brand', 'like', "%{$s}%");
             }))
             ->orderBy('id');
 
@@ -31,12 +35,21 @@ class ProductApiController extends Controller
                 ->orderBy('famille')
                 ->pluck('famille')
                 ->values();
+            $categories = ProductCategory::orderBy('name')->pluck('name')->values();
+            $marques = Product::whereNotNull('brand')
+                ->where('brand', '!=', '')
+                ->distinct()
+                ->orderBy('brand')
+                ->pluck('brand')
+                ->values();
 
             return response()->json([
                 'data' => $products,
                 'meta' => [
                     'next_ref' => $this->nextReference(),
                     'familles' => $familles,
+                    'categories' => $categories,
+                    'marques' => $marques,
                 ],
             ]);
         }
@@ -49,6 +62,7 @@ class ProductApiController extends Controller
     public function store(Request $request)
     {
         $validated = $this->validated($request);
+        $validated = $this->applyCategory($validated);
         $initialStock = (float) ($validated['initial_stock'] ?? 0);
         $reference = trim((string) ($validated['reference'] ?? ''));
 
@@ -65,7 +79,7 @@ class ProductApiController extends Controller
                 $product->update(['reference' => $this->referenceFor($product->id)]);
             }
 
-            return $product;
+            return $product->load('category');
         });
 
         return response()->json($this->formatProduct($product), 201);
@@ -78,7 +92,7 @@ class ProductApiController extends Controller
 
     public function update(Request $request, Product $product)
     {
-        $validated = $this->validated($request, $product->id);
+        $validated = $this->applyCategory($this->validated($request, $product->id));
 
         if (array_key_exists('initial_stock', $validated)) {
             $validated['quantity_in_stock'] = (float) $validated['initial_stock'];
@@ -86,7 +100,7 @@ class ProductApiController extends Controller
 
         $product->update($validated);
 
-        return response()->json($this->formatProduct($product->fresh()));
+        return response()->json($this->formatProduct($product->fresh()->load('category')));
     }
 
     public function destroy(Product $product)
@@ -109,14 +123,33 @@ class ProductApiController extends Controller
             'reference' => 'required|string|max:100|'.$refUnique,
             'name' => 'required|string|max:500',
             'article_id' => 'nullable|string|max:50|'.$articleUnique,
+            'code_barre' => 'nullable|string|max:100',
             'consistance' => 'nullable|string|max:10',
             'unit' => 'required|string|in:Kg,U,Sac,ML,M²,M³,Tn,M',
             'famille' => 'nullable|string|max:255',
+            'brand' => 'nullable|string|max:255',
+            'categorie' => 'nullable|string|max:255',
             'initial_stock' => 'numeric|min:0',
             'min_stock_alert' => 'nullable|numeric|min:0',
             'status' => 'in:actif,inactif',
             'etat' => 'nullable|in:Dispo,Faible,Rupture',
         ]);
+    }
+
+    private function applyCategory(array $validated): array
+    {
+        if (array_key_exists('categorie', $validated)) {
+            $name = trim((string) ($validated['categorie'] ?? ''));
+            unset($validated['categorie']);
+            if ($name !== '') {
+                $category = ProductCategory::firstOrCreate(['name' => $name]);
+                $validated['category_id'] = $category->id;
+            } else {
+                $validated['category_id'] = null;
+            }
+        }
+
+        return $validated;
     }
 
     private function nextReference(): string
@@ -200,11 +233,16 @@ class ProductApiController extends Controller
             'id' => $product->id,
             'reference' => $product->reference,
             'article_id' => $product->article_id,
+            'code_barre' => $product->code_barre,
             'name' => $product->name,
             'designation' => $product->name,
             'consistance' => $product->consistance,
             'unit' => $product->unit,
             'famille' => $product->famille,
+            'brand' => $product->brand,
+            'marque' => $product->brand,
+            'category_id' => $product->category_id,
+            'categorie' => $product->category?->name,
             'initial_stock' => (float) $product->initial_stock,
             'stock_initial' => (float) $product->initial_stock,
             'purchased_qty' => $purchased,

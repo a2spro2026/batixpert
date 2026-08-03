@@ -37,6 +37,25 @@ function NavIcon({ icon: Icon, active, size = 'md' }) {
 }
 
 function NavChildItem({ child, onClose, index }) {
+    const disabled = !!child.disabled;
+
+    if (disabled) {
+        return (
+            <motion.div
+                initial={{ opacity: 0, x: -8 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: index * 0.04, duration: 0.25 }}
+                title="Indisponible"
+                className="opacity-40 grayscale pointer-events-none"
+            >
+                <div className="sidebar-child-item flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] font-medium text-slate-400 cursor-not-allowed">
+                    <child.icon className="sidebar-child-icon w-4 h-4 shrink-0 opacity-60" strokeWidth={1.75} />
+                    <span className="truncate">{child.label}</span>
+                </div>
+            </motion.div>
+        );
+    }
+
     return (
         <motion.div
             initial={{ opacity: 0, x: -8 }}
@@ -115,8 +134,9 @@ function DashboardLink({ item, onClose }) {
 
 function NavGroup({ group, onClose, index }) {
     const location = useLocation();
-    const isChildActive = group.children?.some(
-        (c) => location.pathname === c.to || location.pathname.startsWith(c.to + '/')
+    const disabled = !!group.disabled;
+    const isChildActive = !disabled && group.children?.some(
+        (c) => !c.disabled && (location.pathname === c.to || location.pathname.startsWith(c.to + '/'))
     );
     const [open, setOpen] = useState(isChildActive);
     const accent = sectionColors[group.id] || 'from-white/10 to-white/5';
@@ -127,6 +147,7 @@ function NavGroup({ group, onClose, index }) {
                 initial={{ opacity: 0, x: -16 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: index * 0.05, duration: 0.3 }}
+                className={disabled ? 'opacity-40 grayscale pointer-events-none' : ''}
             >
                 <NavLink
                     to={group.to}
@@ -162,20 +183,24 @@ function NavGroup({ group, onClose, index }) {
             initial={{ opacity: 0, x: -16 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: index * 0.05, duration: 0.3 }}
-            className="mb-1"
+            className={`mb-1 ${disabled ? 'opacity-40 grayscale' : ''}`}
+            title={disabled ? 'Section indisponible' : undefined}
         >
             <motion.button
                 type="button"
-                onClick={() => setOpen(!open)}
-                whileHover={{ x: 2 }}
-                whileTap={{ scale: 0.98 }}
+                onClick={() => !disabled && setOpen(!open)}
+                whileHover={disabled ? undefined : { x: 2 }}
+                whileTap={disabled ? undefined : { scale: 0.98 }}
+                disabled={disabled}
                 className={`sidebar-nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-300 ${
-                    isChildActive || open
-                        ? `sidebar-section-open text-white bg-gradient-to-r ${accent}`
-                        : 'text-blue-100 hover:bg-white/10 hover:text-white'
+                    disabled
+                        ? 'text-slate-400 cursor-not-allowed bg-white/5'
+                        : isChildActive || open
+                            ? `sidebar-section-open text-white bg-gradient-to-r ${accent}`
+                            : 'text-blue-100 hover:bg-white/10 hover:text-white'
                 }`}
             >
-                <NavIcon icon={group.icon} active={isChildActive || open} />
+                <NavIcon icon={group.icon} active={!disabled && (isChildActive || open)} />
                 <span className="flex-1 text-left truncate">{group.label}</span>
                 <motion.span
                     animate={{ rotate: open ? 180 : 0 }}
@@ -187,7 +212,7 @@ function NavGroup({ group, onClose, index }) {
             </motion.button>
 
             <AnimatePresence initial={false}>
-                {open && (
+                {!disabled && open && (
                     <motion.div
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: 'auto', opacity: 1 }}

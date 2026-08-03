@@ -16,7 +16,7 @@ export default function ChantiersPage() {
         load();
     };
 
-    const exportCsv = () => window.open('/api/reports/export/chantiers?format=csv&token=' + localStorage.getItem('batixpert_token'));
+    const exportCsv = () => window.open('/api/reports/export/chantiers?format=csv&token=' + localStorage.getItem('autopilote_token'));
 
     return (
         <div className="space-y-6">

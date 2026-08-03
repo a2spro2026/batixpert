@@ -14,7 +14,7 @@ export default function Logo({ size = 'md', showText = true }) {
                     <line x1="36" y1="4" x2="36" y2="16" stroke="white" strokeWidth="2" />
                     <line x1="30" y1="8" x2="42" y2="8" stroke="white" strokeWidth="2" />
                 </svg>
-                <span className="font-bold text-white relative z-10">BX</span>
+                <span className="font-bold text-white relative z-10">AP</span>
                 <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-brand-orange rounded-full flex items-center justify-center">
                     <svg viewBox="0 0 12 12" className="w-2.5 h-2.5 text-white" fill="currentColor">
                         <path d="M6 1L7.5 4.5H11L8.25 6.75L9.5 10.5L6 8.25L2.5 10.5L3.75 6.75L1 4.5H4.5L6 1Z" />
@@ -23,9 +23,9 @@ export default function Logo({ size = 'md', showText = true }) {
             </div>
             {showText && (
                 <div>
-                    <div className="font-bold text-lg leading-tight text-brand-navy dark:text-white tracking-wide">BATIXPERT</div>
+                    <div className="font-bold text-lg leading-tight text-brand-navy dark:text-white tracking-wide">Autopilote</div>
                     <div className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight max-w-[180px]">
-                        Construisons l'avenir avec une gestion intelligente
+                        Gestion commerciale
                     </div>
                 </div>
             )}
@@ -46,13 +46,13 @@ export function SidebarBrand({ pageTitle }) {
                     <rect x="22" y="12" width="10" height="28" fill="white" />
                     <rect x="34" y="16" width="8" height="24" fill="white" />
                 </svg>
-                <span className="relative z-10 font-black text-white text-sm tracking-tight">BX</span>
+                <span className="relative z-10 font-black text-white text-sm tracking-tight">AP</span>
                 <span className="absolute inset-0 rounded-xl ring-1 ring-inset ring-white/20" />
                 <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-brand-orange border-2 border-slate-900 shadow-sm" />
             </motion.div>
             <div className="min-w-0">
                 <div className="font-bold text-lg leading-tight tracking-wide truncate">
-                    BATI<span className="text-brand-orange">XPERT</span>
+                    <span className="text-brand-orange">Autopilote</span>
                 </div>
                 {pageTitle && (
                     <div className="text-[11px] text-blue-200 font-medium truncate mt-0.5">
@@ -78,7 +78,7 @@ export function NavbarBrand({ pageTitle }) {
                         <rect x="22" y="12" width="10" height="28" fill="white" />
                         <rect x="34" y="16" width="8" height="24" fill="white" />
                     </svg>
-                    <span className="relative z-10 font-black text-white text-sm sm:text-base tracking-tight">BX</span>
+                    <span className="relative z-10 font-black text-white text-sm sm:text-base tracking-tight">AP</span>
                     <span className="absolute inset-0 rounded-xl ring-1 ring-inset ring-white/25" />
                     <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-brand-orange border-2 border-white dark:border-slate-900 shadow-sm" />
                 </motion.div>
@@ -86,21 +86,20 @@ export function NavbarBrand({ pageTitle }) {
 
             <div className="min-w-0 hidden sm:block border-l border-slate-200 dark:border-slate-700 pl-3">
                 <div className="font-bold text-base sm:text-lg leading-tight tracking-wide truncate">
-                    <span className="text-brand-navy dark:text-white">BATI</span>
-                    <span className="text-brand-orange">XPERT</span>
+                    <span className="text-slate-800 dark:text-white">Bienvenue </span>
+                    <span className="text-brand-orange">AutoPILOTE</span>
                 </div>
-                {pageTitle && (
+                {pageTitle && pageTitle !== 'Tableau de bord' && (
                     <div className="text-xs sm:text-sm font-semibold text-slate-600 dark:text-slate-300 truncate">
                         {pageTitle}
                     </div>
                 )}
             </div>
 
-            {pageTitle && (
-                <div className="sm:hidden text-sm font-semibold text-slate-700 dark:text-slate-200 truncate max-w-[140px]">
-                    {pageTitle}
-                </div>
-            )}
+            <div className="sm:hidden text-sm font-semibold truncate max-w-[160px]">
+                <span className="text-slate-700 dark:text-slate-200">Bienvenue </span>
+                <span className="text-brand-orange">AutoPILOTE</span>
+            </div>
         </div>
     );
 }

@@ -68,6 +68,28 @@ class RoleSeeder extends Seeder
                     'clients.view', 'fournisseurs.view',
                 ],
             ],
+            'commercial' => [
+                'name' => 'Commercial',
+                'description' => 'Gestion commerciale, clients et ventes',
+                'permissions' => [
+                    'dashboard.view',
+                    'clients.view', 'clients.create', 'clients.edit',
+                    'stock.view',
+                    'factures_clients.view', 'factures_clients.create', 'factures_clients.edit',
+                    'reglements.view',
+                ],
+            ],
+            'facturation' => [
+                'name' => 'Facturation',
+                'description' => 'Factures clients, fournisseurs et règlements',
+                'permissions' => [
+                    'dashboard.view',
+                    'factures_clients.view', 'factures_clients.create', 'factures_clients.edit',
+                    'factures_fournisseurs.view', 'factures_fournisseurs.create', 'factures_fournisseurs.edit',
+                    'reglements.view', 'reglements.create', 'reglements.edit',
+                    'clients.view', 'fournisseurs.view',
+                ],
+            ],
             'chef_chantier' => [
                 'name' => 'Chef de chantier',
                 'description' => 'Suivi des chantiers, besoins et affectations',

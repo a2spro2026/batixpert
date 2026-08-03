@@ -4,13 +4,13 @@ const ThemeContext = createContext();
 
 export function ThemeProvider({ children }) {
     const [dark, setDark] = useState(() => {
-        const saved = localStorage.getItem('batixpert_theme');
+        const saved = localStorage.getItem('autopilote_theme');
         return saved ? saved === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
     });
 
     useEffect(() => {
         document.documentElement.classList.toggle('dark', dark);
-        localStorage.setItem('batixpert_theme', dark ? 'dark' : 'light');
+        localStorage.setItem('autopilote_theme', dark ? 'dark' : 'light');
     }, [dark]);
 
     return (

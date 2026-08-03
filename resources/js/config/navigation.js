@@ -25,10 +25,10 @@ import {
     // Stock
     Boxes,
     ArrowLeftRight,
-    Archive,
+    Warehouse,
+    ClipboardCheck,
     // Chantiers
     MapPin,
-    ClipboardCheck,
     TrendingDown,
     // Personnel
     BadgeCheck,
@@ -37,7 +37,6 @@ import {
     Coins,
     Vault,
     FileText,
-    Warehouse,
 } from 'lucide-react';
 
 export const navigation = [
@@ -82,8 +81,8 @@ export const navigation = [
         perm: 'factures_clients.view',
         children: [
             { to: '/facturation/factures-achats', label: 'Facture Achats', icon: FileInput },
-            { to: '/facturation/depot-a', label: 'Depot A', icon: Warehouse },
-            { to: '/facturation/depot-b', label: 'Depot B', icon: Warehouse },
+            { to: '/facturation/depot-a', label: 'Depot A', icon: Warehouse, disabled: true },
+            { to: '/facturation/depot-b', label: 'Depot B', icon: Warehouse, disabled: true },
             { to: '/facturation/reglement', label: 'Règlement', icon: CreditCard },
             { to: '/facturation/factures-ventes', label: 'Facture Ventes', icon: Receipt },
             { to: '/facturation/reglements', label: 'Règlements', icon: Wallet },
@@ -97,8 +96,8 @@ export const navigation = [
         perm: 'stock.view',
         children: [
             { to: '/stock/produits', label: 'Fiche Produit', icon: Boxes },
+            { to: '/stock/entrepots', label: 'Entrepôts', icon: Warehouse },
             { to: '/stock/mouvements', label: 'Mouvement Stock', icon: ArrowLeftRight },
-            { to: '/stock/fiscal', label: 'Stock Fiscale', icon: Archive },
         ],
     },
     {
@@ -106,6 +105,7 @@ export const navigation = [
         label: 'Chantiers',
         icon: HardHat,
         perm: 'chantiers.view',
+        disabled: true,
         children: [
             { to: '/chantiers/carte', label: 'Carte Chantiers', icon: MapPin },
             { to: '/clients/devis', label: 'Devis', icon: FileSignature },

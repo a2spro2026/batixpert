@@ -150,7 +150,7 @@ function buildPrintHtml(row) {
 <style>body{font-family:Arial,sans-serif;padding:28px;color:#1e293b}h1{color:#1e3a5f;font-size:18px;margin-bottom:16px}
 table{width:100%;border-collapse:collapse}th,td{border:1px solid #e2e8f0;padding:8px 10px;font-size:12px;text-align:left}
 th{background:#f8fafc;width:140px;font-weight:700}</style></head><body>
-<h1>BATIXPERT — Transaction</h1>
+<h1>Autopilote — Transaction</h1>
 <table>
 <tr><th>Date</th><td>${row.transaction_date || '—'}</td></tr>
 <tr><th>Bénéficiaire</th><td>${row.beneficiary || '—'}</td></tr>
@@ -209,7 +209,7 @@ tbody tr:nth-child(even) { background: #f8fafc; }
 .totals tr:last-child td { background: #1e3a5f; color: #fff; }
 .footer { margin-top: 14px; font-size: 8px; color: #94a3b8; text-align: center; }
 </style></head><body>
-<h1>BATIXPERT — Liste des transactions</h1>
+<h1>Autopilote — Liste des transactions</h1>
 <p class="sub">${filterLabel} · Généré le ${new Date().toLocaleDateString('fr-FR')}</p>
 <table>
 <thead><tr>
@@ -224,7 +224,7 @@ tbody tr:nth-child(even) { background: #f8fafc; }
 <tr><td>Total Ste</td><td>${formatMontant(summary.total_cmpt_ste)}</td></tr>
 <tr><td>Solde</td><td>${formatMontant(summary.solde)}</td></tr>
 </table>
-<p class="footer">© BatiXpert — ${rows.length} transaction(s)</p>
+<p class="footer">© Autopilote — ${rows.length} transaction(s)</p>
 </body></html>`;
 }
 

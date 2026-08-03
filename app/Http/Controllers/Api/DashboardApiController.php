@@ -86,6 +86,33 @@ class DashboardApiController extends Controller
             ->whereColumn('quantity_in_stock', '<=', 'min_stock_alert')
             ->count();
 
+        $stockAlerts = Product::query()
+            ->where('status', 'actif')
+            ->where(function ($q) {
+                $q->where('quantity_in_stock', '<=', 0)
+                    ->orWhereColumn('quantity_in_stock', '<=', 'min_stock_alert');
+            })
+            ->orderBy('quantity_in_stock')
+            ->limit(100)
+            ->get(['id', 'reference', 'name', 'quantity_in_stock', 'min_stock_alert', 'unit', 'brand'])
+            ->map(function (Product $p) {
+                $qty = (float) $p->quantity_in_stock;
+                $level = $qty <= 0 ? 'rupture' : 'faible';
+
+                return [
+                    'id' => $p->id,
+                    'reference' => $p->reference,
+                    'name' => $p->name,
+                    'quantity' => round($qty, 3),
+                    'min_stock' => round((float) $p->min_stock_alert, 3),
+                    'unit' => $p->unit,
+                    'brand' => $p->brand,
+                    'level' => $level,
+                    'level_label' => $level === 'rupture' ? 'Rupture' : 'Stock faible',
+                ];
+            })
+            ->values();
+
         $personnelPresent = Attendance::whereDate('date', today())
             ->where('status', 'present')
             ->count();
@@ -238,7 +265,25 @@ class DashboardApiController extends Controller
                 'benefices' => round($benefices, 2),
                 'stock_faible' => $stockFaible,
                 'personnel_present' => $personnelPresent,
+                'valeur_caisse' => null,
+                'sparklines' => [
+                    'total_achats' => $this->lastMonthsSeries(function ($start, $end) {
+                        return PurchaseOrder::whereBetween('order_date', [$start, $end])
+                            ->where('status', '!=', 'annule')
+                            ->sum('total_ttc');
+                    }),
+                    'total_ventes' => $this->lastMonthsSeries(function ($start, $end) {
+                        return SaleOrder::whereBetween('order_date', [$start, $end])
+                            ->where('status', '!=', 'annule')
+                            ->sum('total_ttc');
+                    }),
+                    'total_charges' => $this->lastMonthsSeries(function ($start, $end) {
+                        return Expense::whereBetween('expense_date', [$start, $end])->sum('amount');
+                    }),
+                    'valeur_caisse' => [0, 0, 0, 0, 0, 0],
+                ],
             ],
+            'stock_alerts' => $stockAlerts,
             'charts' => [
                 'expenses' => $expensesChart,
                 'revenue' => $revenueChart,
@@ -255,5 +300,22 @@ class DashboardApiController extends Controller
                 'regl_a_decaisser' => $reglADecaisser->values(),
             ],
         ]);
+    }
+
+    /**
+     * @param  callable(Carbon, Carbon): mixed  $fetcher
+     * @return list<float>
+     */
+    private function lastMonthsSeries(callable $fetcher, int $months = 6): array
+    {
+        $series = [];
+
+        for ($i = $months - 1; $i >= 0; $i--) {
+            $start = now()->subMonths($i)->startOfMonth()->toDateString();
+            $end = now()->subMonths($i)->endOfMonth()->toDateString();
+            $series[] = round((float) $fetcher($start, $end), 2);
+        }
+
+        return $series;
     }
 }

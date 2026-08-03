@@ -148,7 +148,7 @@ body {
 <div class="sheet">
     <div class="header">
         <div class="brand">
-            <h1>BatiXpert</h1>
+            <h1>Autopilote</h1>
             <p>ERP BTP — Gestion de chantiers</p>
         </div>
         <div class="doc-title">

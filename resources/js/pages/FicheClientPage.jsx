@@ -82,7 +82,7 @@ th{background:#f8fafc;width:180px;font-weight:700}
 .footer{margin-top:32px;font-size:11px;color:#94a3b8;text-align:center}
 .badge{display:inline-block;padding:4px 10px;border-radius:999px;background:#fff7ed;color:#ea580c;font-weight:700}
 </style></head><body>
-<h1>BATIXPERT — Fiche Client</h1>
+<h1>Autopilote — Fiche Client</h1>
 <p class="sub">Document généré le ${new Date().toLocaleDateString('fr-FR')}</p>
 <table>
 <tr><th>CR</th><td><span class="badge">${row.code}</span></td></tr>
@@ -96,7 +96,7 @@ th{background:#f8fafc;width:180px;font-weight:700}
 <tr><th>Solde Initial</th><td><strong>${formatSolde(row.budget ?? row.initial_balance)}</strong></td></tr>
 <tr><th>Date création</th><td>${row.created_at || '—'}</td></tr>
 </table>
-<p class="footer">© BatiXpert — A2SPRO</p>
+<p class="footer">© Autopilote — A2SPRO</p>
 </body></html>`;
 }
 

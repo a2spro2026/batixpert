@@ -94,7 +94,7 @@ function buildPrintHtml(row) {
 table{width:100%;border-collapse:collapse;margin-top:12px}th,td{border:1px solid #e2e8f0;padding:8px;font-size:12px;text-align:center}
 th{background:#f8fafc;font-weight:700}.badge{background:#dbeafe;color:#1d4ed8;padding:4px 10px;border-radius:999px;font-weight:700}
 </style></head><body>
-<h1>BATIXPERT — Facture Achat <span class="badge">${row.reference || ''}</span></h1>
+<h1>Autopilote — Facture Achat <span class="badge">${row.reference || ''}</span></h1>
 <table>
 <tr><th>Date</th><td>${row.invoice_date || '—'}</td><th>Fournisseur</th><td>${row.fournisseur || '—'}</td></tr>
 <tr><th>Destination</th><td>${row.depot_label || '—'}</td><th>Échéance</th><td>${row.due_date || '—'}</td></tr>

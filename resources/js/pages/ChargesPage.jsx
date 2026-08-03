@@ -84,7 +84,7 @@ function buildPrintHtml(row) {
 table{width:100%;border-collapse:collapse;margin-top:12px}th,td{border:1px solid #e2e8f0;padding:8px;font-size:12px;text-align:center}
 th{background:#f8fafc;font-weight:700}.badge{background:#dbeafe;color:#1d4ed8;padding:4px 10px;border-radius:999px;font-weight:700}
 </style></head><body>
-<h1>BATIXPERT — Bon Charge <span class="badge">${row.reference || ''}</span></h1>
+<h1>Autopilote — Bon Charge <span class="badge">${row.reference || ''}</span></h1>
 <table>
 <tr><th>Date</th><td>${row.charge_date || '—'}</td><th>Réf</th><td>${row.reference || '—'}</td></tr>
 <tr><th>Désignation</th><td>${row.designation || '—'}</td><th>Bénéficiaire</th><td>${row.beneficiaire || '—'}</td></tr>
