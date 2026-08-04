@@ -1,6 +1,6 @@
 {
-    "name": "Autopilote",
-    "short_name": "Autopilote",
+    "name": "STE SOCIMPRO - Gestion commerciale",
+    "short_name": "SOCIMPRO",
     "description": "Pilotez vos opérations en toute simplicité",
     "start_url": "/app",
     "display": "standalone",

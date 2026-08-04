@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\PurchaseOrder;
+use App\Models\Supplier;
 use App\Models\SupplierPayment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -23,7 +24,7 @@ class SupplierPaymentApiController extends Controller
             $query->where('numero', 'like', '%'.$request->numero.'%');
         }
         if ($request->filled('banque')) {
-            $query->where('banque', $request->banque);
+            $query->where('banque', 'like', '%'.$request->banque.'%');
         }
         if ($request->filled('montant')) {
             $query->where('montant', (float) str_replace(',', '.', $request->montant));
@@ -77,18 +78,42 @@ class SupplierPaymentApiController extends Controller
             'supplier_id' => 'required|exists:suppliers,id',
         ]);
 
+        $supplier = Supplier::findOrFail($request->supplier_id);
+
         $orders = PurchaseOrder::with('supplier')
             ->where('supplier_id', $request->supplier_id)
             ->where('status', '!=', 'annule')
             ->latest('order_date')
             ->get()
-            ->map(fn ($o) => $this->formatOrder($o));
+            ->map(fn ($o) => $this->formatOrder($o))
+            ->values();
+
+        $soldeInitial = $supplier->remainingInitialBalance();
+        if ($soldeInitial > 0) {
+            $paid = round((float) ($supplier->initial_balance_paid ?? 0), 2);
+            $bon = round((float) $supplier->initial_balance, 2);
+            $orders->prepend([
+                'id' => 0,
+                'type' => 'solde_initial',
+                'reference' => 'SOLDE INITIAL',
+                'order_date' => '—',
+                'order_date_raw' => null,
+                'supplier_id' => $supplier->id,
+                'fournisseur' => $supplier->name,
+                'client_livre' => 'Solde initial',
+                'montant_bon' => number_format($bon, 2, '.', ''),
+                'montant_paye' => number_format($paid, 2, '.', ''),
+                'solde' => number_format($soldeInitial, 2, '.', ''),
+                'payment_action' => 'Inst',
+                'status' => 'ouvert',
+            ]);
+        }
 
         $totalTtc = round($orders->sum(fn ($o) => (float) $o['montant_bon']), 2);
         $soldeTtc = round($orders->sum(fn ($o) => (float) $o['solde']), 2);
 
         return response()->json([
-            'data' => $orders,
+            'data' => $orders->values()->all(),
             'meta' => [
                 'total_ttc' => number_format($totalTtc, 2, '.', ''),
                 'solde_ttc' => number_format($soldeTtc, 2, '.', ''),
@@ -110,13 +135,21 @@ class SupplierPaymentApiController extends Controller
             'remarque' => 'nullable|string|max:1000',
             'statut' => 'nullable|in:'.implode(',', self::STATUTS),
             'allocations' => 'required|array|min:1',
-            'allocations.*.purchase_order_id' => 'required|exists:purchase_orders,id',
+            'allocations.*.type' => 'nullable|in:order,solde_initial',
+            'allocations.*.purchase_order_id' => 'nullable|exists:purchase_orders,id',
             'allocations.*.amount' => 'nullable|numeric|min:0',
             'allocations.*.action' => 'nullable|in:Inst,Payé,Report,Imp,Dévalidé',
         ]);
 
         $payment = DB::transaction(function () use ($validated, $request) {
-            $orderIds = collect($validated['allocations'])->pluck('purchase_order_id')->all();
+            $supplier = Supplier::where('id', $validated['supplier_id'])->lockForUpdate()->firstOrFail();
+
+            $orderAllocations = collect($validated['allocations'])
+                ->filter(fn ($row) => ($row['type'] ?? 'order') !== 'solde_initial' && ! empty($row['purchase_order_id']));
+            $soldeAllocations = collect($validated['allocations'])
+                ->filter(fn ($row) => ($row['type'] ?? '') === 'solde_initial');
+
+            $orderIds = $orderAllocations->pluck('purchase_order_id')->all();
             $orders = PurchaseOrder::whereIn('id', $orderIds)
                 ->where('supplier_id', $validated['supplier_id'])
                 ->lockForUpdate()
@@ -130,8 +163,37 @@ class SupplierPaymentApiController extends Controller
             $paymentAmount = round((float) $validated['montant'], 2);
             $remaining = $paymentAmount;
             $built = [];
+            $soldeAppliedTotal = 0.0;
 
-            foreach ($validated['allocations'] as $row) {
+            foreach ($soldeAllocations as $row) {
+                $action = $row['action'] ?? 'Payé';
+                $due = $supplier->remainingInitialBalance();
+                $explicit = array_key_exists('amount', $row) && $row['amount'] !== null && $row['amount'] !== ''
+                    ? round((float) $row['amount'], 2)
+                    : null;
+
+                if ($explicit !== null) {
+                    $applied = $explicit;
+                } elseif ($action === 'Payé') {
+                    $applied = round(min($due, $remaining), 2);
+                } else {
+                    $applied = 0;
+                }
+
+                if ($applied > 0) {
+                    $remaining = round($remaining - $applied, 2);
+                    $soldeAppliedTotal = round($soldeAppliedTotal + $applied, 2);
+                }
+
+                $built[] = [
+                    'type' => 'solde_initial',
+                    'order' => null,
+                    'amount' => max($applied, 0),
+                    'action' => $action,
+                ];
+            }
+
+            foreach ($orderAllocations as $row) {
                 $order = $orders->get($row['purchase_order_id']);
                 $action = $row['action'] ?? 'Payé';
                 $due = round(max((float) $order->total_ttc - (float) ($order->montant_paye ?? 0), 0), 2);
@@ -153,14 +215,22 @@ class SupplierPaymentApiController extends Controller
                 }
 
                 $built[] = [
+                    'type' => 'order',
                     'order' => $order,
                     'amount' => max($applied, 0),
                     'action' => $action,
                 ];
             }
 
-            $totalTtc = round($orders->sum(fn ($o) => (float) $o->total_ttc), 2);
-            $soldeAvant = round($orders->sum(fn ($o) => max((float) $o->total_ttc - (float) ($o->montant_paye ?? 0), 0)), 2);
+            $totalTtc = round(
+                $orders->sum(fn ($o) => (float) $o->total_ttc) + (float) $supplier->initial_balance,
+                2
+            );
+            $soldeAvant = round(
+                $orders->sum(fn ($o) => max((float) $o->total_ttc - (float) ($o->montant_paye ?? 0), 0))
+                + $supplier->remainingInitialBalance(),
+                2
+            );
 
             $statut = $validated['statut'] ?? 'Inst';
             if (! empty($validated['date_decaissement']) && $statut === 'Inst') {
@@ -187,8 +257,19 @@ class SupplierPaymentApiController extends Controller
             $payment->update(['reference' => $this->referenceFor($payment->id)]);
 
             foreach ($built as $row) {
+                if ($row['type'] === 'solde_initial') {
+                    $payment->allocations()->create([
+                        'purchase_order_id' => null,
+                        'allocation_type' => 'solde_initial',
+                        'amount' => $row['amount'],
+                        'action' => $row['action'],
+                    ]);
+                    continue;
+                }
+
                 $payment->allocations()->create([
                     'purchase_order_id' => $row['order']->id,
+                    'allocation_type' => 'order',
                     'amount' => $row['amount'],
                     'action' => $row['action'],
                 ]);
@@ -204,6 +285,12 @@ class SupplierPaymentApiController extends Controller
                 $row['order']->update([
                     'montant_paye' => $newPaid,
                     'payment_action' => $action,
+                ]);
+            }
+
+            if ($soldeAppliedTotal > 0) {
+                $supplier->update([
+                    'initial_balance_paid' => round((float) ($supplier->initial_balance_paid ?? 0) + $soldeAppliedTotal, 2),
                 ]);
             }
 
@@ -267,14 +354,23 @@ class SupplierPaymentApiController extends Controller
     public function destroy(SupplierPayment $supplierPayment)
     {
         DB::transaction(function () use ($supplierPayment) {
-            $supplierPayment->load('allocations.purchaseOrder');
+            $supplierPayment->load(['allocations.purchaseOrder', 'supplier']);
 
             foreach ($supplierPayment->allocations as $allocation) {
-                $order = $allocation->purchaseOrder;
-                if ($order) {
-                    $order->update([
-                        'montant_paye' => round(max((float) ($order->montant_paye ?? 0) - (float) $allocation->amount, 0), 2),
-                    ]);
+                if (($allocation->allocation_type ?? 'order') === 'solde_initial') {
+                    $supplier = $supplierPayment->supplier;
+                    if ($supplier) {
+                        $supplier->update([
+                            'initial_balance_paid' => round(max((float) ($supplier->initial_balance_paid ?? 0) - (float) $allocation->amount, 0), 2),
+                        ]);
+                    }
+                } else {
+                    $order = $allocation->purchaseOrder;
+                    if ($order) {
+                        $order->update([
+                            'montant_paye' => round(max((float) ($order->montant_paye ?? 0) - (float) $allocation->amount, 0), 2),
+                        ]);
+                    }
                 }
                 $allocation->delete();
             }
@@ -303,6 +399,7 @@ class SupplierPaymentApiController extends Controller
 
         return [
             'id' => $order->id,
+            'type' => 'order',
             'reference' => $order->reference,
             'order_date' => $order->order_date?->format('d/m/Y'),
             'order_date_raw' => $order->order_date?->format('Y-m-d'),
@@ -342,7 +439,10 @@ class SupplierPaymentApiController extends Controller
             'allocations' => $payment->allocations->map(fn ($a) => [
                 'id' => $a->id,
                 'purchase_order_id' => $a->purchase_order_id,
-                'bon' => $a->purchaseOrder?->reference,
+                'type' => $a->allocation_type ?: 'order',
+                'bon' => ($a->allocation_type ?? '') === 'solde_initial'
+                    ? 'SOLDE INITIAL'
+                    : $a->purchaseOrder?->reference,
                 'amount' => number_format((float) $a->amount, 2, '.', ''),
                 'action' => $a->action,
             ])->values()->all(),

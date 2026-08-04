@@ -25,8 +25,10 @@ import {
     // Stock
     Boxes,
     ArrowLeftRight,
-    Warehouse,
+    Factory,
     ClipboardCheck,
+    PackageOpen,
+    PackageCheck,
     // Chantiers
     MapPin,
     TrendingDown,
@@ -37,6 +39,7 @@ import {
     Coins,
     Vault,
     FileText,
+    Warehouse,
 } from 'lucide-react';
 
 export const navigation = [
@@ -81,8 +84,8 @@ export const navigation = [
         perm: 'factures_clients.view',
         children: [
             { to: '/facturation/factures-achats', label: 'Facture Achats', icon: FileInput },
-            { to: '/facturation/depot-a', label: 'Depot A', icon: Warehouse, disabled: true },
-            { to: '/facturation/depot-b', label: 'Depot B', icon: Warehouse, disabled: true },
+            { to: '/facturation/depot-a', label: 'Depot A', icon: Warehouse },
+            { to: '/facturation/depot-b', label: 'Depot B', icon: Warehouse },
             { to: '/facturation/reglement', label: 'Règlement', icon: CreditCard },
             { to: '/facturation/factures-ventes', label: 'Facture Ventes', icon: Receipt },
             { to: '/facturation/reglements', label: 'Règlements', icon: Wallet },
@@ -96,7 +99,10 @@ export const navigation = [
         perm: 'stock.view',
         children: [
             { to: '/stock/produits', label: 'Fiche Produit', icon: Boxes },
-            { to: '/stock/entrepots', label: 'Entrepôts', icon: Warehouse },
+            { to: '/stock/matiere-premiere', label: 'Stock Matière Première', icon: PackageOpen },
+            { to: '/stock/produit-fini', label: 'Stock Produit Fini', icon: PackageCheck },
+            { to: '/stock/bon-production', label: 'Bon Production', icon: Factory },
+            { to: '/stock/etat-production', label: 'Etat Production Journalière', icon: ClipboardCheck },
             { to: '/stock/mouvements', label: 'Mouvement Stock', icon: ArrowLeftRight },
         ],
     },
@@ -105,7 +111,6 @@ export const navigation = [
         label: 'Chantiers',
         icon: HardHat,
         perm: 'chantiers.view',
-        disabled: true,
         children: [
             { to: '/chantiers/carte', label: 'Carte Chantiers', icon: MapPin },
             { to: '/clients/devis', label: 'Devis', icon: FileSignature },

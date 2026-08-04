@@ -41,8 +41,8 @@ const readOnlyClass = 'w-full rounded-lg border border-slate-200 dark:border-sla
 const readOnlyCompact = `${readOnlyClass} py-1 text-[11px]`;
 
 function formatPlain(value) {
-    const n = Number(value) || 0;
-    return n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const n = Math.round(Number(value) || 0);
+    return `${n.toLocaleString('fr-FR', { maximumFractionDigits: 0 })}.Fcfa`;
 }
 
 function ActionBtn({ title, onClick, icon: Icon, color = 'slate' }) {

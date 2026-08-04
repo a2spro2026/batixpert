@@ -18,8 +18,8 @@ function esc(value) {
 }
 
 function formatMontantPlain(value) {
-    const n = Number(value) || 0;
-    return n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const n = Math.round(Number(value) || 0);
+    return `${n.toLocaleString('fr-FR', { maximumFractionDigits: 0 })}.Fcfa`;
 }
 
 export function buildBonExecutionHtml(row) {
@@ -148,7 +148,7 @@ body {
 <div class="sheet">
     <div class="header">
         <div class="brand">
-            <h1>Autopilote</h1>
+            <h1>STE SOCIMPRO</h1>
             <p>ERP BTP — Gestion de chantiers</p>
         </div>
         <div class="doc-title">

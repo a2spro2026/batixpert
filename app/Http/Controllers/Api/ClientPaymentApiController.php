@@ -24,7 +24,7 @@ class ClientPaymentApiController extends Controller
             $query->where('numero', 'like', '%'.$request->numero.'%');
         }
         if ($request->filled('banque')) {
-            $query->where('banque', $request->banque);
+            $query->where('banque', 'like', '%'.$request->banque.'%');
         }
         if ($request->filled('montant')) {
             $query->where('montant', (float) str_replace(',', '.', $request->montant));
@@ -74,18 +74,44 @@ class ClientPaymentApiController extends Controller
             'client_id' => 'required|exists:clients,id',
         ]);
 
+        $client = Client::findOrFail($request->client_id);
+
         $orders = SaleOrder::with('client')
             ->where('client_id', $request->client_id)
             ->where('status', '!=', 'annule')
             ->latest('order_date')
             ->get()
-            ->map(fn ($o) => $this->formatOrder($o));
+            ->map(fn ($o) => $this->formatOrder($o))
+            ->values();
+
+        $soldeInitial = $client->remainingInitialBalance();
+        if ($soldeInitial > 0) {
+            $paid = round((float) ($client->initial_balance_paid ?? 0), 2);
+            $bon = round((float) ($client->budget ?? 0), 2);
+            $orders->prepend([
+                'id' => 0,
+                'type' => 'solde_initial',
+                'reference' => 'SOLDE INITIAL',
+                'order_date' => '—',
+                'order_date_raw' => null,
+                'client_id' => $client->id,
+                'client' => $client->name,
+                'client_livre' => 'Solde initial',
+                'ville' => $client->city,
+                'address' => 'Solde initial',
+                'montant_bon' => number_format($bon, 2, '.', ''),
+                'montant_paye' => number_format($paid, 2, '.', ''),
+                'solde' => number_format($soldeInitial, 2, '.', ''),
+                'payment_action' => 'Inst',
+                'status' => 'ouvert',
+            ]);
+        }
 
         $totalTtc = round($orders->sum(fn ($o) => (float) $o['montant_bon']), 2);
         $soldeTtc = round($orders->sum(fn ($o) => (float) $o['solde']), 2);
 
         return response()->json([
-            'data' => $orders,
+            'data' => $orders->values()->all(),
             'meta' => [
                 'total_ttc' => number_format($totalTtc, 2, '.', ''),
                 'solde_ttc' => number_format($soldeTtc, 2, '.', ''),
@@ -107,13 +133,21 @@ class ClientPaymentApiController extends Controller
             'remarque' => 'nullable|string|max:1000',
             'statut' => 'nullable|in:'.implode(',', self::STATUTS),
             'allocations' => 'required|array|min:1',
-            'allocations.*.sales_order_id' => 'required|exists:sales_orders,id',
+            'allocations.*.type' => 'nullable|in:order,solde_initial',
+            'allocations.*.sales_order_id' => 'nullable|exists:sales_orders,id',
             'allocations.*.amount' => 'nullable|numeric|min:0',
             'allocations.*.action' => 'nullable|in:Inst,Payé,Report,Imp,Dévalidé',
         ]);
 
         $payment = DB::transaction(function () use ($validated, $request) {
-            $orderIds = collect($validated['allocations'])->pluck('sales_order_id')->all();
+            $client = Client::where('id', $validated['client_id'])->lockForUpdate()->firstOrFail();
+
+            $orderAllocations = collect($validated['allocations'])
+                ->filter(fn ($row) => ($row['type'] ?? 'order') !== 'solde_initial' && ! empty($row['sales_order_id']));
+            $soldeAllocations = collect($validated['allocations'])
+                ->filter(fn ($row) => ($row['type'] ?? '') === 'solde_initial');
+
+            $orderIds = $orderAllocations->pluck('sales_order_id')->all();
             $orders = SaleOrder::with('client')
                 ->whereIn('id', $orderIds)
                 ->where('client_id', $validated['client_id'])
@@ -128,8 +162,37 @@ class ClientPaymentApiController extends Controller
             $paymentAmount = round((float) $validated['montant'], 2);
             $remaining = $paymentAmount;
             $built = [];
+            $soldeAppliedTotal = 0.0;
 
-            foreach ($validated['allocations'] as $row) {
+            foreach ($soldeAllocations as $row) {
+                $action = $row['action'] ?? 'Payé';
+                $due = $client->remainingInitialBalance();
+                $explicit = array_key_exists('amount', $row) && $row['amount'] !== null && $row['amount'] !== ''
+                    ? round((float) $row['amount'], 2)
+                    : null;
+
+                if ($explicit !== null) {
+                    $applied = $explicit;
+                } elseif ($action === 'Payé') {
+                    $applied = round(min($due, $remaining), 2);
+                } else {
+                    $applied = 0;
+                }
+
+                if ($applied > 0) {
+                    $remaining = round($remaining - $applied, 2);
+                    $soldeAppliedTotal = round($soldeAppliedTotal + $applied, 2);
+                }
+
+                $built[] = [
+                    'type' => 'solde_initial',
+                    'order' => null,
+                    'amount' => max($applied, 0),
+                    'action' => $action,
+                ];
+            }
+
+            foreach ($orderAllocations as $row) {
                 $order = $orders->get($row['sales_order_id']);
                 $action = $row['action'] ?? 'Payé';
                 $due = round(max((float) $order->total_ttc - (float) ($order->montant_paye ?? 0), 0), 2);
@@ -151,29 +214,36 @@ class ClientPaymentApiController extends Controller
                 }
 
                 $built[] = [
+                    'type' => 'order',
                     'order' => $order,
                     'amount' => max($applied, 0),
                     'action' => $action,
                 ];
             }
 
-            $totalTtc = round($orders->sum(fn ($o) => (float) $o->total_ttc), 2);
-            $soldeAvant = round($orders->sum(fn ($o) => max((float) $o->total_ttc - (float) ($o->montant_paye ?? 0), 0)), 2);
+            $totalTtc = round(
+                $orders->sum(fn ($o) => (float) $o->total_ttc) + (float) ($client->budget ?? 0),
+                2
+            );
+            $soldeAvant = round(
+                $orders->sum(fn ($o) => max((float) $o->total_ttc - (float) ($o->montant_paye ?? 0), 0))
+                + $client->remainingInitialBalance(),
+                2
+            );
 
             $statut = $validated['statut'] ?? 'Inst';
             if (! empty($validated['date_decaissement']) && $statut === 'Inst') {
                 $statut = 'Payé';
             }
 
-            $client = Client::find($validated['client_id']);
             $first = $orders->first();
 
             $payment = ClientPayment::create([
                 'reference' => 'RC-PENDING',
                 'payment_date' => $validated['payment_date'],
                 'client_id' => $validated['client_id'],
-                'client_name' => $client?->name,
-                'ville_chantier' => $first?->city,
+                'client_name' => $client->name,
+                'ville_chantier' => $first?->city ?: $client->city,
                 'chantier_type' => null,
                 'montant_total' => $totalTtc,
                 'reglement' => $validated['reglement'] ?? null,
@@ -191,9 +261,21 @@ class ClientPaymentApiController extends Controller
             $payment->update(['reference' => $this->referenceFor($payment->id)]);
 
             foreach ($built as $row) {
+                if ($row['type'] === 'solde_initial') {
+                    $payment->allocations()->create([
+                        'sales_order_id' => null,
+                        'client_order_id' => null,
+                        'allocation_type' => 'solde_initial',
+                        'amount' => $row['amount'],
+                        'action' => $row['action'],
+                    ]);
+                    continue;
+                }
+
                 $payment->allocations()->create([
                     'sales_order_id' => $row['order']->id,
                     'client_order_id' => null,
+                    'allocation_type' => 'order',
                     'amount' => $row['amount'],
                     'action' => $row['action'],
                 ]);
@@ -209,6 +291,12 @@ class ClientPaymentApiController extends Controller
                 $row['order']->update([
                     'montant_paye' => $newPaid,
                     'payment_action' => $action,
+                ]);
+            }
+
+            if ($soldeAppliedTotal > 0) {
+                $client->update([
+                    'initial_balance_paid' => round((float) ($client->initial_balance_paid ?? 0) + $soldeAppliedTotal, 2),
                 ]);
             }
 
@@ -276,14 +364,23 @@ class ClientPaymentApiController extends Controller
     public function destroy(ClientPayment $clientPayment)
     {
         DB::transaction(function () use ($clientPayment) {
-            $clientPayment->load(['allocations.saleOrder', 'allocations.clientOrder']);
+            $clientPayment->load(['allocations.saleOrder', 'allocations.clientOrder', 'client']);
 
             foreach ($clientPayment->allocations as $allocation) {
-                $order = $allocation->saleOrder ?: $allocation->clientOrder;
-                if ($order && isset($order->montant_paye)) {
-                    $order->update([
-                        'montant_paye' => round(max((float) ($order->montant_paye ?? 0) - (float) $allocation->amount, 0), 2),
-                    ]);
+                if (($allocation->allocation_type ?? 'order') === 'solde_initial') {
+                    $client = $clientPayment->client;
+                    if ($client) {
+                        $client->update([
+                            'initial_balance_paid' => round(max((float) ($client->initial_balance_paid ?? 0) - (float) $allocation->amount, 0), 2),
+                        ]);
+                    }
+                } else {
+                    $order = $allocation->saleOrder ?: $allocation->clientOrder;
+                    if ($order && isset($order->montant_paye)) {
+                        $order->update([
+                            'montant_paye' => round(max((float) ($order->montant_paye ?? 0) - (float) $allocation->amount, 0), 2),
+                        ]);
+                    }
                 }
                 $allocation->delete();
             }
@@ -312,6 +409,7 @@ class ClientPaymentApiController extends Controller
 
         return [
             'id' => $order->id,
+            'type' => 'order',
             'reference' => $order->reference,
             'order_date' => $order->order_date?->format('d/m/Y'),
             'order_date_raw' => $order->order_date?->format('Y-m-d'),
@@ -353,7 +451,10 @@ class ClientPaymentApiController extends Controller
             'allocations' => $payment->allocations->map(fn ($a) => [
                 'id' => $a->id,
                 'sales_order_id' => $a->sales_order_id,
-                'bon' => $a->saleOrder?->reference ?: $a->clientOrder?->reference,
+                'type' => $a->allocation_type ?: 'order',
+                'bon' => ($a->allocation_type ?? '') === 'solde_initial'
+                    ? 'SOLDE INITIAL'
+                    : ($a->saleOrder?->reference ?: $a->clientOrder?->reference),
                 'amount' => number_format((float) $a->amount, 2, '.', ''),
                 'action' => $a->action,
             ])->values()->all(),

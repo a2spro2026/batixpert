@@ -1,8 +1,8 @@
 import { FileSpreadsheet } from 'lucide-react';
 
 function formatMontant(value) {
-    const n = Number(value) || 0;
-    return `${n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const n = Math.round(Number(value) || 0);
+    return `${n.toLocaleString('fr-FR', { maximumFractionDigits: 0 })}.Fcfa`;
 }
 
 export default function ReportTable({

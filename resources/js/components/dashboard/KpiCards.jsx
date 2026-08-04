@@ -48,7 +48,7 @@ const cards = [
 function formatValue(value, format) {
     const num = Number(value) || 0;
     if (format === 'number') return num.toLocaleString('fr-FR');
-    return `${num.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    return `${Math.round(num).toLocaleString('fr-FR', { maximumFractionDigits: 0 })}.Fcfa`;
 }
 
 function AnimatedValue({ value, format }) {

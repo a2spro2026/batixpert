@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class ClientPaymentAllocation extends Model
 {
     protected $fillable = [
-        'client_payment_id', 'client_order_id', 'sales_order_id', 'amount', 'action',
+        'client_payment_id', 'client_order_id', 'sales_order_id', 'allocation_type', 'amount', 'action',
     ];
 
     protected function casts(): array

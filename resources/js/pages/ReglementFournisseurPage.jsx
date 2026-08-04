@@ -6,7 +6,7 @@ import {
 import api from '../lib/api';
 
 const REGLEMENT_OPTIONS = ['', 'Esp', 'Chq', 'Eff', 'Vir', 'Vers'];
-const BANQUE_OPTIONS = ['', 'Attijariwafa', 'BMCE', 'Banque Populaire', 'CIH', 'SGMB', 'Crédit Agricole', 'CDM', 'Al Barid Bank', 'Autre'];
+const SOLDE_INITIAL_ID = 0;
 const STATUT_OPTIONS = [
     { value: 'Inst', label: 'Inst', className: 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-600' },
     { value: 'Payé', label: 'Payé', className: 'bg-emerald-500 text-white border-emerald-600' },
@@ -59,7 +59,8 @@ const filterClass =
     'w-full rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-2.5 py-2 text-xs outline-none focus:ring-2 focus:ring-brand-navy/30 focus:border-brand-navy';
 
 function formatMontant(value) {
-    return (Number(value) || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const n = Math.round(Number(value) || 0);
+    return `${n.toLocaleString('fr-FR', { maximumFractionDigits: 0 })}.Fcfa`;
 }
 
 function ActionBtn({ title, icon: Icon, color = 'slate', onClick }) {
@@ -103,7 +104,7 @@ function buildPrintHtml(row) {
 table{width:100%;border-collapse:collapse;margin-top:12px}th,td{border:1px solid #e2e8f0;padding:8px;font-size:12px;text-align:center}
 th{background:#f8fafc;font-weight:700}.badge{background:#dbeafe;color:#1d4ed8;padding:4px 10px;border-radius:999px;font-weight:700}
 </style></head><body>
-<h1>Autopilote — Règlement Achats <span class="badge">${row.reference || ''}</span></h1>
+<h1>STE SOCIMPRO — Règlement Achats <span class="badge">${row.reference || ''}</span></h1>
 <table>
 <tr><th>Date</th><td>${row.payment_date || '—'}</td><th>Fournisseur</th><td>${row.fournisseur || '—'}</td></tr>
 <tr><th>Type</th><td>${row.reglement || '—'}</td><th>N°</th><td>${row.numero || '—'}</td></tr>
@@ -656,11 +657,16 @@ export default function ReglementFournisseurPage() {
                     montant,
                     date_decaissement: form.date_decaissement || null,
                     remarque: form.remarque || null,
-                    allocations: selectedIds.map((id) => ({
-                        purchase_order_id: id,
-                        amount: previewById[id]?.allocation ?? 0,
-                        action: actions[id] || 'Payé',
-                    })),
+                    allocations: selectedIds.map((id) => {
+                        const row = orders.find((o) => o.id === id);
+                        const isSolde = row?.type === 'solde_initial' || id === SOLDE_INITIAL_ID;
+                        return {
+                            type: isSolde ? 'solde_initial' : 'order',
+                            purchase_order_id: isSolde ? null : id,
+                            amount: previewById[id]?.allocation ?? 0,
+                            action: actions[id] || 'Payé',
+                        };
+                    }),
                 });
             }
             closeForm();
@@ -745,12 +751,10 @@ export default function ReglementFournisseurPage() {
                             <input type="text" value={filters.numero} onChange={(e) => setFilter('numero', e.target.value)} placeholder="N°" className={filterClass} />
                         </Field>
                         <Field label="Bnq">
-                            <select value={filters.banque} onChange={(e) => setFilter('banque', e.target.value)} className={filterClass}>
-                                {BANQUE_OPTIONS.map((v) => <option key={v || 'b'} value={v}>{v || 'Toutes'}</option>)}
-                            </select>
+                            <input type="text" value={filters.banque} onChange={(e) => setFilter('banque', e.target.value)} placeholder="Banque" className={filterClass} />
                         </Field>
                         <Field label="Montant">
-                            <input type="number" step="0.01" value={filters.montant} onChange={(e) => setFilter('montant', e.target.value)} placeholder="0.00" className={filterClass} />
+                            <input type="number" step="0.01" value={filters.montant} onChange={(e) => setFilter('montant', e.target.value)} placeholder="0" className={filterClass} />
                         </Field>
                         <Field label="Mois">
                             <select value={filters.mois} onChange={(e) => setFilter('mois', e.target.value)} className={filterClass}>
@@ -955,14 +959,14 @@ export default function ReglementFournisseurPage() {
                             />
                         </Field>
                         <Field label="Banq">
-                            <select
+                            <input
+                                type="text"
                                 value={form.banque}
                                 onChange={(e) => set('banque', e.target.value)}
+                                placeholder="Banque"
                                 disabled={form.reglement === 'Esp'}
                                 className={form.reglement === 'Esp' ? readOnlyClass : inputClass}
-                            >
-                                {BANQUE_OPTIONS.map((v) => <option key={v || 'b'} value={v}>{v || '—'}</option>)}
-                            </select>
+                            />
                         </Field>
                         <Field label="Nom de Tiré">
                             <input
@@ -975,7 +979,7 @@ export default function ReglementFournisseurPage() {
                             />
                         </Field>
                         <Field label="Montant Régl">
-                            <input type="number" step="0.01" min="0" value={form.montant} onChange={(e) => set('montant', e.target.value)} placeholder="0.00" className={inputClass} disabled={!!editingId} />
+                            <input type="number" step="0.01" min="0" value={form.montant} onChange={(e) => set('montant', e.target.value)} placeholder="0" className={inputClass} disabled={!!editingId} />
                         </Field>
                         <Field label="Date Décaiss">
                             <input type="date" value={form.date_decaissement} onChange={(e) => set('date_decaissement', e.target.value)} className={inputClass} />
@@ -1026,9 +1030,10 @@ export default function ReglementFournisseurPage() {
                                         </tr>
                                         {orders.map((row) => {
                                             const shown = displayRow(row);
+                                            const isSolde = row.type === 'solde_initial';
                                             return (
-                                                <tr key={row.id} className={`hover:bg-orange-50/40 dark:hover:bg-slate-800/40 transition-colors ${selected[row.id] ? 'bg-amber-50/50 dark:bg-amber-900/10' : ''}`}>
-                                                    <td className="px-3 py-2.5 text-center font-mono text-xs font-semibold text-brand-navy dark:text-orange-400">{row.reference}</td>
+                                                <tr key={row.id} className={`hover:bg-orange-50/40 dark:hover:bg-slate-800/40 transition-colors ${selected[row.id] ? 'bg-amber-50/50 dark:bg-amber-900/10' : ''} ${isSolde ? 'bg-sky-50/60 dark:bg-sky-950/20' : ''}`}>
+                                                    <td className={`px-3 py-2.5 text-center font-mono text-xs font-semibold ${isSolde ? 'text-sky-700 dark:text-sky-300' : 'text-brand-navy dark:text-orange-400'}`}>{row.reference}</td>
                                                     <td className="px-3 py-2.5 text-center text-slate-600 dark:text-slate-300">{row.order_date}</td>
                                                     <td className="px-3 py-2.5 text-center text-slate-600 dark:text-slate-300">{row.client_livre || '—'}</td>
                                                     <td className="px-3 py-2.5 text-center font-semibold tabular-nums text-brand-navy dark:text-orange-400">{formatMontant(row.montant_bon)}</td>

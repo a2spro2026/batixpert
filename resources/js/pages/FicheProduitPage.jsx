@@ -15,12 +15,9 @@ const ETAT_OPTIONS = [
 
 const emptyForm = {
     reference: '',
-    code_barre: '',
     name: '',
-    categorie: '',
-    famille: '',
-    marque: '',
     unit: '',
+    famille: '',
     initial_stock: '',
     status: 'actif',
     etat: 'Rupture',
@@ -86,15 +83,12 @@ th,td{border:1px solid #e2e8f0;padding:10px;font-size:13px;text-align:center}
 th{background:#f8fafc;font-weight:700;width:160px}
 .badge{background:#ecfdf5;color:#059669;padding:4px 10px;border-radius:999px;font-weight:700}
 </style></head><body>
-<h1>Autopilote — Fiche Produit</h1>
+<h1>STE SOCIMPRO — Fiche Produit</h1>
 <table>
 <tr><th>Réf</th><td><span class="badge">${row.reference}</span></td></tr>
-<tr><th>Cd Barre</th><td>${row.code_barre || '—'}</td></tr>
 <tr><th>Désignation</th><td>${row.name || '—'}</td></tr>
-<tr><th>Catégorie</th><td>${row.categorie || '—'}</td></tr>
-<tr><th>Famille</th><td>${row.famille || '—'}</td></tr>
-<tr><th>Marque</th><td>${row.marque || row.brand || '—'}</td></tr>
 <tr><th>Unité</th><td>${row.unit || '—'}</td></tr>
+<tr><th>Famille</th><td>${row.famille || '—'}</td></tr>
 <tr><th>Qté saisie</th><td>${row.initial_stock ?? 0}</td></tr>
 <tr><th>Qté bons d'achat</th><td>${row.purchased_qty ?? 0}</td></tr>
 <tr><th>Qté totale</th><td>${row.quantity_in_stock ?? row.initial_stock ?? 0}</td></tr>
@@ -145,12 +139,9 @@ function ViewModal({ row, onClose }) {
                 </div>
                 <div className="p-5 space-y-3 text-sm">
                     {[
-                        ['Cd Barre', row.code_barre],
                         ['Désignation', row.name],
-                        ['Catégorie', row.categorie],
-                        ['Famille', row.famille],
-                        ['Marque', row.marque || row.brand],
                         ['Unité', row.unit],
+                        ['Famille', row.famille],
                         ['Qté saisie', row.initial_stock ?? 0],
                         ["Qté bons d'achat", row.purchased_qty ?? 0],
                         ['Qté totale', row.quantity_in_stock ?? row.initial_stock],
@@ -174,8 +165,6 @@ export default function FicheProduitPage() {
     const [form, setForm] = useState(emptyForm);
     const [rows, setRows] = useState([]);
     const [familles, setFamilles] = useState([]);
-    const [categories, setCategories] = useState([]);
-    const [marques, setMarques] = useState([]);
     const [meta, setMeta] = useState({ next_ref: '—' });
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -189,8 +178,6 @@ export default function FicheProduitPage() {
             .then((res) => {
                 setRows(res.data.data ?? []);
                 setFamilles(res.data.meta?.familles ?? []);
-                setCategories(res.data.meta?.categories ?? []);
-                setMarques(res.data.meta?.marques ?? []);
                 setMeta(res.data.meta ?? { next_ref: '—' });
             })
             .catch(() => setRows([]))
@@ -216,12 +203,9 @@ export default function FicheProduitPage() {
     const fillForm = (row) => {
         setForm({
             reference: row.reference || '',
-            code_barre: row.code_barre || '',
             name: row.name || '',
-            categorie: row.categorie || '',
-            famille: row.famille || '',
-            marque: row.marque || row.brand || '',
             unit: row.unit || '',
+            famille: row.famille || '',
             initial_stock: row.initial_stock ?? row.quantity_in_stock ?? '',
             status: row.status || 'actif',
             etat: row.etat || 'Rupture',
@@ -248,12 +232,9 @@ export default function FicheProduitPage() {
         setSaving(true);
         const payload = {
             reference: form.reference.trim(),
-            code_barre: form.code_barre || null,
             name: form.name,
-            categorie: form.categorie || null,
-            famille: form.famille || null,
-            brand: form.marque || null,
             unit: form.unit,
+            famille: form.famille || null,
             initial_stock: parseFloat(form.initial_stock) || 0,
             status: form.status,
             etat: form.etat,
@@ -280,7 +261,7 @@ export default function FicheProduitPage() {
         <div className="flex flex-col flex-1 min-h-0 gap-4">
             <ViewModal row={viewRow} onClose={() => setViewRow(null)} />
 
-            <form onSubmit={handleSubmit} className="shrink-0 glass-card p-4 lg:p-5 shadow-card border border-slate-200/60 dark:border-slate-700/60 overflow-x-auto">
+            <form onSubmit={handleSubmit} className="shrink-0 glass-card p-4 lg:p-5 shadow-card border border-slate-200/60 dark:border-slate-700/60">
                 {error && (
                     <div className="mb-4 p-3 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm border border-red-100 dark:border-red-800">{error}</div>
                 )}
@@ -290,7 +271,7 @@ export default function FicheProduitPage() {
                     </div>
                 )}
 
-                <div className="grid grid-cols-[0.65fr_1.15fr_1.2fr_1fr_1fr_1fr_0.55fr_0.55fr_0.55fr_0.55fr] gap-1.5 items-end w-full min-w-[1140px]">
+                <div className="grid grid-cols-[0.7fr_1.8fr_0.65fr_0.7fr_1fr_0.65fr_0.65fr] gap-1.5 items-end w-full">
                     <Field label="Réf" compact>
                         <input
                             type="text"
@@ -301,29 +282,8 @@ export default function FicheProduitPage() {
                             className={inputClass}
                         />
                     </Field>
-                    <Field label="Cd Barre" compact>
-                        <input type="text" maxLength={32} value={form.code_barre} onChange={(e) => set('code_barre', e.target.value)} placeholder="Cd Barre" className={inputClass} />
-                    </Field>
                     <Field label="Désignation">
                         <input type="text" required value={form.name} onChange={(e) => set('name', e.target.value)} placeholder="Désignation" className={inputClass} />
-                    </Field>
-                    <Field label="Catégorie" compact>
-                        <input type="text" list="categories-list" value={form.categorie} onChange={(e) => set('categorie', e.target.value)} placeholder="Catégorie" className={inputClass} />
-                        <datalist id="categories-list">
-                            {categories.map((c) => <option key={c} value={c} />)}
-                        </datalist>
-                    </Field>
-                    <Field label="Famille" compact>
-                        <input type="text" list="familles-list" value={form.famille} onChange={(e) => set('famille', e.target.value)} placeholder="Famille" className={inputClass} />
-                        <datalist id="familles-list">
-                            {familles.map((f) => <option key={f} value={f} />)}
-                        </datalist>
-                    </Field>
-                    <Field label="Marque" compact>
-                        <input type="text" list="marques-list" value={form.marque} onChange={(e) => set('marque', e.target.value)} placeholder="Marque" className={inputClass} />
-                        <datalist id="marques-list">
-                            {marques.map((m) => <option key={m} value={m} />)}
-                        </datalist>
                     </Field>
                     <Field label="Unité" compact>
                         <select required value={form.unit} onChange={(e) => set('unit', e.target.value)} className={inputClass}>
@@ -340,6 +300,12 @@ export default function FicheProduitPage() {
                             placeholder="0"
                             className={inputClass}
                         />
+                    </Field>
+                    <Field label="Famille" compact>
+                        <input type="text" list="familles-list" value={form.famille} onChange={(e) => set('famille', e.target.value)} placeholder="Famille" className={inputClass} />
+                        <datalist id="familles-list">
+                            {familles.map((f) => <option key={f} value={f} />)}
+                        </datalist>
                     </Field>
                     <Field label="Statut" compact>
                         <select value={form.status} onChange={(e) => set('status', e.target.value)} className={inputClass}>
@@ -387,13 +353,13 @@ export default function FicheProduitPage() {
                     <h3 className="text-sm font-bold text-white uppercase tracking-wide">Liste des produits</h3>
                 </div>
                 <div className="flex-1 min-h-0 overflow-auto">
-                    <table className="w-full text-sm min-w-[1280px] border-collapse">
+                    <table className="w-full text-sm min-w-[1100px] border-collapse">
                         <thead className="sticky top-0 z-10">
                             <tr className="border-b border-slate-200 dark:border-slate-700">
-                                {['Réf', 'Cd Barre', 'Désignation', 'Catégorie', 'Famille', 'Marque', 'Unité', 'Qté', 'Statut', 'État', 'Actions'].map((h) => (
+                                {['Réf', 'Désignation', 'Unité', 'Qté', 'Famille', 'Statut', 'État', 'Actions'].map((h) => (
                                     <th
                                         key={h}
-                                        className="px-3 py-3 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap text-center bg-slate-50 dark:bg-slate-800 shadow-[0_1px_0_0_rgba(226,232,240,1)] dark:shadow-[0_1px_0_0_rgba(51,65,85,1)]"
+                                        className="px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap text-center bg-slate-50 dark:bg-slate-800 shadow-[0_1px_0_0_rgba(226,232,240,1)] dark:shadow-[0_1px_0_0_rgba(51,65,85,1)]"
                                     >
                                         {h}
                                     </th>
@@ -403,31 +369,28 @@ export default function FicheProduitPage() {
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                             {loading ? (
                                 [...Array(5)].map((_, i) => (
-                                    <tr key={i}>{[...Array(11)].map((__, j) => (
-                                        <td key={j} className="px-3 py-3 text-center"><div className="h-4 bg-slate-200 dark:bg-slate-700 rounded animate-pulse mx-auto max-w-[80px]" /></td>
+                                    <tr key={i}>{[...Array(8)].map((__, j) => (
+                                        <td key={j} className="px-4 py-3 text-center"><div className="h-4 bg-slate-200 dark:bg-slate-700 rounded animate-pulse mx-auto max-w-[80px]" /></td>
                                     ))}</tr>
                                 ))
                             ) : rows.length ? (
                                 rows.map((row) => (
                                     <tr key={row.id} className={`hover:bg-emerald-50/40 dark:hover:bg-slate-800/40 transition-colors ${editingId === row.id ? 'bg-amber-50/60 dark:bg-amber-900/10' : ''}`}>
-                                        <td className="px-3 py-2.5 text-center font-mono text-xs font-semibold text-brand-navy dark:text-emerald-400">{row.reference}</td>
-                                        <td className="px-3 py-2.5 text-center font-mono text-xs text-slate-600 dark:text-slate-300 min-w-[170px]">{row.code_barre || '—'}</td>
-                                        <td className="px-3 py-2.5 text-center font-medium text-slate-800 dark:text-white max-w-[160px] truncate" title={row.name}>{row.name || '—'}</td>
-                                        <td className="px-3 py-2.5 text-center text-slate-600 dark:text-slate-300 min-w-[130px] max-w-[160px] truncate" title={row.categorie}>{row.categorie || '—'}</td>
-                                        <td className="px-3 py-2.5 text-center min-w-[130px]">
-                                            <span className="inline-flex px-2 py-0.5 rounded-md text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 max-w-[150px] truncate" title={row.famille}>{row.famille || '—'}</span>
-                                        </td>
-                                        <td className="px-3 py-2.5 text-center text-slate-600 dark:text-slate-300 min-w-[130px] max-w-[160px] truncate" title={row.marque || row.brand}>{row.marque || row.brand || '—'}</td>
-                                        <td className="px-3 py-2.5 text-center text-slate-600 dark:text-slate-300">{row.unit || '—'}</td>
+                                        <td className="px-4 py-2.5 text-center font-mono text-xs font-semibold text-brand-navy dark:text-emerald-400">{row.reference}</td>
+                                        <td className="px-4 py-2.5 text-center font-medium text-slate-800 dark:text-white max-w-[200px] truncate" title={row.name}>{row.name || '—'}</td>
+                                        <td className="px-4 py-2.5 text-center text-slate-600 dark:text-slate-300">{row.unit || '—'}</td>
                                         <td
-                                            className="px-3 py-2.5 text-center tabular-nums font-semibold text-brand-navy dark:text-emerald-400"
+                                            className="px-4 py-2.5 text-center tabular-nums font-semibold text-brand-navy dark:text-emerald-400"
                                             title={`Saisie : ${Number(row.initial_stock ?? 0).toLocaleString('fr-FR')} + Bons d'achat : ${Number(row.purchased_qty ?? 0).toLocaleString('fr-FR')}`}
                                         >
                                             {Number(row.quantity_in_stock ?? row.initial_stock ?? 0).toLocaleString('fr-FR', { maximumFractionDigits: 3 })}
                                         </td>
-                                        <td className="px-3 py-2.5 text-center"><StatutBadge value={row.statut} /></td>
-                                        <td className="px-3 py-2.5 text-center"><EtatBadge value={row.etat} /></td>
-                                        <td className="px-3 py-2.5">
+                                        <td className="px-4 py-2.5 text-center">
+                                            <span className="inline-flex px-2 py-0.5 rounded-md text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 max-w-[160px] truncate" title={row.famille}>{row.famille || '—'}</span>
+                                        </td>
+                                        <td className="px-4 py-2.5 text-center"><StatutBadge value={row.statut} /></td>
+                                        <td className="px-4 py-2.5 text-center"><EtatBadge value={row.etat} /></td>
+                                        <td className="px-4 py-2.5">
                                             <div className="flex items-center justify-center gap-0.5">
                                                 <ActionBtn title="Voir" icon={Eye} color="blue" onClick={() => setViewRow(row)} />
                                                 <ActionBtn title="Modifier" icon={Pencil} color="amber" onClick={() => fillForm(row)} />
@@ -439,7 +402,7 @@ export default function FicheProduitPage() {
                                     </tr>
                                 ))
                             ) : (
-                                <tr><td colSpan={11} className="px-4 py-12 text-center text-slate-400">Aucun produit enregistré</td></tr>
+                                <tr><td colSpan={8} className="px-4 py-12 text-center text-slate-400">Aucun produit enregistré</td></tr>
                             )}
                         </tbody>
                     </table>

@@ -2,7 +2,8 @@ import { Banknote, ClipboardList, ShoppingBag, Wallet } from 'lucide-react';
 import ReportTable from './ReportTable';
 
 function formatMontant(value) {
-    return (Number(value) || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const n = Math.round(Number(value) || 0);
+    return `${n.toLocaleString('fr-FR', { maximumFractionDigits: 0 })}.Fcfa`;
 }
 
 function formatQte(value) {

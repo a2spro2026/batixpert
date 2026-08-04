@@ -2,7 +2,10 @@ import { useEffect, useState } from 'react';
 import { Plus, CheckCircle } from 'lucide-react';
 import api from '../lib/api';
 
-const formatMontant = (n) => new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(n) || 0);
+const formatMontant = (n) => {
+    const v = Math.round(Number(n) || 0);
+    return `${v.toLocaleString('fr-FR', { maximumFractionDigits: 0 })}.Fcfa`;
+};
 
 export default function AchatsPage() {
     const [orders, setOrders] = useState({ data: [] });

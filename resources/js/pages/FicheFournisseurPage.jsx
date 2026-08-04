@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Save, RotateCcw, Eye, Pencil, Trash2, Printer, FileText, X, RefreshCw, Wallet } from 'lucide-react';
 import api from '../lib/api';
+import { parseDelayInput, formatDelaySave } from './devis/devisUtils';
 
 const REGLEMENT_OPTIONS = [
     { value: '', label: '—' },
@@ -9,14 +10,6 @@ const REGLEMENT_OPTIONS = [
     { value: 'Eff', label: 'Eff' },
     { value: 'Vir', label: 'Vir' },
     { value: 'Vers', label: 'Vers' },
-];
-
-const ECHEANCE_OPTIONS = [
-    { value: '', label: '—' },
-    { value: '45 Jrs', label: '45 Jrs' },
-    { value: '60 Jrs', label: '60 Jrs' },
-    { value: '90 Jrs', label: '90 Jrs' },
-    { value: '120 Jrs', label: '120 Jrs' },
 ];
 
 const emptyForm = {
@@ -75,7 +68,7 @@ th{background:#f8fafc;width:180px;font-weight:700}
 .footer{margin-top:32px;font-size:11px;color:#94a3b8;text-align:center}
 .badge{display:inline-block;padding:4px 10px;border-radius:999px;background:#fff7ed;color:#ea580c;font-weight:700}
 </style></head><body>
-<h1>Autopilote — Fiche Fournisseur</h1>
+<h1>STE SOCIMPRO — Fiche Fournisseur</h1>
 <p class="sub">Document généré le ${new Date().toLocaleDateString('fr-FR')}</p>
 <table>
 <tr><th>ID</th><td><span class="badge">${row.code}</span></td></tr>
@@ -89,7 +82,7 @@ th{background:#f8fafc;width:180px;font-weight:700}
 <tr><th>Solde Initial</th><td><strong>${formatSolde(row.initial_balance ?? row.solde)}</strong></td></tr>
 <tr><th>Date création</th><td>${row.created_at || '—'}</td></tr>
 </table>
-<p class="footer">© Autopilote — A2SPRO</p>
+<p class="footer">© STE SOCIMPRO — A2SPRO</p>
 </body></html>`;
 }
 
@@ -223,7 +216,7 @@ export default function FicheFournisseurPage() {
             address: row.address || '',
             city: row.city || '',
             reglement: row.reglement || '',
-            echeance: row.echeance || row.payment_terms || '',
+            echeance: parseDelayInput(row.echeance || row.payment_terms || ''),
             initial_balance: parseSoldeInput(row.initial_balance ?? row.solde),
         });
         setEditingId(row.id);
@@ -253,7 +246,7 @@ export default function FicheFournisseurPage() {
             address: form.address || null,
             city: form.city || null,
             reglement: form.reglement || null,
-            payment_terms: form.echeance || null,
+            payment_terms: formatDelaySave(form.echeance),
             initial_balance: form.initial_balance === '' ? 0 : Number(parseSoldeInput(form.initial_balance) || 0),
         };
         try {
@@ -317,11 +310,18 @@ export default function FicheFournisseurPage() {
                         </select>
                     </Field>
                     <Field label="Échéance">
-                        <select value={form.echeance} onChange={(e) => set('echeance', e.target.value)} className={inputClass}>
-                            {ECHEANCE_OPTIONS.map((opt) => (
-                                <option key={opt.value || 'echeance-empty'} value={opt.value}>{opt.label}</option>
-                            ))}
-                        </select>
+                        <div className="relative flex items-center">
+                            <input
+                                type="number"
+                                min="0"
+                                step="1"
+                                value={form.echeance}
+                                onChange={(e) => set('echeance', e.target.value)}
+                                placeholder="0"
+                                className={`${inputClass} pr-9`}
+                            />
+                            <span className="absolute right-2 text-[10px] font-bold text-slate-400 pointer-events-none">Jrs</span>
+                        </div>
                     </Field>
                     <Field label="Solde Initial">
                         <input

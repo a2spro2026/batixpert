@@ -478,7 +478,7 @@ export default function DevisFormPage() {
                                                     </td>
                                                     <td className="px-1 py-1.5 text-center">
                                                         <span className={subtotalFrameClass}>
-                                                            {sub ? sub.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}
+                                                            {sub ? `${Math.round(sub).toLocaleString('fr-FR', { maximumFractionDigits: 0 })}.Fcfa` : '—'}
                                                         </span>
                                                     </td>
                                                     <td className="w-8 px-0.5 py-1.5 text-center">
@@ -524,19 +524,19 @@ export default function DevisFormPage() {
                             <div className="flex items-center justify-between gap-8 px-1">
                                 <span className="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">Total HT</span>
                                 <span className="font-bold tabular-nums text-brand-navy dark:text-violet-400">
-                                    {totalHt.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    {`${Math.round(totalHt).toLocaleString('fr-FR', { maximumFractionDigits: 0 })}.Fcfa`}
                                 </span>
                             </div>
                             <div className="flex items-center justify-between gap-8 px-1">
                                 <span className="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">TVA 20%</span>
                                 <span className="font-semibold tabular-nums text-slate-700 dark:text-slate-200">
-                                    {tva.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    {`${Math.round(tva).toLocaleString('fr-FR', { maximumFractionDigits: 0 })}.Fcfa`}
                                 </span>
                             </div>
                             <div className="flex items-center justify-between gap-8 px-1 pt-1 border-t border-slate-200 dark:border-slate-700">
                                 <span className="text-xs font-bold uppercase tracking-wide text-violet-700 dark:text-violet-300">Total TTC</span>
                                 <span className="font-bold tabular-nums text-brand-navy dark:text-violet-400 text-base">
-                                    {totalTtc.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    {`${Math.round(totalTtc).toLocaleString('fr-FR', { maximumFractionDigits: 0 })}.Fcfa`}
                                 </span>
                             </div>
                         </div>

@@ -2,10 +2,10 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CheckCircle2, Plus, PlusCircle, XCircle, Eye, Pencil, Trash2, Printer, FileText, X, Package, Wallet } from 'lucide-react';
 import api from '../lib/api';
+import { parseDelayInput, formatDelaySave } from './devis/devisUtils';
 
 const UNIT_OPTIONS = ['', 'Kg', 'U', 'Sac', 'ML', 'M²', 'M³', 'Tn', 'M'];
 const REGLEMENT_OPTIONS = ['', 'Esp', 'Chq', 'Eff', 'Vir', 'Vers'];
-const ECHEANCE_OPTIONS = ['', '45 Jrs', '60 Jrs', '90 Jrs', '120 Jrs'];
 
 const emptyHeader = {
     client_id: '',
@@ -22,11 +22,7 @@ const emptyLine = () => ({
     key: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
     product_id: '',
     article_ref: '',
-    code_barre: '',
     description: '',
-    categorie: '',
-    famille: '',
-    marque: '',
     unit: '',
     quantity: '1',
     unit_price: '',
@@ -49,11 +45,12 @@ const tableInput =
     'w-full rounded-md border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-1.5 py-1 text-[11px] text-center outline-none focus:ring-1 focus:ring-brand-navy/30 focus:border-brand-navy';
 
 function formatMontant(value) {
-    return (Number(value) || 0).toFixed(2);
+    const n = Math.round(Number(value) || 0);
+    return `${n.toLocaleString('fr-FR', { maximumFractionDigits: 0 })}.Fcfa`;
 }
 
 function formatMontantDisplay(value) {
-    return (Number(value) || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return formatMontant(value);
 }
 
 function lineSubtotal(line) {
@@ -80,11 +77,7 @@ function buildBonHtml(row) {
         total: row.subtotal,
     }]).map((i) => `<tr>
 <td>${i.article_ref || '—'}</td>
-<td>${i.code_barre || '—'}</td>
 <td>${i.description || '—'}</td>
-<td>${i.categorie || '—'}</td>
-<td>${i.famille || '—'}</td>
-<td>${i.marque || '—'}</td>
 <td>${i.unit || '—'}</td>
 <td>${i.quantity ?? '—'}</td>
 <td>${formatMontant(i.unit_price)}</td>
@@ -93,10 +86,10 @@ function buildBonHtml(row) {
 
     return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Bon ${row.reference}</title>
 <style>body{font-family:Arial,sans-serif;padding:32px;color:#1e293b}h1{color:#1e3a5f;font-size:22px}
-table{width:100%;border-collapse:collapse;margin-top:12px}th,td{border:1px solid #e2e8f0;padding:8px;font-size:11px;text-align:center}
+table{width:100%;border-collapse:collapse;margin-top:12px}th,td{border:1px solid #e2e8f0;padding:8px;font-size:12px;text-align:center}
 th{background:#f8fafc;font-weight:700}.badge{background:#fff7ed;color:#ea580c;padding:4px 10px;border-radius:999px;font-weight:700}
 </style></head><body>
-<h1>Autopilote — Bon de Vente <span class="badge">${row.reference}</span></h1>
+<h1>STE SOCIMPRO — Bon de Vente <span class="badge">${row.reference}</span></h1>
 <table>
 <tr><th>Date</th><td>${row.order_date || '—'}</td><th>Client</th><td>${row.client || '—'}</td></tr>
 <tr><th>Ville</th><td>${row.city || '—'}</td><th>Adresse Livraison</th><td>${row.address || '—'}</td></tr>
@@ -104,7 +97,7 @@ th{background:#f8fafc;font-weight:700}.badge{background:#fff7ed;color:#ea580c;pa
 <tr><th>Matricule</th><td colspan="3">${row.matricule || '—'}</td></tr>
 </table>
 <table>
-<thead><tr><th>Réf</th><th>Cd Barre</th><th>Désignation</th><th>Catégorie</th><th>Famille</th><th>Marque</th><th>U</th><th>Qté</th><th>P/U</th><th>S/Total</th></tr></thead>
+<thead><tr><th>Réf</th><th>Désignation</th><th>U</th><th>Qté</th><th>P/U</th><th>S/Total</th></tr></thead>
 <tbody>${itemsRows}</tbody>
 </table>
 <p style="text-align:right;font-weight:700;margin-top:12px">Total : ${formatMontant(row.subtotal ?? row.montant)}</p>
@@ -163,9 +156,6 @@ function ViewModal({ row, onClose }) {
                     {(row.items?.length ? row.items : []).map((i, idx) => (
                         <div key={i.id || idx} className="rounded-lg border border-slate-100 dark:border-slate-800 px-3 py-2 text-xs">
                             <div className="font-semibold">{i.article_ref || '—'} — {i.description}</div>
-                            <div className="text-slate-500 mt-0.5">
-                                {[i.code_barre && `Cd: ${i.code_barre}`, i.categorie, i.famille, i.marque].filter(Boolean).join(' · ') || '—'}
-                            </div>
                             <div className="text-slate-500 mt-0.5">{i.quantity} {i.unit || ''} × {formatMontant(i.unit_price)} = <strong>{formatMontant(i.total)}</strong></div>
                         </div>
                     ))}
@@ -239,20 +229,13 @@ export default function BonVentesPage() {
     const handleSelectProduct = (lineKey, productId) => {
         const product = products.find((p) => String(p.id) === String(productId));
         if (!product) {
-            updateLine(lineKey, {
-                product_id: '', article_ref: '', code_barre: '', description: '',
-                categorie: '', famille: '', marque: '', unit: '',
-            });
+            updateLine(lineKey, { product_id: '', article_ref: '', description: '', unit: '' });
             return;
         }
         updateLine(lineKey, {
             product_id: product.id,
             article_ref: product.article_id || product.reference || '',
-            code_barre: product.code_barre || product.article_id || product.reference || '',
             description: product.name || '',
-            categorie: product.categorie || '',
-            famille: product.famille || '',
-            marque: product.marque || product.brand || '',
             unit: product.unit || '',
             unit_price: product.unit_price != null ? String(product.unit_price) : '',
         });
@@ -289,7 +272,7 @@ export default function BonVentesPage() {
             city: row.city || '',
             address: row.address || '',
             reglement: row.reglement || '',
-            echeance: row.echeance || '',
+            echeance: parseDelayInput(row.echeance || ''),
             chauffeur: row.chauffeur || '',
             matricule: row.matricule || '',
         });
@@ -298,11 +281,7 @@ export default function BonVentesPage() {
                 key: `edit-${i.id}`,
                 product_id: i.product_id || '',
                 article_ref: i.article_ref || '',
-                code_barre: i.code_barre || '',
                 description: i.description || '',
-                categorie: i.categorie || '',
-                famille: i.famille || '',
-                marque: i.marque || '',
                 unit: i.unit || '',
                 quantity: i.quantity != null ? String(i.quantity) : '1',
                 unit_price: i.unit_price != null ? String(i.unit_price) : '',
@@ -350,18 +329,14 @@ export default function BonVentesPage() {
             city: form.city || null,
             address: form.address || null,
             reglement: form.reglement || null,
-            echeance: form.echeance || null,
+            echeance: formatDelaySave(form.echeance),
             chauffeur: form.chauffeur || null,
             matricule: form.matricule || null,
             status: 'valide',
             items: validLines.map((l) => ({
                 product_id: l.product_id || null,
                 article_ref: l.article_ref || null,
-                code_barre: l.code_barre || null,
                 description: l.description,
-                categorie: l.categorie || null,
-                famille: l.famille || null,
-                marque: l.marque || null,
                 unit: l.unit || null,
                 quantity: parseFloat(String(l.quantity).replace(',', '.')) || 1,
                 unit_price: parseFloat(String(l.unit_price).replace(',', '.')) || 0,
@@ -426,9 +401,18 @@ export default function BonVentesPage() {
                             </select>
                         </Field>
                         <Field label="Échéance">
-                            <select value={form.echeance} onChange={(e) => set('echeance', e.target.value)} className={inputClass}>
-                                {ECHEANCE_OPTIONS.map((v) => <option key={v || 'e'} value={v}>{v || '—'}</option>)}
-                            </select>
+                            <div className="relative flex items-center">
+                                <input
+                                    type="number"
+                                    min="0"
+                                    step="1"
+                                    value={form.echeance}
+                                    onChange={(e) => set('echeance', e.target.value)}
+                                    placeholder="0"
+                                    className={`${inputClass} pr-7`}
+                                />
+                                <span className="absolute right-1.5 text-[9px] font-bold text-slate-400 pointer-events-none">Jrs</span>
+                            </div>
                         </Field>
                         <Field label="Chauffeur">
                             <input type="text" value={form.chauffeur} onChange={(e) => set('chauffeur', e.target.value)} placeholder="Chauffeur" className={inputClass} />
@@ -445,10 +429,10 @@ export default function BonVentesPage() {
                         <span className="text-[10px] text-blue-200 font-semibold tabular-nums">Total : {totalBon}</span>
                     </div>
                     <div className="overflow-x-auto">
-                        <table className="w-full text-sm min-w-[1280px]">
+                        <table className="w-full text-sm min-w-[860px]">
                             <thead>
                                 <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700">
-                                    {['Réf', 'Cd Barre', 'Désignation', 'Catégorie', 'Famille', 'Marque', 'U', 'Qté', 'P/U', 'S/Total', ''].map((h) => (
+                                    {['Réf', 'Désignation', 'U', 'Qté', 'P/U', 'S/Total', ''].map((h) => (
                                         <th key={h || 'act'} className="px-2 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-center whitespace-nowrap">{h}</th>
                                     ))}
                                 </tr>
@@ -456,7 +440,7 @@ export default function BonVentesPage() {
                             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                                 {lines.map((line) => (
                                     <tr key={line.key} className="hover:bg-orange-50/30 dark:hover:bg-slate-800/30">
-                                        <td className="px-2 py-1.5 w-[110px]">
+                                        <td className="px-2 py-1.5 w-[120px]">
                                             <select
                                                 value={line.product_id}
                                                 onChange={(e) => handleSelectProduct(line.key, e.target.value)}
@@ -471,50 +455,13 @@ export default function BonVentesPage() {
                                                 ))}
                                             </select>
                                         </td>
-                                        <td className="px-2 py-1.5 w-[210px]">
-                                            <input
-                                                type="text"
-                                                maxLength={32}
-                                                value={line.code_barre}
-                                                onChange={(e) => updateLine(line.key, { code_barre: e.target.value })}
-                                                placeholder="Cd Barre"
-                                                className={tableInput}
-                                            />
-                                        </td>
-                                        <td className="px-2 py-1.5 min-w-[110px] max-w-[140px]">
+                                        <td className="px-2 py-1.5 min-w-[180px]">
                                             <input
                                                 type="text"
                                                 value={line.description}
                                                 onChange={(e) => updateLine(line.key, { description: e.target.value })}
                                                 placeholder="Désignation"
                                                 className={`${tableInput} text-left`}
-                                            />
-                                        </td>
-                                        <td className="px-2 py-1.5 w-[135px]">
-                                            <input
-                                                type="text"
-                                                value={line.categorie}
-                                                onChange={(e) => updateLine(line.key, { categorie: e.target.value })}
-                                                placeholder="Catégorie"
-                                                className={tableInput}
-                                            />
-                                        </td>
-                                        <td className="px-2 py-1.5 w-[135px]">
-                                            <input
-                                                type="text"
-                                                value={line.famille}
-                                                onChange={(e) => updateLine(line.key, { famille: e.target.value })}
-                                                placeholder="Famille"
-                                                className={tableInput}
-                                            />
-                                        </td>
-                                        <td className="px-2 py-1.5 w-[135px]">
-                                            <input
-                                                type="text"
-                                                value={line.marque}
-                                                onChange={(e) => updateLine(line.key, { marque: e.target.value })}
-                                                placeholder="Marque"
-                                                className={tableInput}
                                             />
                                         </td>
                                         <td className="px-2 py-1.5 w-[72px]">

@@ -81,8 +81,12 @@ function AppRoutes() {
 
                 {/* Stock */}
                 <Route path="stock/produits" element={<FicheProduitPage />} />
-                <Route path="stock/entrepots" element={<ModulePage />} />
                 <Route path="stock/mouvements" element={<ModulePage />} />
+                <Route path="stock/bon-production" element={<ModulePage />} />
+                <Route path="stock/etat-production" element={<ModulePage />} />
+                <Route path="stock/matiere-premiere" element={<ModulePage />} />
+                <Route path="stock/produit-fini" element={<ModulePage />} />
+                <Route path="stock/fiscal" element={<Navigate to="/stock/matiere-premiere" replace />} />
 
                 {/* Chantiers */}
                 <Route path="chantiers/carte" element={<ChantiersPage />} />

@@ -51,7 +51,8 @@ const lineInput =
     'w-full rounded-md border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-1.5 py-1 text-[11px] text-center outline-none focus:ring-1 focus:ring-brand-navy/30';
 
 function formatMontant(value) {
-    return (Number(value) || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const n = Math.round(Number(value) || 0);
+    return `${n.toLocaleString('fr-FR', { maximumFractionDigits: 0 })}.Fcfa`;
 }
 
 function lineTotal(line) {
@@ -94,7 +95,7 @@ function buildPrintHtml(row) {
 table{width:100%;border-collapse:collapse;margin-top:12px}th,td{border:1px solid #e2e8f0;padding:8px;font-size:12px;text-align:center}
 th{background:#f8fafc;font-weight:700}.badge{background:#dbeafe;color:#1d4ed8;padding:4px 10px;border-radius:999px;font-weight:700}
 </style></head><body>
-<h1>Autopilote — Facture Achat <span class="badge">${row.reference || ''}</span></h1>
+<h1>STE SOCIMPRO — Facture Achat <span class="badge">${row.reference || ''}</span></h1>
 <table>
 <tr><th>Date</th><td>${row.invoice_date || '—'}</td><th>Fournisseur</th><td>${row.fournisseur || '—'}</td></tr>
 <tr><th>Destination</th><td>${row.depot_label || '—'}</td><th>Échéance</th><td>${row.due_date || '—'}</td></tr>

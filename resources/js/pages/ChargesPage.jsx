@@ -38,7 +38,8 @@ const readOnlyClass =
     'w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 px-2.5 py-2 text-xs text-center cursor-not-allowed';
 
 function formatMontant(value) {
-    return (Number(value) || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const n = Math.round(Number(value) || 0);
+    return `${n.toLocaleString('fr-FR', { maximumFractionDigits: 0 })}.Fcfa`;
 }
 
 function ActionBtn({ title, icon: Icon, color = 'slate', onClick }) {
@@ -84,7 +85,7 @@ function buildPrintHtml(row) {
 table{width:100%;border-collapse:collapse;margin-top:12px}th,td{border:1px solid #e2e8f0;padding:8px;font-size:12px;text-align:center}
 th{background:#f8fafc;font-weight:700}.badge{background:#dbeafe;color:#1d4ed8;padding:4px 10px;border-radius:999px;font-weight:700}
 </style></head><body>
-<h1>Autopilote — Bon Charge <span class="badge">${row.reference || ''}</span></h1>
+<h1>STE SOCIMPRO — Bon Charge <span class="badge">${row.reference || ''}</span></h1>
 <table>
 <tr><th>Date</th><td>${row.charge_date || '—'}</td><th>Réf</th><td>${row.reference || '—'}</td></tr>
 <tr><th>Désignation</th><td>${row.designation || '—'}</td><th>Bénéficiaire</th><td>${row.beneficiaire || '—'}</td></tr>

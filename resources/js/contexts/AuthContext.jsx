@@ -5,21 +5,21 @@ const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
     const [user, setUser] = useState(() => {
-        const saved = localStorage.getItem('autopilote_user');
+        const saved = localStorage.getItem('batixpert_user');
         return saved ? JSON.parse(saved) : null;
     });
-    const [loading, setLoading] = useState(!!localStorage.getItem('autopilote_token'));
+    const [loading, setLoading] = useState(!!localStorage.getItem('batixpert_token'));
 
     useEffect(() => {
-        if (localStorage.getItem('autopilote_token')) {
+        if (localStorage.getItem('batixpert_token')) {
             api.get('/user')
                 .then((r) => {
                     setUser(r.data);
-                    localStorage.setItem('autopilote_user', JSON.stringify(r.data));
+                    localStorage.setItem('batixpert_user', JSON.stringify(r.data));
                 })
                 .catch(() => {
-                    localStorage.removeItem('autopilote_token');
-                    localStorage.removeItem('autopilote_user');
+                    localStorage.removeItem('batixpert_token');
+                    localStorage.removeItem('batixpert_user');
                     setUser(null);
                 })
                 .finally(() => setLoading(false));
@@ -30,16 +30,16 @@ export function AuthProvider({ children }) {
 
     const login = async (email, password, status) => {
         const { data } = await api.post('/login', { email, password, status });
-        localStorage.setItem('autopilote_token', data.token);
-        localStorage.setItem('autopilote_user', JSON.stringify(data.user));
+        localStorage.setItem('batixpert_token', data.token);
+        localStorage.setItem('batixpert_user', JSON.stringify(data.user));
         setUser(data.user);
         return data.user;
     };
 
     const logout = async () => {
         try { await api.post('/logout'); } catch {}
-        localStorage.removeItem('autopilote_token');
-        localStorage.removeItem('autopilote_user');
+        localStorage.removeItem('batixpert_token');
+        localStorage.removeItem('batixpert_user');
         setUser(null);
     };
 

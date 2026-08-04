@@ -9,19 +9,25 @@ class Supplier extends Model
 {
     protected $fillable = [
         'name', 'contact_person', 'email', 'phone', 'address', 'city', 'ice',
-        'payment_terms', 'reglement', 'status', 'notes', 'initial_balance',
+        'payment_terms', 'reglement', 'status', 'notes', 'initial_balance', 'initial_balance_paid',
     ];
 
     protected function casts(): array
     {
         return [
             'initial_balance' => 'decimal:2',
+            'initial_balance_paid' => 'decimal:2',
         ];
     }
 
     public function getSoldeAttribute(): float
     {
-        return (float) $this->initial_balance;
+        return (float) $this->initial_balance - (float) ($this->initial_balance_paid ?? 0);
+    }
+
+    public function remainingInitialBalance(): float
+    {
+        return round(max((float) $this->initial_balance - (float) ($this->initial_balance_paid ?? 0), 0), 2);
     }
 
     public function getCodeAttribute(): string

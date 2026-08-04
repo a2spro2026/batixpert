@@ -17,7 +17,7 @@
         <div class="flex items-center gap-3">
             <div class="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center font-bold text-lg">SP</div>
             <div>
-                <div class="font-bold text-lg leading-tight">Autopilote</div>
+                <div class="font-bold text-lg leading-tight">STE SOCIMPRO</div>
                 <div class="text-[10px] text-slate-400 leading-tight">Gestion commerciale</div>
             </div>
         </div>

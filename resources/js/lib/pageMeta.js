@@ -18,7 +18,7 @@ export function getPageMeta(pathname) {
             }
         }
     }
-    return { title: 'Autopilote', icon: null, subtitle: null };
+    return { title: 'SOCIMPRO', icon: null, subtitle: null };
 }
 
 export function getPageTitle(pathname) {

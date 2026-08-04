@@ -44,7 +44,7 @@ class AuthController extends Controller
             ]);
         }
 
-        $token = $user->createToken('autopilote-spa')->plainTextToken;
+        $token = $user->createToken('socimpro-spa')->plainTextToken;
 
         return response()->json([
             'token' => $token,

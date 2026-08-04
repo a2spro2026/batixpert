@@ -40,7 +40,7 @@ export default function Layout() {
 
                 {!isDevisForm && (
                     <footer className="mt-auto shrink-0 px-6 py-4 border-t border-slate-200 dark:border-slate-800 text-center text-xs text-slate-500">
-                        © {new Date().getFullYear()} Autopilote — Gestion commerciale | v1.0.0
+                        © {new Date().getFullYear()} STE SOCIMPRO — Gestion commerciale | v1.0.0
                     </footer>
                 )}
             </div>

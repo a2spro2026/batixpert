@@ -14,7 +14,7 @@ export function LoginBrandLogo({ large = false }) {
                         <line x1="40" y1="14" x2="58" y2="14" stroke="white" strokeWidth="2.5" />
                     </svg>
                     <span className={`${bx} font-black text-white relative z-10 tracking-tighter`}>
-                        A<span className="text-brand-orange">P</span>
+                        S<span className="text-brand-orange">P</span>
                     </span>
                 </div>
             </div>
@@ -34,7 +34,7 @@ export function LoginBranding({ compact = false }) {
                 <LoginBrandLogo large={!compact} />
                 <div className={compact ? '' : 'pt-1'}>
                     <h1 className={`font-black tracking-wide leading-none text-white ${compact ? 'text-2xl' : 'text-4xl xl:text-5xl'}`}>
-                        <span className="text-brand-orange">Autopilote</span>
+                        STE <span className="text-brand-orange">SOCIMPRO</span>
                     </h1>
                     <p className="text-[10px] sm:text-xs text-blue-200/80 uppercase tracking-[0.2em] mt-1.5 font-medium">
                         Gestion commerciale
@@ -48,7 +48,7 @@ export function LoginBranding({ compact = false }) {
 
             <p className={`text-white/75 leading-relaxed mx-auto ${compact ? 'text-xs mt-3 max-w-xs' : 'text-sm xl:text-base mt-4 max-w-md'}`}>
                 Vos équipes, vos tâches… tout dans{' '}
-                <span className="text-white font-semibold">Autopilote</span>.
+                <span className="text-white font-semibold">SOCIMPRO</span>.
             </p>
         </div>
     );

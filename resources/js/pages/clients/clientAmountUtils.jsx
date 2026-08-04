@@ -6,14 +6,14 @@ export function soldeTone(value) {
 }
 
 export function formatSoldePlain(value) {
-    const n = Number(value) || 0;
-    return Math.abs(n).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const n = Math.round(Math.abs(Number(value) || 0));
+    return `${n.toLocaleString('fr-FR', { maximumFractionDigits: 0 })}.Fcfa`;
 }
 
 export function SoldeCell({ value }) {
     const n = Number(value) || 0;
     if (n === 0) {
-        return <span className="tabular-nums text-slate-500 dark:text-slate-400">0,00</span>;
+        return <span className="tabular-nums text-slate-500 dark:text-slate-400">0.Fcfa</span>;
     }
     if (n < 0) {
         return (

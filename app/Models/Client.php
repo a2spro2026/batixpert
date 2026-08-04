@@ -9,14 +9,20 @@ class Client extends Model
 {
     protected $fillable = [
         'name', 'contact_person', 'email', 'phone', 'address', 'city', 'ice', 'status', 'notes',
-        'chantier_type', 'reglement', 'chantier_address', 'budget', 'work_delay',
+        'chantier_type', 'reglement', 'chantier_address', 'budget', 'initial_balance_paid', 'work_delay',
     ];
 
     protected function casts(): array
     {
         return [
             'budget' => 'decimal:2',
+            'initial_balance_paid' => 'decimal:2',
         ];
+    }
+
+    public function remainingInitialBalance(): float
+    {
+        return round(max((float) ($this->budget ?? 0) - (float) ($this->initial_balance_paid ?? 0), 0), 2);
     }
 
     public function getCodeAttribute(): string

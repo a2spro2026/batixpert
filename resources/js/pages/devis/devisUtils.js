@@ -1,3 +1,7 @@
+import { formatMontantPlain } from '../../lib/formatMontant';
+
+export { formatMontant, formatMontantPlain } from '../../lib/formatMontant';
+
 export const CONSISTANCE_OPTIONS = ['', 'F', 'M', 'F+M'];
 export const UNIT_OPTIONS = ['', 'JEU', 'KG', 'KM', 'KM-UNIF', 'M', 'M²', 'M³', 'ML', 'T', 'U'];
 export const TYPE_OPTIONS = ['', 'Public', 'Privé'];
@@ -69,22 +73,12 @@ export function calcTotals(totalHt) {
     return { totalHt: ht, tva, totalTtc };
 }
 
-export function formatMontant(value) {
-    const n = Number(value) || 0;
-    return n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
 function esc(value) {
     return String(value ?? '')
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;');
-}
-
-function formatMontantPlain(value) {
-    const n = Number(value) || 0;
-    return n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 export function buildDevisHtml(row) {
@@ -341,7 +335,7 @@ body {
 <div class="sheet">
     <div class="header">
         <div class="brand">
-            <h1>Autopilote</h1>
+            <h1>STE SOCIMPRO</h1>
             <p>Gestion intelligente — Bâtiment &amp; Travaux Publics</p>
         </div>
         <div class="doc-box">
@@ -404,7 +398,7 @@ body {
     </div>
 
     <div class="footer">
-        <span>Document généré le ${new Date().toLocaleDateString('fr-FR')} — Autopilote</span>
+        <span>Document généré le ${new Date().toLocaleDateString('fr-FR')} — STE SOCIMPRO</span>
         <span>Devis valable 30 jours — Merci de votre confiance</span>
     </div>
 </div>
