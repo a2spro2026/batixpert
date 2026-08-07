@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\ClientPayment;
 use App\Models\PurchaseOrder;
 use App\Models\SupplierPayment;
 use Illuminate\Http\Request;
@@ -109,6 +110,8 @@ class SupplierPaymentApiController extends Controller
             'date_decaissement' => 'nullable|date',
             'remarque' => 'nullable|string|max:1000',
             'statut' => 'nullable|in:'.implode(',', self::STATUTS),
+            'imported_client_payment_ids' => 'nullable|array',
+            'imported_client_payment_ids.*' => 'integer|exists:client_payments,id',
             'allocations' => 'required|array|min:1',
             'allocations.*.purchase_order_id' => 'required|exists:purchase_orders,id',
             'allocations.*.amount' => 'nullable|numeric|min:0',
@@ -116,6 +119,17 @@ class SupplierPaymentApiController extends Controller
         ]);
 
         $payment = DB::transaction(function () use ($validated, $request) {
+            $importedIds = collect($validated['imported_client_payment_ids'] ?? [])->unique()->values();
+
+            if ($importedIds->isNotEmpty()) {
+                $alreadyUsed = ClientPayment::whereIn('id', $importedIds)
+                    ->whereNotNull('endosse_supplier_payment_id')
+                    ->exists();
+                if ($alreadyUsed) {
+                    abort(422, 'Un ou plusieurs règlements clients ont déjà été endossés');
+                }
+            }
+
             $orderIds = collect($validated['allocations'])->pluck('purchase_order_id')->all();
             $orders = PurchaseOrder::whereIn('id', $orderIds)
                 ->where('supplier_id', $validated['supplier_id'])
@@ -207,6 +221,12 @@ class SupplierPaymentApiController extends Controller
                 ]);
             }
 
+            if ($importedIds->isNotEmpty()) {
+                ClientPayment::whereIn('id', $importedIds)
+                    ->whereNull('endosse_supplier_payment_id')
+                    ->update(['endosse_supplier_payment_id' => $payment->id]);
+            }
+
             return $payment->fresh(['supplier', 'allocations.purchaseOrder']);
         });
 
@@ -278,6 +298,9 @@ class SupplierPaymentApiController extends Controller
                 }
                 $allocation->delete();
             }
+
+            ClientPayment::where('endosse_supplier_payment_id', $supplierPayment->id)
+                ->update(['endosse_supplier_payment_id' => null]);
 
             $supplierPayment->delete();
         });

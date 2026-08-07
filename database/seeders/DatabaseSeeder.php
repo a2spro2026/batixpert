@@ -39,6 +39,7 @@ class DatabaseSeeder extends Seeder
                 'password' => Hash::make('password'),
                 'role_id' => $adminRole->id,
                 'phone' => '0600000000',
+                'statut' => 'Gerant',
                 'is_active' => true,
                 'email_verified_at' => now(),
             ]

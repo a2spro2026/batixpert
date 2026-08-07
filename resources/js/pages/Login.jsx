@@ -1,9 +1,16 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Lock, User, Eye, EyeOff, ArrowRight, Shield, Sparkles } from 'lucide-react';
+import { Lock, User, Eye, EyeOff, ArrowRight, Shield, Sparkles, BadgeCheck, ChevronDown } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { LoginBranding } from '../components/LoginBrand';
+
+const STATUT_OPTIONS = [
+    { value: 'Gerant', label: 'Gérant' },
+    { value: 'Assistant', label: 'Assistant(e)' },
+    { value: 'Commercial', label: 'Commercial' },
+    { value: 'Facturation', label: 'Facturation' },
+];
 
 function PasswordField({ value, onChange, showPassword, onToggle }) {
     const [focused, setFocused] = useState(false);
@@ -55,6 +62,7 @@ function PasswordField({ value, onChange, showPassword, onToggle }) {
 
                     <input
                         id="password"
+                        name="password"
                         type={showPassword ? 'text' : 'password'}
                         value={value}
                         onChange={onChange}
@@ -62,6 +70,7 @@ function PasswordField({ value, onChange, showPassword, onToggle }) {
                         onBlur={() => setFocused(false)}
                         placeholder="Votre mot de passe"
                         required
+                        autoComplete="new-password"
                         className="relative z-[1] block w-full pl-11 pr-11 py-3 text-sm text-slate-900 bg-transparent outline-none placeholder:text-slate-400"
                     />
 
@@ -121,25 +130,41 @@ function PasswordField({ value, onChange, showPassword, onToggle }) {
 }
 
 export default function Login() {
-    const [email, setEmail] = useState('admin@batixpert.com');
-    const [password, setPassword] = useState('password');
+    const [loginValue, setLoginValue] = useState('');
+    const [password, setPassword] = useState('');
+    const [statut, setStatut] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [remember, setRemember] = useState(false);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const [emailFocused, setEmailFocused] = useState(false);
+    const [statutFocused, setStatutFocused] = useState(false);
     const { login } = useAuth();
     const navigate = useNavigate();
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
+        if (!statut) {
+            setError('Veuillez sélectionner un statut');
+            return;
+        }
+        if (!loginValue || !password) {
+            setError('Veuillez saisir le login et le mot de passe');
+            return;
+        }
         setLoading(true);
         try {
-            await login(email, password);
+            await login(loginValue, password, statut);
             navigate('/');
         } catch (err) {
-            setError(err.response?.data?.message || err.response?.data?.errors?.email?.[0] || 'Identifiants incorrects');
+            setError(
+                err.response?.data?.message
+                || err.response?.data?.errors?.login?.[0]
+                || err.response?.data?.errors?.statut?.[0]
+                || err.response?.data?.errors?.password?.[0]
+                || 'Identifiants incorrects'
+            );
         } finally {
             setLoading(false);
         }
@@ -228,7 +253,7 @@ export default function Login() {
                                         <p className="text-slate-500 text-sm mt-0.5">Connectez-vous à votre espace</p>
                                     </motion.div>
 
-                                    <form onSubmit={handleSubmit} className="space-y-4">
+                                    <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
                                         <AnimatePresence>
                                             {error && (
                                                 <motion.div
@@ -243,8 +268,44 @@ export default function Login() {
                                         </AnimatePresence>
 
                                         <div>
-                                            <label htmlFor="email" className="field-label-form">
-                                                Nom d'utilisateur
+                                            <label htmlFor="statut" className="field-label-form">
+                                                Statut
+                                            </label>
+                                            <motion.div
+                                                animate={{ scale: statutFocused ? 1.01 : 1 }}
+                                                transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+                                                className={`relative rounded-xl border-2 transition-all duration-300 overflow-hidden ${
+                                                    statutFocused
+                                                        ? 'border-brand-orange shadow-[0_0_20px_rgba(249,115,22,0.2)]'
+                                                        : statut
+                                                            ? 'border-brand-navy/40'
+                                                            : 'border-slate-300'
+                                                }`}
+                                            >
+                                                <BadgeCheck className={`absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none transition-colors ${statutFocused || statut ? 'text-brand-orange' : 'text-slate-400'}`} />
+                                                <select
+                                                    id="statut"
+                                                    value={statut}
+                                                    onChange={(e) => setStatut(e.target.value)}
+                                                    onFocus={() => setStatutFocused(true)}
+                                                    onBlur={() => setStatutFocused(false)}
+                                                    required
+                                                    className={`block w-full appearance-none pl-11 pr-10 py-3 text-sm bg-white outline-none cursor-pointer ${
+                                                        statut ? 'text-slate-900 font-medium' : 'text-slate-400'
+                                                    }`}
+                                                >
+                                                    <option value="" disabled>Sélectionner un statut</option>
+                                                    {STATUT_OPTIONS.map((opt) => (
+                                                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                                    ))}
+                                                </select>
+                                                <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                                            </motion.div>
+                                        </div>
+
+                                        <div>
+                                            <label htmlFor="login" className="field-label-form">
+                                                Login
                                             </label>
                                             <motion.div
                                                 animate={{ scale: emailFocused ? 1.01 : 1 }}
@@ -257,14 +318,16 @@ export default function Login() {
                                             >
                                                 <User className={`absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none transition-colors ${emailFocused ? 'text-brand-navy' : 'text-slate-400'}`} />
                                                 <input
-                                                    id="email"
-                                                    type="email"
-                                                    value={email}
-                                                    onChange={(e) => setEmail(e.target.value)}
+                                                    id="login"
+                                                    name="login"
+                                                    type="text"
+                                                    value={loginValue}
+                                                    onChange={(e) => setLoginValue(e.target.value)}
                                                     onFocus={() => setEmailFocused(true)}
                                                     onBlur={() => setEmailFocused(false)}
-                                                    placeholder="Votre email"
+                                                    placeholder="Votre login"
                                                     required
+                                                    autoComplete="off"
                                                     className="block w-full pl-11 pr-3 py-3 text-sm text-slate-900 bg-white outline-none placeholder:text-slate-400"
                                                 />
                                             </motion.div>

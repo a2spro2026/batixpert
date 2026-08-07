@@ -34,6 +34,11 @@ class ClientPaymentApiController extends Controller
             $query->whereYear('payment_date', $year)->whereMonth('payment_date', $month);
         }
 
+        if ($request->boolean('available_for_import')) {
+            $query->whereNull('endosse_supplier_payment_id')
+                ->where('statut', '!=', 'Dévalidé');
+        }
+
         $payments = $query->latest('payment_date')->latest('id')->get();
 
         $allForTotals = ClientPayment::query();
@@ -350,6 +355,8 @@ class ClientPaymentApiController extends Controller
             'total_ttc' => number_format((float) $payment->montant_total, 2, '.', ''),
             'solde_ttc' => number_format((float) $payment->solde, 2, '.', ''),
             'statut' => $payment->statut ?: 'Inst',
+            'endosse' => (bool) $payment->endosse_supplier_payment_id,
+            'endosse_supplier_payment_id' => $payment->endosse_supplier_payment_id,
             'allocations' => $payment->allocations->map(fn ($a) => [
                 'id' => $a->id,
                 'sales_order_id' => $a->sales_order_id,

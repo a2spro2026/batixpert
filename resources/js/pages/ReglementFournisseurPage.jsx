@@ -319,6 +319,7 @@ export default function ReglementFournisseurPage() {
     const [importRows, setImportRows] = useState([]);
     const [importSelected, setImportSelected] = useState({});
     const [importLoading, setImportLoading] = useState(false);
+    const [importedClientIds, setImportedClientIds] = useState([]);
 
     const set = (key, value) => setForm((f) => ({ ...f, [key]: value }));
     const setFilter = (key, value) => setFilters((f) => ({ ...f, [key]: value }));
@@ -477,6 +478,7 @@ export default function ReglementFournisseurPage() {
         setForm({ ...emptyForm, payment_date: today, date_decaissement: today });
         setSelected({});
         setOrders([]);
+        setImportedClientIds([]);
         setError('');
         loadMeta();
         setView('form');
@@ -508,6 +510,7 @@ export default function ReglementFournisseurPage() {
         setError('');
         setSelected({});
         setOrders([]);
+        setImportedClientIds([]);
         loadPayments();
     };
 
@@ -557,9 +560,10 @@ export default function ReglementFournisseurPage() {
         setImportOpen(true);
         setImportSelected({});
         setImportLoading(true);
-        api.get('/client-payments')
+        api.get('/client-payments', { params: { available_for_import: 1 } })
             .then((r) => {
-                const rows = (r.data.data ?? []).filter((p) => p.statut !== 'Dévalidé');
+                const pending = new Set(importedClientIds);
+                const rows = (r.data.data ?? []).filter((p) => !pending.has(p.id));
                 setImportRows(rows);
             })
             .catch(() => setImportRows([]))
@@ -590,6 +594,7 @@ export default function ReglementFournisseurPage() {
         const totalMontant = picked.reduce((sum, r) => sum + (Number(r.montant) || 0), 0);
         const refs = picked.map((r) => r.reference).join(', ');
         const clients = [...new Set(picked.map((r) => r.client).filter(Boolean))].join(' / ');
+        const pickedIds = picked.map((r) => r.id);
 
         setForm((f) => ({
             ...f,
@@ -602,6 +607,7 @@ export default function ReglementFournisseurPage() {
             remarque: [f.remarque, `Import client: ${refs}${clients ? ` (${clients})` : ''}`].filter(Boolean).join(' — '),
         }));
 
+        setImportedClientIds((prev) => [...new Set([...prev, ...pickedIds])]);
         setImportOpen(false);
         setImportSelected({});
     };
@@ -656,6 +662,7 @@ export default function ReglementFournisseurPage() {
                     montant,
                     date_decaissement: form.date_decaissement || null,
                     remarque: form.remarque || null,
+                    imported_client_payment_ids: importedClientIds,
                     allocations: selectedIds.map((id) => ({
                         purchase_order_id: id,
                         amount: previewById[id]?.allocation ?? 0,

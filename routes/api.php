@@ -19,6 +19,7 @@ use App\Http\Controllers\Api\QuoteApiController;
 use App\Http\Controllers\Api\SupplierApiController;
 use App\Http\Controllers\Api\TaskApiController;
 use App\Http\Controllers\Api\TransactionApiController;
+use App\Http\Controllers\Api\UserApiController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/login', [AuthController::class, 'login']);
@@ -81,6 +82,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/tasks/overdue', [TaskApiController::class, 'overdue']);
     Route::post('/tasks', [TaskApiController::class, 'store']);
     Route::put('/tasks/{task}', [TaskApiController::class, 'update']);
+
+    Route::patch('users/{user}/suspend', [UserApiController::class, 'suspend']);
+    Route::apiResource('users', UserApiController::class);
 
     Route::get('/reports/financial', [ReportApiController::class, 'financial']);
     Route::get('/reports/export/{type}', [ReportApiController::class, 'export']);

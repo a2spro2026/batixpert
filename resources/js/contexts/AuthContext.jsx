@@ -14,12 +14,28 @@ export function AuthProvider({ children }) {
         if (localStorage.getItem('batixpert_token')) {
             api.get('/user')
                 .then((r) => {
-                    setUser(r.data);
-                    localStorage.setItem('batixpert_user', JSON.stringify(r.data));
+                    const savedStatut = localStorage.getItem('batixpert_statut');
+                    const statutLabels = {
+                        Gerant: 'Gérant',
+                        Assistant: 'Assistant(e)',
+                        Commercial: 'Commercial',
+                        Facturation: 'Facturation',
+                    };
+                    const user = {
+                        ...r.data,
+                        ...(savedStatut ? {
+                            statut: savedStatut,
+                            statut_label: statutLabels[savedStatut] || savedStatut,
+                            title: statutLabels[savedStatut] || r.data.title,
+                        } : {}),
+                    };
+                    setUser(user);
+                    localStorage.setItem('batixpert_user', JSON.stringify(user));
                 })
                 .catch(() => {
                     localStorage.removeItem('batixpert_token');
                     localStorage.removeItem('batixpert_user');
+                    localStorage.removeItem('batixpert_statut');
                     setUser(null);
                 })
                 .finally(() => setLoading(false));
@@ -28,10 +44,11 @@ export function AuthProvider({ children }) {
         }
     }, []);
 
-    const login = async (email, password) => {
-        const { data } = await api.post('/login', { email, password });
+    const login = async (loginValue, password, statut) => {
+        const { data } = await api.post('/login', { login: loginValue, password, statut });
         localStorage.setItem('batixpert_token', data.token);
         localStorage.setItem('batixpert_user', JSON.stringify(data.user));
+        if (statut) localStorage.setItem('batixpert_statut', statut);
         setUser(data.user);
         return data.user;
     };
@@ -40,6 +57,7 @@ export function AuthProvider({ children }) {
         try { await api.post('/logout'); } catch {}
         localStorage.removeItem('batixpert_token');
         localStorage.removeItem('batixpert_user');
+        localStorage.removeItem('batixpert_statut');
         setUser(null);
     };
 

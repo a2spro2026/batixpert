@@ -22,6 +22,7 @@ import TransactionsPage from './pages/TransactionsPage';
 import ChargesPage from './pages/ChargesPage';
 import FactureAchatsPage from './pages/FactureAchatsPage';
 import SupplierBalancePage from './pages/SupplierBalancePage';
+import UsersPage from './pages/UsersPage';
 
 function ProtectedRoute({ children }) {
     const { user, loading } = useAuth();
@@ -100,7 +101,7 @@ function AppRoutes() {
                 <Route path="monetaire/tresorerie" element={<ModulePage />} />
 
                 {/* Configuration */}
-                <Route path="configuration/utilisateurs" element={<ModulePage />} />
+                <Route path="configuration/utilisateurs" element={<UsersPage />} />
 
                 {/* Redirections anciennes routes */}
                 <Route path="chantiers" element={<Navigate to="/chantiers/carte" replace />} />
