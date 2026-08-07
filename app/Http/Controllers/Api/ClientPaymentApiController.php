@@ -108,6 +108,7 @@ class ClientPaymentApiController extends Controller
             'banque' => 'nullable|string|max:100',
             'nom_tire' => 'nullable|string|max:150',
             'montant' => 'required|numeric|min:0.01',
+            'tresorerie' => 'nullable|string|max:255',
             'date_decaissement' => 'nullable|date',
             'remarque' => 'nullable|string|max:1000',
             'statut' => 'nullable|in:'.implode(',', self::STATUTS),
@@ -186,6 +187,9 @@ class ClientPaymentApiController extends Controller
                 'banque' => $validated['banque'] ?? null,
                 'nom_tire' => $validated['nom_tire'] ?? null,
                 'montant' => $paymentAmount,
+                'tresorerie' => isset($validated['tresorerie']) && $validated['tresorerie'] !== ''
+                    ? mb_strtoupper(trim((string) $validated['tresorerie']))
+                    : null,
                 'date_decaissement' => $validated['date_decaissement'] ?? null,
                 'remarque' => $validated['remarque'] ?? null,
                 'solde' => round($soldeAvant - $paymentAmount, 2),
@@ -236,6 +240,7 @@ class ClientPaymentApiController extends Controller
             'banque' => 'nullable|string|max:100',
             'nom_tire' => 'nullable|string|max:150',
             'montant' => 'sometimes|required|numeric|min:0.01',
+            'tresorerie' => 'nullable|string|max:255',
             'date_decaissement' => 'nullable|date',
             'remarque' => 'nullable|string|max:1000',
             'statut' => 'nullable|in:'.implode(',', self::STATUTS),
@@ -243,6 +248,12 @@ class ClientPaymentApiController extends Controller
 
         if (isset($validated['client_id'])) {
             $validated['client_name'] = Client::find($validated['client_id'])?->name;
+        }
+
+        if (array_key_exists('tresorerie', $validated)) {
+            $validated['tresorerie'] = ($validated['tresorerie'] === null || $validated['tresorerie'] === '')
+                ? null
+                : mb_strtoupper(trim((string) $validated['tresorerie']));
         }
 
         $clientPayment->update($validated);
@@ -349,6 +360,7 @@ class ClientPaymentApiController extends Controller
             'banque' => $payment->banque,
             'nom_tire' => $payment->nom_tire,
             'montant' => number_format((float) $payment->montant, 2, '.', ''),
+            'tresorerie' => $payment->tresorerie ? mb_strtoupper((string) $payment->tresorerie) : null,
             'date_decaissement' => $payment->date_decaissement?->format('d/m/Y'),
             'date_decaissement_raw' => $payment->date_decaissement?->format('Y-m-d'),
             'remarque' => $payment->remarque,

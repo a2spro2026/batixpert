@@ -6,7 +6,20 @@
 
 @layer base {
     body {
-        @apply font-sans antialiased;
+        @apply font-sans antialiased uppercase;
+    }
+
+    input,
+    textarea,
+    select,
+    button,
+    option {
+        text-transform: uppercase;
+    }
+
+    input::placeholder,
+    textarea::placeholder {
+        text-transform: uppercase;
     }
 }
 
