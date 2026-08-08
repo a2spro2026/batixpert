@@ -130,7 +130,7 @@ class DashboardApiController extends Controller
             ->select('id', 'name', 'reference', 'start_date', 'end_date', 'status', 'city')
             ->get();
 
-        $derniersBonsAchats = PurchaseOrder::with(['supplier', 'items'])
+        $derniersBonsAchats = PurchaseOrder::with(['supplier', 'items', 'paymentAllocations'])
             ->where('status', '!=', 'annule')
             ->latest('order_date')
             ->latest('id')
@@ -138,7 +138,7 @@ class DashboardApiController extends Controller
             ->get()
             ->map(function ($order) {
                 $montantBon = round((float) $order->total_ttc, 2);
-                $montantPaye = round((float) ($order->montant_paye ?? 0), 2);
+                $montantPaye = round((float) $order->paymentAllocations->sum('amount'), 2);
                 $qte = $order->items->isNotEmpty()
                     ? round((float) $order->items->sum('quantity'), 3)
                     : round((float) $order->quantity, 3);
@@ -153,7 +153,7 @@ class DashboardApiController extends Controller
                 ];
             });
 
-        $derniersBonsVentes = SaleOrder::with(['client', 'items'])
+        $derniersBonsVentes = SaleOrder::with(['client', 'items', 'paymentAllocations'])
             ->where('status', '!=', 'annule')
             ->latest('order_date')
             ->latest('id')
@@ -161,7 +161,7 @@ class DashboardApiController extends Controller
             ->get()
             ->map(function ($order) {
                 $montantBon = round((float) $order->total_ttc, 2);
-                $montantPaye = round((float) ($order->montant_paye ?? 0), 2);
+                $montantPaye = round((float) $order->paymentAllocations->sum('amount'), 2);
                 $qte = $order->items->isNotEmpty()
                     ? round((float) $order->items->sum('quantity'), 3)
                     : round((float) $order->quantity, 3);

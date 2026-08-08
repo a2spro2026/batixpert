@@ -287,14 +287,29 @@ class ClientPaymentApiController extends Controller
             'payment_action' => 'required|in:Inst,Payé,Report,Imp,Dévalidé',
         ]);
 
-        $payload = ['payment_action' => $validated['payment_action']];
+        // Recalcule le payé depuis les allocations (source de vérité)
+        $paidFromAlloc = round((float) $sales_order->paymentAllocations()->sum('amount'), 2);
+        $total = round((float) $sales_order->total_ttc, 2);
+        $action = $validated['payment_action'];
 
-        // Bouton Payé = marquer le bon comme soldé
-        if ($validated['payment_action'] === 'Payé') {
-            $payload['montant_paye'] = round((float) $sales_order->total_ttc, 2);
+        // Payé = soldé uniquement si les règlements couvrent le montant du bon
+        if ($action === 'Payé' && $paidFromAlloc + 0.009 < $total) {
+            return response()->json([
+                'message' => 'Bon non soldé : payé '.number_format($paidFromAlloc, 2, '.', '')
+                    .' / '.number_format($total, 2, '.', '')
+                    .' (reste '.number_format(max($total - $paidFromAlloc, 0), 2, '.', '').')',
+                'data' => $this->formatOrder($sales_order->fresh('client')),
+            ], 422);
         }
 
-        $sales_order->update($payload);
+        if (in_array($action, ['Inst', 'Payé'], true)) {
+            $action = ($total > 0 && $paidFromAlloc + 0.009 >= $total) ? 'Payé' : 'Inst';
+        }
+
+        $sales_order->update([
+            'montant_paye' => $paidFromAlloc,
+            'payment_action' => $action,
+        ]);
 
         return response()->json($this->formatOrder($sales_order->fresh('client')));
     }
@@ -336,8 +351,24 @@ class ClientPaymentApiController extends Controller
     private function formatOrder(SaleOrder $order): array
     {
         $montantBon = round((float) $order->total_ttc, 2);
-        $montantPaye = round((float) ($order->montant_paye ?? 0), 2);
+        // Source de vérité = somme des allocations de règlements
+        $montantPaye = round((float) $order->paymentAllocations()->sum('amount'), 2);
         $solde = round($montantBon - $montantPaye, 2);
+        $paymentAction = $order->payment_action ?: 'Inst';
+        if (in_array($paymentAction, ['Inst', 'Payé'], true)) {
+            $paymentAction = ($montantBon > 0 && $montantPaye + 0.009 >= $montantBon) ? 'Payé' : 'Inst';
+        }
+
+        // Resynchronise si dérive (ex. forçage Payé sans règlement)
+        if (
+            round((float) ($order->montant_paye ?? 0), 2) !== $montantPaye
+            || ($order->payment_action ?: 'Inst') !== $paymentAction
+        ) {
+            $order->forceFill([
+                'montant_paye' => $montantPaye,
+                'payment_action' => $paymentAction,
+            ])->saveQuietly();
+        }
 
         return [
             'id' => $order->id,
@@ -352,7 +383,7 @@ class ClientPaymentApiController extends Controller
             'montant_bon' => number_format($montantBon, 2, '.', ''),
             'montant_paye' => number_format($montantPaye, 2, '.', ''),
             'solde' => number_format($solde, 2, '.', ''),
-            'payment_action' => $order->payment_action ?: 'Inst',
+            'payment_action' => $paymentAction,
             'status' => $order->status,
         ];
     }

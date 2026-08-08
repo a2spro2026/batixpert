@@ -428,8 +428,17 @@ export default function ReglementClientPage() {
             } else {
                 setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, payment_action: action } : o)));
             }
-        } catch {
-            // keep local
+            setError('');
+        } catch (err) {
+            const msg = err.response?.data?.message || 'Action impossible';
+            setError(msg);
+            const data = err.response?.data?.data;
+            if (data?.id) {
+                setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, ...data } : o)));
+                setActions((prev) => ({ ...prev, [orderId]: data.payment_action || 'Inst' }));
+            } else if (form.client_id) {
+                loadOrders(form.client_id);
+            }
         }
     };
 
