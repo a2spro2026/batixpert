@@ -8,7 +8,6 @@ use App\Models\Charge;
 use App\Models\Chantier;
 use App\Models\ClientInvoice;
 use App\Models\Employee;
-use App\Models\Expense;
 use App\Models\Payment;
 use App\Models\Product;
 use App\Models\PurchaseOrder;
@@ -51,7 +50,7 @@ class DashboardApiController extends Controller
         $totalVentes = (float) SaleOrder::where('status', '!=', 'annule')->sum('total_ttc');
         $reliquat = $totalAchats - $totalVentes;
 
-        $totalCharges = Expense::sum('amount');
+        $totalCharges = (float) Charge::sum('montant');
 
         $tresorerie = (float) Payment::where('type', 'client')->sum('amount')
             - (float) Payment::whereIn('type', ['fournisseur', 'personnel'])->sum('amount');
@@ -61,7 +60,7 @@ class DashboardApiController extends Controller
         $chantiersActifs = Chantier::where('status', 'en_cours')->where('archived', false)->count();
         $chantiersTermines = Chantier::where('status', 'termine')->count();
 
-        $depensesMois = Expense::where('expense_date', '>=', $monthStart)->sum('amount')
+        $depensesMois = (float) Charge::where('charge_date', '>=', $monthStart)->sum('montant')
             + SupplierInvoice::where('invoice_date', '>=', $monthStart)->sum('total_ttc')
             + Employee::where('status', 'actif')->sum('monthly_salary');
 
@@ -77,7 +76,7 @@ class DashboardApiController extends Controller
             ->selectRaw('COUNT(*) as count, SUM(total_ttc - amount_paid) as amount')
             ->first();
 
-        $chargesMensuelles = Expense::where('expense_date', '>=', $monthStart)->sum('amount');
+        $chargesMensuelles = (float) Charge::where('charge_date', '>=', $monthStart)->sum('montant');
 
         $recettesMois = ClientInvoice::where('invoice_date', '>=', $monthStart)->sum('total_ttc');
         $benefices = $recettesMois - $depensesMois;
@@ -90,10 +89,10 @@ class DashboardApiController extends Controller
             ->where('status', 'present')
             ->count();
 
-        $expensesChart = Expense::select(
-            DB::raw('MONTH(expense_date) as month'),
-            DB::raw('SUM(amount) as total')
-        )->whereYear('expense_date', now()->year)
+        $expensesChart = Charge::select(
+            DB::raw('MONTH(charge_date) as month'),
+            DB::raw('SUM(montant) as total')
+        )->whereYear('charge_date', now()->year)
             ->groupBy('month')->orderBy('month')->get();
 
         $revenueChart = ClientInvoice::select(
@@ -109,9 +108,9 @@ class DashboardApiController extends Controller
             ->whereIn('status', ['valide', 'livre'])
             ->groupBy('month')->orderBy('month')->get();
 
-        $chargesBreakdown = Expense::select('category', DB::raw('SUM(amount) as total'))
-            ->where('expense_date', '>=', $monthStart)
-            ->groupBy('category')->get();
+        $chargesBreakdown = Charge::select('designation as category', DB::raw('SUM(montant) as total'))
+            ->where('charge_date', '>=', $monthStart)
+            ->groupBy('designation')->get();
 
         $chantiersEnCours = Chantier::with('client')
             ->where('status', 'en_cours')->where('archived', false)
