@@ -20,10 +20,10 @@ function qtyClass(value, tone) {
         : 'text-rose-700 dark:text-rose-400';
 }
 
-function buildPrintHtml(row, year, monthsMeta) {
-    const monthHeads = monthsMeta.map((m) => `<th colspan="2">${m.full}</th>`).join('');
-    const subHeads = monthsMeta.map(() => '<th>Achat</th><th>Vente</th>').join('');
-    const monthCells = monthsMeta.map((m) => {
+function buildPrintHtml(row, year, activeMonths) {
+    const monthHeads = activeMonths.map((m) => `<th colspan="2">${m.full}</th>`).join('');
+    const subHeads = activeMonths.map(() => '<th>Achat</th><th>Vente</th>').join('');
+    const monthCells = activeMonths.map((m) => {
         const data = row.months?.[m.num] || { achat: 0, vente: 0 };
         return `<td style="text-align:center;color:#047857">${formatQtyStrict(data.achat)}</td>
             <td style="text-align:center;color:#be123c">${formatQtyStrict(data.vente)}</td>`;
@@ -59,10 +59,10 @@ ${monthCells}
 </body></html>`;
 }
 
-function openPrintable(row, year, monthsMeta) {
+function openPrintable(row, year, activeMonths) {
     const w = window.open('', '_blank', 'width=1200,height=700');
     if (!w) return;
-    w.document.write(buildPrintHtml(row, year, monthsMeta));
+    w.document.write(buildPrintHtml(row, year, activeMonths));
     w.document.close();
     w.focus();
     setTimeout(() => w.print(), 300);
@@ -111,7 +111,20 @@ export default function StockMouvementsPage() {
         load();
     }, [load]);
 
-    const colCount = 3 + monthsMeta.length * 2 + 2;
+    const activeMonths = useMemo(() => {
+        if (!monthsMeta.length) return [];
+
+        return monthsMeta.filter((m) =>
+            rows.some((row) => {
+                const cell = row.months?.[m.num];
+                if (!cell) return false;
+                return Math.abs(Number(cell.achat) || 0) >= 0.0005
+                    || Math.abs(Number(cell.vente) || 0) >= 0.0005;
+            })
+        );
+    }, [monthsMeta, rows]);
+
+    const colCount = 3 + activeMonths.length * 2 + 2;
 
     return (
         <div className="space-y-4 h-full min-h-0 flex flex-col">
@@ -154,14 +167,19 @@ export default function StockMouvementsPage() {
             </div>
 
             <div className="flex-1 min-h-0 glass-card overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60 flex flex-col">
-                <div className="shrink-0 px-5 py-3 bg-gradient-to-r from-brand-navy via-blue-900 to-slate-800 border-b border-white/10">
+                <div className="shrink-0 px-5 py-3 bg-gradient-to-r from-brand-navy via-blue-900 to-slate-800 border-b border-white/10 flex items-center justify-between gap-3">
                     <h3 className="text-sm font-bold text-white uppercase tracking-wide">
                         Tableau des mouvements
                     </h3>
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-white/70">
+                        {activeMonths.length
+                            ? `${activeMonths.length} mois actif${activeMonths.length > 1 ? 's' : ''}`
+                            : 'Aucun mouvement cette année'}
+                    </span>
                 </div>
 
                 <div className="flex-1 min-h-0 overflow-auto">
-                    <table className="w-full text-sm border-collapse min-w-[1680px]">
+                    <table className="w-full text-sm border-collapse" style={{ minWidth: Math.max(720, 280 + activeMonths.length * 100) }}>
                         <thead className="sticky top-0 z-20">
                             <tr className="bg-slate-100 dark:bg-slate-800">
                                 <th
@@ -182,7 +200,7 @@ export default function StockMouvementsPage() {
                                 >
                                     Stock<br />Initial
                                 </th>
-                                {monthsMeta.map((m, i) => (
+                                {activeMonths.map((m, i) => (
                                     <th
                                         key={m.num}
                                         colSpan={2}
@@ -212,7 +230,7 @@ export default function StockMouvementsPage() {
                                 </th>
                             </tr>
                             <tr className="bg-white dark:bg-slate-900">
-                                {monthsMeta.map((m, i) => (
+                                {activeMonths.map((m, i) => (
                                     <FragmentMonthSubHeads key={m.num} even={i % 2 === 0} />
                                 ))}
                             </tr>
@@ -245,7 +263,7 @@ export default function StockMouvementsPage() {
                                         <td className="px-2 py-2.5 text-center tabular-nums text-xs font-semibold text-slate-700 dark:text-slate-200 border-r border-slate-100 dark:border-slate-800">
                                             {formatQty(row.stock_initial)}
                                         </td>
-                                        {monthsMeta.map((m, i) => {
+                                        {activeMonths.map((m, i) => {
                                             const cell = row.months?.[m.num] || { achat: 0, vente: 0 };
                                             const stripe = i % 2 === 0 ? '' : 'bg-slate-50/90 dark:bg-slate-800/25';
                                             return (
@@ -267,13 +285,13 @@ export default function StockMouvementsPage() {
                                                 <ActionBtn
                                                     title="Imprimer"
                                                     icon={Printer}
-                                                    onClick={() => openPrintable(row, year, monthsMeta)}
+                                                    onClick={() => openPrintable(row, year, activeMonths)}
                                                 />
                                                 <ActionBtn
                                                     title="PDF"
                                                     icon={FileText}
                                                     color="orange"
-                                                    onClick={() => openPrintable(row, year, monthsMeta)}
+                                                    onClick={() => openPrintable(row, year, activeMonths)}
                                                 />
                                             </div>
                                         </td>
