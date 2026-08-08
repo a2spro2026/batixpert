@@ -1,45 +1,32 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowLeftRight, FileText, Printer, RefreshCw } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState, Fragment } from 'react';
+import { FileText, Printer, RefreshCw } from 'lucide-react';
 import api from '../lib/api';
+
+function formatQty(value) {
+    const n = Number(value) || 0;
+    if (Math.abs(n) < 0.0005) return '—';
+    return n.toLocaleString('fr-FR', { maximumFractionDigits: 3 });
+}
 
 function formatQtyStrict(value) {
     return (Number(value) || 0).toLocaleString('fr-FR', { maximumFractionDigits: 3 });
 }
 
-function MonthCell({ achat, vente }) {
-    const a = Number(achat) || 0;
-    const v = Number(vente) || 0;
-    const empty = Math.abs(a) < 0.0005 && Math.abs(v) < 0.0005;
-
-    if (empty) {
-        return (
-            <div className="mx-auto flex h-[42px] w-[52px] flex-col items-center justify-center rounded-lg border border-dashed border-slate-200/80 dark:border-slate-700/80 bg-slate-50/40 dark:bg-slate-900/30">
-                <span className="text-[10px] text-slate-300 dark:text-slate-600">·</span>
-            </div>
-        );
-    }
-
-    return (
-        <div className="mx-auto flex h-[42px] w-[52px] flex-col items-stretch justify-center overflow-hidden rounded-lg border border-slate-200/70 dark:border-slate-600/70 bg-white dark:bg-slate-800 shadow-sm">
-            <div className={`flex-1 flex items-center justify-center text-[10px] font-bold tabular-nums leading-none ${a > 0 ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300' : 'text-slate-300 dark:text-slate-600'}`}>
-                {a > 0 ? `+${formatQtyStrict(a)}` : '—'}
-            </div>
-            <div className="h-px bg-slate-200/80 dark:bg-slate-600/80" />
-            <div className={`flex-1 flex items-center justify-center text-[10px] font-bold tabular-nums leading-none ${v > 0 ? 'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300' : 'text-slate-300 dark:text-slate-600'}`}>
-                {v > 0 ? `−${formatQtyStrict(v)}` : '—'}
-            </div>
-        </div>
-    );
+function qtyClass(value, tone) {
+    const empty = Math.abs(Number(value) || 0) < 0.0005;
+    if (empty) return 'text-slate-300 dark:text-slate-600';
+    return tone === 'achat'
+        ? 'text-emerald-700 dark:text-emerald-400'
+        : 'text-rose-700 dark:text-rose-400';
 }
 
 function buildPrintHtml(row, year, monthsMeta) {
+    const monthHeads = monthsMeta.map((m) => `<th colspan="2">${m.full}</th>`).join('');
+    const subHeads = monthsMeta.map(() => '<th>Achat</th><th>Vente</th>').join('');
     const monthCells = monthsMeta.map((m) => {
         const data = row.months?.[m.num] || { achat: 0, vente: 0 };
-        return `<td style="text-align:center;font-size:11px;padding:6px">
-            <div style="font-weight:700;margin-bottom:4px">${m.short}</div>
-            <div style="color:#047857">A ${formatQtyStrict(data.achat)}</div>
-            <div style="color:#be123c">V ${formatQtyStrict(data.vente)}</div>
-        </td>`;
+        return `<td style="text-align:center;color:#047857">${formatQtyStrict(data.achat)}</td>
+            <td style="text-align:center;color:#be123c">${formatQtyStrict(data.vente)}</td>`;
     }).join('');
 
     return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Mouvement ${row.reference || ''}</title>
@@ -48,18 +35,19 @@ body{font-family:Arial,sans-serif;padding:28px;color:#1e293b}
 h1{color:#1e3a5f;font-size:20px;margin:0 0 4px}
 .sub{color:#64748b;font-size:12px;margin-bottom:16px}
 table{width:100%;border-collapse:collapse;margin-top:8px}
-th,td{border:1px solid #e2e8f0;padding:8px;font-size:12px}
-th{background:#f8fafc;font-weight:700;text-align:center}
-.badge{background:#ecfdf5;color:#059669;padding:3px 8px;border-radius:999px;font-weight:700;font-size:11px}
+th,td{border:1px solid #e2e8f0;padding:7px 6px;font-size:11px}
+th{background:#f1f5f9;font-weight:700;text-align:center}
+.badge{background:#dbeafe;color:#1e3a5f;padding:3px 8px;border-radius:999px;font-weight:700;font-size:11px}
 </style></head><body>
 <h1>BATIXPERT — Mouvement Stock</h1>
 <p class="sub">Année ${year} · <span class="badge">${row.reference || '—'}</span> ${row.designation || ''}</p>
 <table>
 <tr>
-<th>Réf</th><th>Désignation</th><th>Stock Initial</th>
-${monthsMeta.map((m) => `<th>${m.short}</th>`).join('')}
-<th>Stock Actuel</th>
+<th rowspan="2">Réf</th><th rowspan="2">Désignation</th><th rowspan="2">Stock Initial</th>
+${monthHeads}
+<th rowspan="2">Stock Actuel</th>
 </tr>
+<tr>${subHeads}</tr>
 <tr>
 <td style="text-align:center;font-family:monospace;font-weight:700">${row.reference || '—'}</td>
 <td style="text-align:center">${row.designation || '—'}</td>
@@ -68,7 +56,6 @@ ${monthCells}
 <td style="text-align:center;font-weight:700;color:#1e3a5f">${formatQtyStrict(row.stock_actuel)}</td>
 </tr>
 </table>
-<p style="margin-top:12px;font-size:11px;color:#64748b">Légende mois : A = Achats · V = Ventes</p>
 </body></html>`;
 }
 
@@ -124,16 +111,26 @@ export default function StockMouvementsPage() {
         load();
     }, [load]);
 
+    const colCount = 3 + monthsMeta.length * 2 + 2;
+
     return (
         <div className="space-y-4 h-full min-h-0 flex flex-col">
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 shrink-0">
                 <div>
                     <h1 className="text-xl font-bold text-slate-900 dark:text-white">Mouvement Stock</h1>
                     <p className="text-sm text-slate-500 dark:text-slate-400">
-                        Achats et ventes mensuels par produit
+                        Achats et ventes mensuels par produit — {year}
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
+                    <div className="hidden sm:flex items-center gap-3 mr-2 text-[11px]">
+                        <span className="inline-flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400 font-semibold">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Achat
+                        </span>
+                        <span className="inline-flex items-center gap-1.5 text-rose-700 dark:text-rose-400 font-semibold">
+                            <span className="w-1.5 h-1.5 rounded-full bg-rose-500" /> Vente
+                        </span>
+                    </div>
                     <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Année</label>
                     <select
                         value={year}
@@ -156,88 +153,116 @@ export default function StockMouvementsPage() {
                 </div>
             </div>
 
-            <div className="flex items-center gap-4 text-[11px] text-slate-500 dark:text-slate-400 shrink-0">
-                <span className="inline-flex items-center gap-1.5">
-                    <span className="inline-block w-3 h-3 rounded-sm bg-emerald-100 border border-emerald-300" />
-                    Achat (+)
-                </span>
-                <span className="inline-flex items-center gap-1.5">
-                    <span className="inline-block w-3 h-3 rounded-sm bg-rose-100 border border-rose-300" />
-                    Vente (−)
-                </span>
-            </div>
-
             <div className="flex-1 min-h-0 glass-card overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60 flex flex-col">
-                <div className="shrink-0 px-5 py-3.5 bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-800 border-b border-white/10 flex items-center gap-2">
-                    <ArrowLeftRight className="w-4 h-4 text-white/80" />
-                    <h3 className="text-sm font-bold text-white uppercase tracking-wide">Tableau des mouvements — {year}</h3>
+                <div className="shrink-0 px-5 py-3 bg-gradient-to-r from-brand-navy via-blue-900 to-slate-800 border-b border-white/10">
+                    <h3 className="text-sm font-bold text-white uppercase tracking-wide">
+                        Tableau des mouvements
+                    </h3>
                 </div>
 
                 <div className="flex-1 min-h-0 overflow-auto">
-                    <table className="w-full text-sm border-collapse min-w-[1400px]">
+                    <table className="w-full text-sm border-collapse min-w-[1680px]">
                         <thead className="sticky top-0 z-20">
-                            <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
-                                <th className="px-3 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-center whitespace-nowrap sticky left-0 z-30 bg-slate-50 dark:bg-slate-800 shadow-[1px_0_0_0_rgba(226,232,240,1)] dark:shadow-[1px_0_0_0_rgba(51,65,85,1)]">
+                            <tr className="bg-slate-100 dark:bg-slate-800">
+                                <th
+                                    rowSpan={2}
+                                    className="px-3 py-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 text-center whitespace-nowrap sticky left-0 z-30 bg-slate-100 dark:bg-slate-800 border-b border-r border-slate-200 dark:border-slate-700 align-middle"
+                                >
                                     Réf
                                 </th>
-                                <th className="px-3 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-center whitespace-nowrap sticky left-[88px] z-30 bg-slate-50 dark:bg-slate-800 shadow-[1px_0_0_0_rgba(226,232,240,1)] dark:shadow-[1px_0_0_0_rgba(51,65,85,1)] min-w-[160px]">
+                                <th
+                                    rowSpan={2}
+                                    className="px-3 py-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 text-center whitespace-nowrap sticky left-[76px] z-30 bg-slate-100 dark:bg-slate-800 border-b border-r border-slate-200 dark:border-slate-700 align-middle min-w-[150px]"
+                                >
                                     Désignation
                                 </th>
-                                <th className="px-3 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-center whitespace-nowrap">
-                                    Stock Initial
+                                <th
+                                    rowSpan={2}
+                                    className="px-2 py-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 text-center whitespace-nowrap border-b border-r border-slate-200 dark:border-slate-700 align-middle"
+                                >
+                                    Stock<br />Initial
                                 </th>
-                                {monthsMeta.map((m) => (
-                                    <th key={m.num} className="px-1.5 py-2 text-center" title={m.full}>
-                                        <div className="mx-auto w-[52px] rounded-md bg-gradient-to-b from-brand-navy to-slate-800 px-1 py-1.5 shadow-sm">
-                                            <span className="block text-[10px] font-bold uppercase tracking-wide text-white leading-none">
-                                                {m.short}
-                                            </span>
-                                        </div>
+                                {monthsMeta.map((m, i) => (
+                                    <th
+                                        key={m.num}
+                                        colSpan={2}
+                                        title={m.full}
+                                        className={`px-1 py-2 text-center border-b border-slate-200 dark:border-slate-700 ${
+                                            i % 2 === 0
+                                                ? 'bg-slate-100 dark:bg-slate-800'
+                                                : 'bg-slate-50 dark:bg-slate-800/70'
+                                        }`}
+                                    >
+                                        <span className="inline-block text-[11px] font-bold tracking-wide text-brand-navy dark:text-blue-300 border-b-2 border-brand-orange pb-0.5">
+                                            {m.short}
+                                        </span>
                                     </th>
                                 ))}
-                                <th className="px-3 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-center whitespace-nowrap">
-                                    Stock Actuel
+                                <th
+                                    rowSpan={2}
+                                    className="px-2 py-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 text-center whitespace-nowrap border-b border-l border-slate-200 dark:border-slate-700 align-middle"
+                                >
+                                    Stock<br />Actuel
                                 </th>
-                                <th className="px-3 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-center whitespace-nowrap">
+                                <th
+                                    rowSpan={2}
+                                    className="px-2 py-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 text-center whitespace-nowrap border-b border-slate-200 dark:border-slate-700 align-middle"
+                                >
                                     Actions
                                 </th>
                             </tr>
+                            <tr className="bg-white dark:bg-slate-900">
+                                {monthsMeta.map((m, i) => (
+                                    <FragmentMonthSubHeads key={m.num} even={i % 2 === 0} />
+                                ))}
+                            </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                        <tbody>
                             {loading ? (
                                 [...Array(6)].map((_, i) => (
-                                    <tr key={i}>
-                                        {[...Array(16)].map((__, j) => (
+                                    <tr key={i} className="border-b border-slate-100 dark:border-slate-800">
+                                        {[...Array(colCount || 29)].map((__, j) => (
                                             <td key={j} className="px-2 py-3 text-center">
-                                                <div className="h-8 bg-slate-200 dark:bg-slate-700 rounded animate-pulse mx-auto max-w-[60px]" />
+                                                <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded animate-pulse mx-auto max-w-[48px]" />
                                             </td>
                                         ))}
                                     </tr>
                                 ))
                             ) : rows.length ? (
-                                rows.map((row) => (
-                                    <tr key={row.id} className="hover:bg-emerald-50/30 dark:hover:bg-slate-800/40 transition-colors">
-                                        <td className="px-3 py-2.5 text-center font-mono text-xs font-semibold text-brand-navy dark:text-emerald-400 sticky left-0 z-10 bg-white dark:bg-slate-900 shadow-[1px_0_0_0_rgba(226,232,240,1)] dark:shadow-[1px_0_0_0_rgba(51,65,85,1)]">
+                                rows.map((row, rowIdx) => (
+                                    <tr
+                                        key={row.id}
+                                        className={`border-b border-slate-100 dark:border-slate-800 hover:bg-blue-50/40 dark:hover:bg-slate-800/50 transition-colors ${
+                                            rowIdx % 2 === 0 ? 'bg-white dark:bg-slate-900' : 'bg-slate-50/60 dark:bg-slate-900/60'
+                                        }`}
+                                    >
+                                        <td className="px-3 py-2.5 text-center font-mono text-xs font-semibold text-brand-navy dark:text-blue-300 sticky left-0 z-10 bg-inherit border-r border-slate-100 dark:border-slate-800">
                                             {row.reference}
                                         </td>
-                                        <td className="px-3 py-2.5 text-center font-medium text-slate-800 dark:text-white max-w-[180px] truncate sticky left-[88px] z-10 bg-white dark:bg-slate-900 shadow-[1px_0_0_0_rgba(226,232,240,1)] dark:shadow-[1px_0_0_0_rgba(51,65,85,1)]" title={row.designation}>
+                                        <td className="px-3 py-2.5 text-center font-medium text-slate-800 dark:text-white max-w-[160px] truncate sticky left-[76px] z-10 bg-inherit border-r border-slate-100 dark:border-slate-800" title={row.designation}>
                                             {row.designation || '—'}
                                         </td>
-                                        <td className="px-3 py-2.5 text-center tabular-nums font-semibold text-slate-700 dark:text-slate-200">
-                                            {formatQtyStrict(row.stock_initial)}
+                                        <td className="px-2 py-2.5 text-center tabular-nums text-xs font-semibold text-slate-700 dark:text-slate-200 border-r border-slate-100 dark:border-slate-800">
+                                            {formatQty(row.stock_initial)}
                                         </td>
-                                        {monthsMeta.map((m) => {
+                                        {monthsMeta.map((m, i) => {
                                             const cell = row.months?.[m.num] || { achat: 0, vente: 0 };
+                                            const stripe = i % 2 === 0 ? '' : 'bg-slate-50/90 dark:bg-slate-800/25';
                                             return (
-                                                <td key={m.num} className="px-1.5 py-2 text-center align-middle">
-                                                    <MonthCell achat={cell.achat} vente={cell.vente} />
-                                                </td>
+                                                <Fragment key={`${row.id}-${m.num}`}>
+                                                    <td className={`px-1.5 py-2.5 text-center tabular-nums text-[11px] font-semibold ${stripe} ${qtyClass(cell.achat, 'achat')}`}>
+                                                        {formatQty(cell.achat)}
+                                                    </td>
+                                                    <td className={`px-1.5 py-2.5 text-center tabular-nums text-[11px] font-semibold border-r border-slate-100 dark:border-slate-800 ${stripe} ${qtyClass(cell.vente, 'vente')}`}>
+                                                        {formatQty(cell.vente)}
+                                                    </td>
+                                                </Fragment>
                                             );
                                         })}
-                                        <td className="px-3 py-2.5 text-center tabular-nums font-bold text-brand-navy dark:text-emerald-400">
+                                        <td className="px-2 py-2.5 text-center tabular-nums text-sm font-bold text-brand-navy dark:text-orange-400 border-l border-slate-200 dark:border-slate-700">
                                             {formatQtyStrict(row.stock_actuel)}
                                         </td>
-                                        <td className="px-3 py-2.5">
+                                        <td className="px-2 py-2.5">
                                             <div className="flex items-center justify-center gap-0.5">
                                                 <ActionBtn
                                                     title="Imprimer"
@@ -256,7 +281,7 @@ export default function StockMouvementsPage() {
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan={16} className="px-4 py-12 text-center text-slate-400">
+                                    <td colSpan={colCount || 29} className="px-4 py-12 text-center text-slate-400">
                                         Aucun produit enregistré
                                     </td>
                                 </tr>
@@ -266,5 +291,22 @@ export default function StockMouvementsPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+function FragmentMonthSubHeads({ even }) {
+    const bg = even
+        ? 'bg-white dark:bg-slate-900'
+        : 'bg-slate-50 dark:bg-slate-800/50';
+
+    return (
+        <>
+            <th className={`px-1 py-1.5 text-[9px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 text-center border-b border-slate-200 dark:border-slate-700 ${bg}`}>
+                A
+            </th>
+            <th className={`px-1 py-1.5 text-[9px] font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400 text-center border-b border-r border-slate-200 dark:border-slate-700 ${bg}`}>
+                V
+            </th>
+        </>
     );
 }
