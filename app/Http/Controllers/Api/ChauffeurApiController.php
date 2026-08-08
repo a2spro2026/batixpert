@@ -10,48 +10,54 @@ class ChauffeurApiController extends Controller
 {
     public function index()
     {
-        $rows = PurchaseOrder::query()
+        $orders = PurchaseOrder::query()
             ->whereNotNull('chauffeur')
             ->where('chauffeur', '!=', '')
-            ->orderBy('chauffeur')
+            ->orderByDesc('id')
             ->get(['chauffeur', 'matricule']);
 
-        $grouped = [];
+        $byName = [];
+        $usedMatricules = [];
 
-        foreach ($rows as $row) {
-            $nom = trim((string) $row->chauffeur);
+        foreach ($orders as $order) {
+            $nom = $this->normalizeDisplay((string) $order->chauffeur);
             if ($nom === '') {
                 continue;
             }
 
-            $key = Str::upper($nom);
-            if (! isset($grouped[$key])) {
-                $grouped[$key] = [
-                    'nom' => $nom,
-                    'matricules' => [],
-                ];
+            $nameKey = $this->normalizeKey($nom);
+            if (isset($byName[$nameKey])) {
+                continue;
             }
 
-            $matricule = trim((string) ($row->matricule ?? ''));
-            if ($matricule !== '') {
-                $matKey = Str::upper($matricule);
-                if (! isset($grouped[$key]['matricules'][$matKey])) {
-                    $grouped[$key]['matricules'][$matKey] = $matricule;
-                }
+            $matricule = $this->normalizeDisplay((string) ($order->matricule ?? ''));
+            $matKey = $matricule !== '' ? $this->normalizeKey($matricule) : null;
+
+            // Un même matricule ne doit apparaître qu'une seule fois (lié au chauffeur le plus récent).
+            if ($matKey !== null && isset($usedMatricules[$matKey])) {
+                $matricule = null;
+                $matKey = null;
             }
+
+            if ($matKey !== null) {
+                $usedMatricules[$matKey] = true;
+            }
+
+            $byName[$nameKey] = [
+                'nom' => $nom,
+                'matricule' => $matricule !== '' ? $matricule : null,
+            ];
         }
 
-        uasort($grouped, fn ($a, $b) => strcasecmp($a['nom'], $b['nom']));
+        uasort($byName, fn ($a, $b) => strcasecmp($a['nom'], $b['nom']));
 
-        $data = collect($grouped)
+        $data = collect($byName)
             ->values()
-            ->map(function (array $item, int $index) {
-                return [
-                    'id' => $index + 1,
-                    'nom' => $item['nom'],
-                    'matricule' => implode(', ', array_values($item['matricules'])) ?: null,
-                ];
-            })
+            ->map(fn (array $item, int $index) => [
+                'id' => $index + 1,
+                'nom' => $item['nom'],
+                'matricule' => $item['matricule'],
+            ])
             ->all();
 
         return response()->json([
@@ -60,5 +66,15 @@ class ChauffeurApiController extends Controller
                 'total' => count($data),
             ],
         ]);
+    }
+
+    private function normalizeDisplay(string $value): string
+    {
+        return trim(preg_replace('/\s+/u', ' ', $value) ?? '');
+    }
+
+    private function normalizeKey(string $value): string
+    {
+        return Str::upper($this->normalizeDisplay($value));
     }
 }
