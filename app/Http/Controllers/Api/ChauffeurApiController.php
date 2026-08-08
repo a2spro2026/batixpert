@@ -4,23 +4,46 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\PurchaseOrder;
+use App\Models\SaleOrder;
 use Illuminate\Support\Str;
 
 class ChauffeurApiController extends Controller
 {
     public function index()
     {
-        $orders = PurchaseOrder::query()
-            ->whereNotNull('chauffeur')
-            ->where('chauffeur', '!=', '')
-            ->orderByDesc('id')
-            ->get(['chauffeur', 'matricule']);
+        $rows = collect()
+            ->merge(
+                PurchaseOrder::query()
+                    ->whereNotNull('chauffeur')
+                    ->where('chauffeur', '!=', '')
+                    ->get(['chauffeur', 'matricule', 'updated_at', 'id'])
+                    ->map(fn ($o) => [
+                        'chauffeur' => $o->chauffeur,
+                        'matricule' => $o->matricule,
+                        'at' => optional($o->updated_at)->getTimestamp() ?? 0,
+                        'id' => (int) $o->id,
+                    ])
+            )
+            ->merge(
+                SaleOrder::query()
+                    ->whereNotNull('chauffeur')
+                    ->where('chauffeur', '!=', '')
+                    ->get(['chauffeur', 'matricule', 'updated_at', 'id'])
+                    ->map(fn ($o) => [
+                        'chauffeur' => $o->chauffeur,
+                        'matricule' => $o->matricule,
+                        'at' => optional($o->updated_at)->getTimestamp() ?? 0,
+                        'id' => (int) $o->id,
+                    ])
+            )
+            ->sortByDesc(fn ($r) => [$r['at'], $r['id']])
+            ->values();
 
         $byName = [];
         $usedMatricules = [];
 
-        foreach ($orders as $order) {
-            $nom = $this->normalizeDisplay((string) $order->chauffeur);
+        foreach ($rows as $order) {
+            $nom = $this->normalizeDisplay((string) $order['chauffeur']);
             if ($nom === '') {
                 continue;
             }
@@ -30,10 +53,9 @@ class ChauffeurApiController extends Controller
                 continue;
             }
 
-            $matricule = $this->normalizeDisplay((string) ($order->matricule ?? ''));
+            $matricule = $this->normalizeDisplay((string) ($order['matricule'] ?? ''));
             $matKey = $matricule !== '' ? $this->normalizeKey($matricule) : null;
 
-            // Un même matricule ne doit apparaître qu'une seule fois (lié au chauffeur le plus récent).
             if ($matKey !== null && isset($usedMatricules[$matKey])) {
                 $matricule = null;
                 $matKey = null;

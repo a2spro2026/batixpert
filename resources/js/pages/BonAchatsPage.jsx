@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CheckCircle2, Plus, PlusCircle, XCircle, Eye, Pencil, Trash2, Printer, FileText, X, Package, Wallet, Scale } from 'lucide-react';
 import api from '../lib/api';
+import { useChauffeurs } from '../hooks/useChauffeurs';
 
 const UNIT_OPTIONS = ['', 'Kg', 'U', 'Sac', 'ML', 'M²', 'M³', 'Tn', 'M'];
 const REGLEMENT_OPTIONS = ['', 'Esp', 'Chq', 'Eff', 'Vir', 'Vers'];
@@ -282,12 +283,23 @@ export default function BonAchatsPage() {
             .finally(() => setLoading(false));
     }, []);
 
+    const { chauffeurs, resolveMatricule, reloadChauffeurs } = useChauffeurs();
+
     useEffect(() => {
         setForm((f) => ({ ...f, order_date: new Date().toISOString().slice(0, 10) }));
         load();
     }, [load]);
 
     const set = (key, value) => setForm((f) => ({ ...f, [key]: value }));
+
+    const onChauffeurChange = (value) => {
+        const matricule = resolveMatricule(value);
+        setForm((f) => ({
+            ...f,
+            chauffeur: value,
+            ...(matricule ? { matricule } : {}),
+        }));
+    };
 
     const updateLine = (key, patch) => {
         setLines((prev) => prev.map((l) => (l.key === key ? { ...l, ...patch } : l)));
@@ -319,7 +331,10 @@ export default function BonAchatsPage() {
         setEditingId(null);
         setError('');
         setFormOpen(false);
-        if (reload) load();
+        if (reload) {
+            load();
+            reloadChauffeurs();
+        }
     };
 
     const handleNewBon = () => {
@@ -328,6 +343,7 @@ export default function BonAchatsPage() {
         setEditingId(null);
         setError('');
         load();
+        reloadChauffeurs();
         setFormOpen(true);
     };
 
@@ -503,7 +519,20 @@ export default function BonAchatsPage() {
                                         </select>
                                     </Field>
                                     <Field label="Chauffeur">
-                                        <input type="text" value={form.chauffeur} onChange={(e) => set('chauffeur', e.target.value)} placeholder="Chauffeur" className={inputClass} />
+                                        <input
+                                            type="text"
+                                            list="bon-achat-chauffeurs"
+                                            value={form.chauffeur}
+                                            onChange={(e) => onChauffeurChange(e.target.value)}
+                                            placeholder="Chauffeur"
+                                            className={inputClass}
+                                            autoComplete="off"
+                                        />
+                                        <datalist id="bon-achat-chauffeurs">
+                                            {chauffeurs.map((c) => (
+                                                <option key={c.id} value={c.nom} />
+                                            ))}
+                                        </datalist>
                                     </Field>
                                     <Field label="Matricule">
                                         <input type="text" value={form.matricule} onChange={(e) => set('matricule', e.target.value)} placeholder="Matricule" className={inputClass} />
