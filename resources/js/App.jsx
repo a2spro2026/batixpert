@@ -23,6 +23,7 @@ import ChargesPage from './pages/ChargesPage';
 import FactureAchatsPage from './pages/FactureAchatsPage';
 import SupplierBalancePage from './pages/SupplierBalancePage';
 import UsersPage from './pages/UsersPage';
+import ChauffeursPage from './pages/ChauffeursPage';
 
 function ProtectedRoute({ children }) {
     const { user, loading } = useAuth();
@@ -102,6 +103,7 @@ function AppRoutes() {
 
                 {/* Configuration */}
                 <Route path="configuration/utilisateurs" element={<UsersPage />} />
+                <Route path="configuration/chauffeurs" element={<ChauffeursPage />} />
 
                 {/* Redirections anciennes routes */}
                 <Route path="chantiers" element={<Navigate to="/chantiers/carte" replace />} />

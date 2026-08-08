@@ -7,6 +7,7 @@ import {
     UserCog,
     Landmark,
     Settings,
+    CarFront,
     // Fournisseur
     Contact,
     ClipboardList,
@@ -142,6 +143,7 @@ export const navigation = [
         perm: 'utilisateurs.view',
         children: [
             { to: '/configuration/utilisateurs', label: 'Utilisateur', icon: UserCog },
+            { to: '/configuration/chauffeurs', label: 'Chauffeur', icon: CarFront },
         ],
     },
 ];

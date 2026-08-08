@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ChargeApiController;
 use App\Http\Controllers\Api\ChantierApiController;
+use App\Http\Controllers\Api\ChauffeurApiController;
 use App\Http\Controllers\Api\ClientOrderApiController;
 use App\Http\Controllers\Api\ClientPaymentApiController;
 use App\Http\Controllers\Api\ClientApiController;
@@ -85,6 +86,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::patch('users/{user}/suspend', [UserApiController::class, 'suspend']);
     Route::apiResource('users', UserApiController::class);
+    Route::get('chauffeurs', [ChauffeurApiController::class, 'index']);
 
     Route::get('/reports/financial', [ReportApiController::class, 'financial']);
     Route::get('/reports/export/{type}', [ReportApiController::class, 'export']);
