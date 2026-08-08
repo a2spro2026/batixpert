@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle2, Plus, PlusCircle, XCircle, Eye, Pencil, Trash2, Printer, FileText, X, Package, Wallet } from 'lucide-react';
+import { CheckCircle2, Plus, PlusCircle, XCircle, Eye, Pencil, Trash2, Printer, FileText, X, Package, Wallet, Download } from 'lucide-react';
 import api from '../lib/api';
 
 const UNIT_OPTIONS = ['', 'Kg', 'U', 'Sac', 'ML', 'M²', 'M³', 'Tn', 'M'];
@@ -219,6 +219,94 @@ function ViewModal({ row, onClose }) {
     );
 }
 
+function ImportPurchaseModal({ open, rows, loading, onClose, onSelect }) {
+    if (!open) return null;
+
+    return (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
+            <div
+                className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-5xl border border-slate-200 dark:border-slate-700 overflow-hidden max-h-[90vh] flex flex-col"
+                onClick={(e) => e.stopPropagation()}
+            >
+                <div className="flex items-center justify-between px-5 py-4 bg-gradient-to-r from-emerald-600 to-teal-800 shrink-0">
+                    <div>
+                        <p className="text-[10px] text-emerald-100 uppercase tracking-wider">Import</p>
+                        <h3 className="text-white font-bold text-sm">Sélectionner un Bon d&apos;Achat</h3>
+                    </div>
+                    <button type="button" onClick={onClose} className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10">
+                        <X className="w-4 h-4" />
+                    </button>
+                </div>
+
+                <p className="px-5 py-3 text-xs text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800 shrink-0">
+                    Date, client livré, ville et articles seront importés. Le N° bon de vente reste automatique. Les autres champs restent modifiables.
+                </p>
+
+                <div className="overflow-auto flex-1 min-h-0">
+                    <table className="w-full text-sm min-w-[900px]">
+                        <thead className="sticky top-0 z-10">
+                            <tr className="bg-slate-50 dark:bg-slate-800/90 border-b border-slate-200 dark:border-slate-700">
+                                {['Date', 'N° B-A', 'Fournisseur', 'Client Livré', 'Ville', 'Qté', 'Montant', ''].map((h) => (
+                                    <th key={h || 'act'} className="px-3 py-3 text-xs font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap text-center">{h}</th>
+                                ))}
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                            {loading ? (
+                                [...Array(4)].map((_, i) => (
+                                    <tr key={i}>
+                                        {[...Array(8)].map((__, j) => (
+                                            <td key={j} className="px-3 py-3 text-center">
+                                                <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded animate-pulse mx-auto max-w-[72px]" />
+                                            </td>
+                                        ))}
+                                    </tr>
+                                ))
+                            ) : rows.length ? (
+                                rows.map((row) => (
+                                    <tr key={row.id} className="hover:bg-emerald-50/60 dark:hover:bg-emerald-900/20 transition-colors">
+                                        <td className="px-3 py-2.5 text-center text-slate-600 dark:text-slate-300">{row.order_date}</td>
+                                        <td className="px-3 py-2.5 text-center font-mono text-xs font-semibold">{row.reference}</td>
+                                        <td className="px-3 py-2.5 text-center font-medium">{row.fournisseur || '—'}</td>
+                                        <td className="px-3 py-2.5 text-center">{row.client_livre || '—'}</td>
+                                        <td className="px-3 py-2.5 text-center">{row.city || '—'}</td>
+                                        <td className="px-3 py-2.5 text-center tabular-nums">
+                                            {orderTotalQuantity(row).toLocaleString('fr-FR', { maximumFractionDigits: 3 })}
+                                        </td>
+                                        <td className="px-3 py-2.5 text-center font-semibold tabular-nums text-brand-navy dark:text-orange-400">
+                                            {formatMontantDisplay(row.subtotal ?? row.montant)}
+                                        </td>
+                                        <td className="px-3 py-2.5 text-center">
+                                            <button
+                                                type="button"
+                                                onClick={() => onSelect(row)}
+                                                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-wide text-white bg-emerald-600 hover:bg-emerald-700"
+                                            >
+                                                <Download className="w-3.5 h-3.5" />
+                                                Importer
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))
+                            ) : (
+                                <tr>
+                                    <td colSpan={8} className="px-4 py-12 text-center text-slate-400">Aucun bon d&apos;achat disponible</td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div className="px-5 py-3 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 shrink-0 flex justify-end">
+                    <button type="button" onClick={onClose} className="btn-danger text-xs px-4">
+                        <XCircle className="w-3.5 h-3.5" /> Fermer
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 export default function BonVentesPage() {
     const navigate = useNavigate();
     const [form, setForm] = useState(emptyHeader);
@@ -233,6 +321,9 @@ export default function BonVentesPage() {
     const [editingId, setEditingId] = useState(null);
     const [viewRow, setViewRow] = useState(null);
     const [formOpen, setFormOpen] = useState(false);
+    const [importOpen, setImportOpen] = useState(false);
+    const [purchaseOrders, setPurchaseOrders] = useState([]);
+    const [importLoading, setImportLoading] = useState(false);
 
     const totalBon = useMemo(
         () => lines.reduce((sum, l) => sum + (parseFloat(lineSubtotal(l)) || 0), 0).toFixed(2),
@@ -326,7 +417,61 @@ export default function BonVentesPage() {
         setLines([emptyLine()]);
         setEditingId(null);
         setError('');
+        setImportOpen(false);
         setFormOpen(false);
+    };
+
+    const openImportModal = () => {
+        setImportOpen(true);
+        setImportLoading(true);
+        api.get('/purchase-orders', { params: { all: 1 } })
+            .then((r) => setPurchaseOrders(r.data.data ?? []))
+            .catch(() => setPurchaseOrders([]))
+            .finally(() => setImportLoading(false));
+    };
+
+    const applyImportPurchase = (purchase) => {
+        const clientName = String(purchase.client_livre || '').trim().toLowerCase();
+        const matchedClient = clients.find((c) => String(c.name || '').trim().toLowerCase() === clientName);
+
+        setForm((f) => ({
+            ...f,
+            order_date: purchase.order_date_raw || f.order_date || new Date().toISOString().slice(0, 10),
+            client_id: matchedClient ? String(matchedClient.id) : '',
+            city: purchase.city || '',
+            // N° B-V reste auto ; adresse / régl / échéance / chauffeur / matricule manuels
+        }));
+
+        if (purchase.items?.length) {
+            setLines(purchase.items.map((i) => ({
+                key: `imp-${purchase.id}-${i.id || Math.random().toString(36).slice(2, 7)}`,
+                product_id: i.product_id || '',
+                article_ref: i.article_ref || '',
+                description: i.description || '',
+                unit: i.unit || '',
+                quantity: i.quantity != null ? String(i.quantity) : '1',
+                unit_price: i.unit_price != null ? String(i.unit_price) : '',
+            })));
+        } else if (purchase.designation) {
+            setLines([{
+                ...emptyLine(),
+                product_id: '',
+                article_ref: purchase.article_ref || '',
+                description: purchase.designation || '',
+                unit: purchase.unit || '',
+                quantity: purchase.quantity != null ? String(purchase.quantity) : '1',
+                unit_price: purchase.unit_price != null ? String(purchase.unit_price) : '',
+            }]);
+        } else {
+            setLines([emptyLine()]);
+        }
+
+        setImportOpen(false);
+        setError(
+            matchedClient || !purchase.client_livre
+                ? ''
+                : `Client « ${purchase.client_livre} » non trouvé : sélectionnez le client manuellement.`,
+        );
     };
 
     const fillForm = (row) => {
@@ -429,19 +574,39 @@ export default function BonVentesPage() {
         <div className="space-y-4">
             <ViewModal row={viewRow} onClose={() => setViewRow(null)} />
 
+            <ImportPurchaseModal
+                open={importOpen}
+                rows={purchaseOrders}
+                loading={importLoading}
+                onClose={() => setImportOpen(false)}
+                onSelect={applyImportPurchase}
+            />
+
             {formOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/50 backdrop-blur-sm" onClick={closeFormPanel}>
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-sm" onClick={closeFormPanel}>
                     <div
-                        className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-6xl max-h-[92vh] overflow-hidden border border-slate-200 dark:border-slate-700 flex flex-col"
+                        className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-[min(98vw,1600px)] max-h-[96vh] overflow-hidden border border-slate-200 dark:border-slate-700 flex flex-col"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <div className="flex items-center justify-between px-5 py-3.5 bg-gradient-to-r from-brand-navy via-blue-800 to-blue-900 shrink-0">
+                        <div className="flex items-center justify-between gap-3 px-5 py-3.5 bg-gradient-to-r from-brand-navy via-blue-800 to-blue-900 shrink-0">
                             <h3 className="text-white font-bold text-sm uppercase tracking-wide">
                                 {editingId ? `Modifier Bon de Vente ${currentRef}` : 'Nouveau Bon de Vente'}
                             </h3>
-                            <button type="button" onClick={closeFormPanel} className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10">
-                                <X className="w-4 h-4" />
-                            </button>
+                            <div className="flex items-center gap-2">
+                                {!editingId && (
+                                    <button
+                                        type="button"
+                                        onClick={openImportModal}
+                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-wide text-white bg-emerald-500/90 hover:bg-emerald-500 border border-white/20"
+                                    >
+                                        <Download className="w-3.5 h-3.5" />
+                                        Importer
+                                    </button>
+                                )}
+                                <button type="button" onClick={closeFormPanel} className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10">
+                                    <X className="w-4 h-4" />
+                                </button>
+                            </div>
                         </div>
 
                         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 space-y-3">
@@ -449,8 +614,8 @@ export default function BonVentesPage() {
                                 <div className="p-3 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm border border-red-100 dark:border-red-800">{error}</div>
                             )}
 
-                            <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/40 p-2.5 overflow-x-auto">
-                                <div className="grid grid-cols-[100px_88px_minmax(140px,1.3fr)_100px_minmax(130px,1.1fr)_72px_88px_minmax(100px,0.9fr)_95px] gap-1.5 items-end min-w-[1080px]">
+                            <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/40 p-2.5">
+                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 xl:grid-cols-9 gap-2 items-end">
                                     <Field label="Date">
                                         <input type="date" required value={form.order_date} onChange={(e) => set('order_date', e.target.value)} className={inputClass} />
                                     </Field>
