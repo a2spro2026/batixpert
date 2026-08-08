@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\SupplierInvoiceApiController;
 use App\Http\Controllers\Api\SupplierPaymentApiController;
 use App\Http\Controllers\Api\QuoteApiController;
 use App\Http\Controllers\Api\SupplierApiController;
+use App\Http\Controllers\Api\StockMouvementApiController;
 use App\Http\Controllers\Api\TaskApiController;
 use App\Http\Controllers\Api\TransactionApiController;
 use App\Http\Controllers\Api\UserApiController;
@@ -51,6 +52,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('quotes/{quote}/validate', [QuoteApiController::class, 'validateQuote']);
     Route::apiResource('suppliers', SupplierApiController::class);
     Route::apiResource('products', ProductApiController::class);
+    Route::get('stock-mouvements', [StockMouvementApiController::class, 'index']);
     Route::get('purchase-orders/balance', [PurchaseOrderApiController::class, 'balance']);
     Route::apiResource('purchase-orders', PurchaseOrderApiController::class);
     Route::post('purchase-orders/{purchase_order}/validate', [PurchaseOrderApiController::class, 'validateOrder']);

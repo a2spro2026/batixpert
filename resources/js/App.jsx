@@ -10,6 +10,7 @@ import BonVentesPage from './pages/BonVentesPage';
 import ReglementFournisseurPage from './pages/ReglementFournisseurPage';
 import ReglementClientPage from './pages/ReglementClientPage';
 import FicheProduitPage from './pages/FicheProduitPage';
+import StockMouvementsPage from './pages/StockMouvementsPage';
 import GenericListPage from './pages/GenericListPage';
 import ModulePage from './pages/ModulePage';
 import FicheFournisseurPage from './pages/FicheFournisseurPage';
@@ -83,7 +84,7 @@ function AppRoutes() {
 
                 {/* Stock */}
                 <Route path="stock/produits" element={<FicheProduitPage />} />
-                <Route path="stock/mouvements" element={<ModulePage />} />
+                <Route path="stock/mouvements" element={<StockMouvementsPage />} />
                 <Route path="stock/fiscal" element={<ModulePage />} />
 
                 {/* Chantiers */}
