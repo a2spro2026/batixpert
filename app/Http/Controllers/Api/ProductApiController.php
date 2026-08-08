@@ -12,6 +12,8 @@ class ProductApiController extends Controller
 {
     private ?array $purchasedCache = null;
 
+    private ?array $soldCache = null;
+
     public function index(Request $request)
     {
         $query = Product::query()
@@ -139,39 +141,67 @@ class ProductApiController extends Controller
             return $this->purchasedCache;
         }
 
+        return $this->purchasedCache = $this->orderItemQuantities(
+            'purchase_order_items',
+            'purchase_orders',
+            'purchase_order_id',
+            'poi'
+        );
+    }
+
+    /**
+     * Quantités vendues par produit (bons de vente non annulés).
+     */
+    private function soldQuantities(): array
+    {
+        if ($this->soldCache !== null) {
+            return $this->soldCache;
+        }
+
+        return $this->soldCache = $this->orderItemQuantities(
+            'sales_order_items',
+            'sales_orders',
+            'sales_order_id',
+            'soi'
+        );
+    }
+
+    private function orderItemQuantities(string $itemsTable, string $ordersTable, string $fk, string $alias): array
+    {
         $map = ['by_id' => [], 'by_ref' => []];
 
-        if (Schema::hasTable('purchase_order_items') && Schema::hasTable('purchase_orders')) {
-            $rows = DB::table('purchase_order_items as poi')
-                ->join('purchase_orders as po', 'po.id', '=', 'poi.purchase_order_id')
-                ->where('po.status', '!=', 'annule')
-                ->selectRaw('poi.product_id, poi.article_ref, SUM(poi.quantity) as qty')
-                ->groupBy('poi.product_id', 'poi.article_ref')
-                ->get();
+        if (! Schema::hasTable($itemsTable) || ! Schema::hasTable($ordersTable)) {
+            return $map;
+        }
 
-            foreach ($rows as $row) {
-                $qty = (float) $row->qty;
+        $rows = DB::table("{$itemsTable} as {$alias}")
+            ->join("{$ordersTable} as o", 'o.id', '=', "{$alias}.{$fk}")
+            ->where('o.status', '!=', 'annule')
+            ->selectRaw("{$alias}.product_id, {$alias}.article_ref, SUM({$alias}.quantity) as qty")
+            ->groupBy("{$alias}.product_id", "{$alias}.article_ref")
+            ->get();
 
-                if ($row->product_id) {
-                    $map['by_id'][(int) $row->product_id] = ($map['by_id'][(int) $row->product_id] ?? 0) + $qty;
+        foreach ($rows as $row) {
+            $qty = (float) $row->qty;
 
-                    continue;
-                }
+            if ($row->product_id) {
+                $map['by_id'][(int) $row->product_id] = ($map['by_id'][(int) $row->product_id] ?? 0) + $qty;
 
-                $ref = trim((string) $row->article_ref);
-                if ($ref !== '') {
-                    $key = mb_strtolower($ref);
-                    $map['by_ref'][$key] = ($map['by_ref'][$key] ?? 0) + $qty;
-                }
+                continue;
+            }
+
+            $ref = trim((string) $row->article_ref);
+            if ($ref !== '') {
+                $key = mb_strtolower($ref);
+                $map['by_ref'][$key] = ($map['by_ref'][$key] ?? 0) + $qty;
             }
         }
 
-        return $this->purchasedCache = $map;
+        return $map;
     }
 
-    private function purchasedFor(Product $product): float
+    private function qtyForProduct(Product $product, array $map): float
     {
-        $map = $this->purchasedQuantities();
         $qty = $map['by_id'][$product->id] ?? 0;
 
         $refs = array_unique(array_filter([
@@ -186,14 +216,25 @@ class ProductApiController extends Controller
         return (float) $qty;
     }
 
+    private function purchasedFor(Product $product): float
+    {
+        return $this->qtyForProduct($product, $this->purchasedQuantities());
+    }
+
+    private function soldFor(Product $product): float
+    {
+        return $this->qtyForProduct($product, $this->soldQuantities());
+    }
+
     private function formatProduct(Product $product): array
     {
         $purchased = $this->purchasedFor($product);
-        $stock = (float) $product->initial_stock + $purchased;
+        $sold = $this->soldFor($product);
+        $stockActuel = $purchased - $sold;
 
-        // Garde la colonne stock alignée pour les autres écrans (Stock, alertes, état).
-        if (abs((float) $product->quantity_in_stock - $stock) > 0.0001) {
-            $product->forceFill(['quantity_in_stock' => $stock])->saveQuietly();
+        // Stock actuel = achats − ventes (aligné pour alertes / autres écrans).
+        if (abs((float) $product->quantity_in_stock - $stockActuel) > 0.0001) {
+            $product->forceFill(['quantity_in_stock' => $stockActuel])->saveQuietly();
         }
 
         return [
@@ -208,7 +249,9 @@ class ProductApiController extends Controller
             'initial_stock' => (float) $product->initial_stock,
             'stock_initial' => (float) $product->initial_stock,
             'purchased_qty' => $purchased,
-            'quantity_in_stock' => $stock,
+            'sold_qty' => $sold,
+            'stock_actuel' => $stockActuel,
+            'quantity_in_stock' => $stockActuel,
             'min_stock_alert' => (float) $product->min_stock_alert,
             'status' => $product->status,
             'statut' => $product->status === 'actif' ? 'Actif' : 'Inactif',
