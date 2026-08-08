@@ -20,10 +20,10 @@ function qtyClass(value, tone) {
         : 'text-rose-700 dark:text-rose-400';
 }
 
-function buildPrintHtml(row, year, activeMonths) {
-    const monthHeads = activeMonths.map((m) => `<th colspan="2">${m.full}</th>`).join('');
-    const subHeads = activeMonths.map(() => '<th>Achat</th><th>Vente</th>').join('');
-    const monthCells = activeMonths.map((m) => {
+function buildPrintHtml(row, year, months) {
+    const monthHeads = months.map((m) => `<th colspan="2">${m.full}</th>`).join('');
+    const subHeads = months.map(() => '<th>Achat</th><th>Vente</th>').join('');
+    const monthCells = months.map((m) => {
         const data = row.months?.[m.num] || { achat: 0, vente: 0 };
         return `<td style="text-align:center;color:#047857">${formatQtyStrict(data.achat)}</td>
             <td style="text-align:center;color:#be123c">${formatQtyStrict(data.vente)}</td>`;
@@ -40,17 +40,16 @@ th{background:#f1f5f9;font-weight:700;text-align:center}
 .badge{background:#dbeafe;color:#1e3a5f;padding:3px 8px;border-radius:999px;font-weight:700;font-size:11px}
 </style></head><body>
 <h1>BATIXPERT — Mouvement Stock</h1>
-<p class="sub">Année ${year} · <span class="badge">${row.reference || '—'}</span> ${row.designation || ''}</p>
+<p class="sub">Année ${year} · <span class="badge">${row.reference || '—'}</span></p>
 <table>
 <tr>
-<th rowspan="2">Réf</th><th rowspan="2">Désignation</th><th rowspan="2">Stock Initial</th>
+<th rowspan="2">Réf</th><th rowspan="2">Stock Initial</th>
 ${monthHeads}
 <th rowspan="2">Stock Actuel</th>
 </tr>
 <tr>${subHeads}</tr>
 <tr>
 <td style="text-align:center;font-family:monospace;font-weight:700">${row.reference || '—'}</td>
-<td style="text-align:center">${row.designation || '—'}</td>
 <td style="text-align:center;font-weight:700">${formatQtyStrict(row.stock_initial)}</td>
 ${monthCells}
 <td style="text-align:center;font-weight:700;color:#1e3a5f">${formatQtyStrict(row.stock_actuel)}</td>
@@ -59,10 +58,10 @@ ${monthCells}
 </body></html>`;
 }
 
-function openPrintable(row, year, activeMonths) {
+function openPrintable(row, year, months) {
     const w = window.open('', '_blank', 'width=1200,height=700');
     if (!w) return;
-    w.document.write(buildPrintHtml(row, year, activeMonths));
+    w.document.write(buildPrintHtml(row, year, months));
     w.document.close();
     w.focus();
     setTimeout(() => w.print(), 300);
@@ -77,6 +76,23 @@ function ActionBtn({ title, icon: Icon, color = 'slate', onClick }) {
         <button type="button" title={title} onClick={onClick} className={`p-1.5 rounded-lg text-slate-400 transition-colors ${colors[color]}`}>
             <Icon className="w-3.5 h-3.5" strokeWidth={2} />
         </button>
+    );
+}
+
+function FragmentMonthSubHeads({ even }) {
+    const bg = even
+        ? 'bg-white dark:bg-slate-900'
+        : 'bg-slate-50 dark:bg-slate-800/50';
+
+    return (
+        <>
+            <th className={`px-1 py-1.5 text-[9px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 text-center border-b border-slate-200 dark:border-slate-700 ${bg}`}>
+                A
+            </th>
+            <th className={`px-1 py-1.5 text-[9px] font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400 text-center border-b border-r border-slate-200 dark:border-slate-700 ${bg}`}>
+                V
+            </th>
+        </>
     );
 }
 
@@ -111,20 +127,7 @@ export default function StockMouvementsPage() {
         load();
     }, [load]);
 
-    const activeMonths = useMemo(() => {
-        if (!monthsMeta.length) return [];
-
-        return monthsMeta.filter((m) =>
-            rows.some((row) => {
-                const cell = row.months?.[m.num];
-                if (!cell) return false;
-                return Math.abs(Number(cell.achat) || 0) >= 0.0005
-                    || Math.abs(Number(cell.vente) || 0) >= 0.0005;
-            })
-        );
-    }, [monthsMeta, rows]);
-
-    const colCount = 3 + activeMonths.length * 2 + 2;
+    const colCount = 2 + monthsMeta.length * 2 + 2;
 
     return (
         <div className="space-y-4 h-full min-h-0 flex flex-col">
@@ -167,19 +170,14 @@ export default function StockMouvementsPage() {
             </div>
 
             <div className="flex-1 min-h-0 glass-card overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60 flex flex-col">
-                <div className="shrink-0 px-5 py-3 bg-gradient-to-r from-brand-navy via-blue-900 to-slate-800 border-b border-white/10 flex items-center justify-between gap-3">
+                <div className="shrink-0 px-5 py-3 bg-gradient-to-r from-brand-navy via-blue-900 to-slate-800 border-b border-white/10">
                     <h3 className="text-sm font-bold text-white uppercase tracking-wide">
                         Tableau des mouvements
                     </h3>
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-white/70">
-                        {activeMonths.length
-                            ? `${activeMonths.length} mois actif${activeMonths.length > 1 ? 's' : ''}`
-                            : 'Aucun mouvement cette année'}
-                    </span>
                 </div>
 
                 <div className="flex-1 min-h-0 overflow-auto">
-                    <table className="w-full text-sm border-collapse" style={{ minWidth: Math.max(720, 280 + activeMonths.length * 100) }}>
+                    <table className="w-full text-sm border-collapse min-w-[1280px]">
                         <thead className="sticky top-0 z-20">
                             <tr className="bg-slate-100 dark:bg-slate-800">
                                 <th
@@ -190,17 +188,11 @@ export default function StockMouvementsPage() {
                                 </th>
                                 <th
                                     rowSpan={2}
-                                    className="px-3 py-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 text-center whitespace-nowrap sticky left-[76px] z-30 bg-slate-100 dark:bg-slate-800 border-b border-r border-slate-200 dark:border-slate-700 align-middle min-w-[150px]"
-                                >
-                                    Désignation
-                                </th>
-                                <th
-                                    rowSpan={2}
                                     className="px-2 py-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 text-center whitespace-nowrap border-b border-r border-slate-200 dark:border-slate-700 align-middle"
                                 >
                                     Stock<br />Initial
                                 </th>
-                                {activeMonths.map((m, i) => (
+                                {monthsMeta.map((m, i) => (
                                     <th
                                         key={m.num}
                                         colSpan={2}
@@ -230,7 +222,7 @@ export default function StockMouvementsPage() {
                                 </th>
                             </tr>
                             <tr className="bg-white dark:bg-slate-900">
-                                {activeMonths.map((m, i) => (
+                                {monthsMeta.map((m, i) => (
                                     <FragmentMonthSubHeads key={m.num} even={i % 2 === 0} />
                                 ))}
                             </tr>
@@ -239,7 +231,7 @@ export default function StockMouvementsPage() {
                             {loading ? (
                                 [...Array(6)].map((_, i) => (
                                     <tr key={i} className="border-b border-slate-100 dark:border-slate-800">
-                                        {[...Array(colCount || 29)].map((__, j) => (
+                                        {[...Array(colCount || 28)].map((__, j) => (
                                             <td key={j} className="px-2 py-3 text-center">
                                                 <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded animate-pulse mx-auto max-w-[48px]" />
                                             </td>
@@ -254,16 +246,13 @@ export default function StockMouvementsPage() {
                                             rowIdx % 2 === 0 ? 'bg-white dark:bg-slate-900' : 'bg-slate-50/60 dark:bg-slate-900/60'
                                         }`}
                                     >
-                                        <td className="px-3 py-2.5 text-center font-mono text-xs font-semibold text-brand-navy dark:text-blue-300 sticky left-0 z-10 bg-inherit border-r border-slate-100 dark:border-slate-800">
+                                        <td className="px-3 py-2.5 text-center font-mono text-xs font-semibold text-brand-navy dark:text-blue-300 sticky left-0 z-10 bg-inherit border-r border-slate-100 dark:border-slate-800" title={row.designation || ''}>
                                             {row.reference}
-                                        </td>
-                                        <td className="px-3 py-2.5 text-center font-medium text-slate-800 dark:text-white max-w-[160px] truncate sticky left-[76px] z-10 bg-inherit border-r border-slate-100 dark:border-slate-800" title={row.designation}>
-                                            {row.designation || '—'}
                                         </td>
                                         <td className="px-2 py-2.5 text-center tabular-nums text-xs font-semibold text-slate-700 dark:text-slate-200 border-r border-slate-100 dark:border-slate-800">
                                             {formatQty(row.stock_initial)}
                                         </td>
-                                        {activeMonths.map((m, i) => {
+                                        {monthsMeta.map((m, i) => {
                                             const cell = row.months?.[m.num] || { achat: 0, vente: 0 };
                                             const stripe = i % 2 === 0 ? '' : 'bg-slate-50/90 dark:bg-slate-800/25';
                                             return (
@@ -285,13 +274,13 @@ export default function StockMouvementsPage() {
                                                 <ActionBtn
                                                     title="Imprimer"
                                                     icon={Printer}
-                                                    onClick={() => openPrintable(row, year, activeMonths)}
+                                                    onClick={() => openPrintable(row, year, monthsMeta)}
                                                 />
                                                 <ActionBtn
                                                     title="PDF"
                                                     icon={FileText}
                                                     color="orange"
-                                                    onClick={() => openPrintable(row, year, activeMonths)}
+                                                    onClick={() => openPrintable(row, year, monthsMeta)}
                                                 />
                                             </div>
                                         </td>
@@ -299,7 +288,7 @@ export default function StockMouvementsPage() {
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan={colCount || 29} className="px-4 py-12 text-center text-slate-400">
+                                    <td colSpan={colCount || 28} className="px-4 py-12 text-center text-slate-400">
                                         Aucun produit enregistré
                                     </td>
                                 </tr>
@@ -309,22 +298,5 @@ export default function StockMouvementsPage() {
                 </div>
             </div>
         </div>
-    );
-}
-
-function FragmentMonthSubHeads({ even }) {
-    const bg = even
-        ? 'bg-white dark:bg-slate-900'
-        : 'bg-slate-50 dark:bg-slate-800/50';
-
-    return (
-        <>
-            <th className={`px-1 py-1.5 text-[9px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 text-center border-b border-slate-200 dark:border-slate-700 ${bg}`}>
-                A
-            </th>
-            <th className={`px-1 py-1.5 text-[9px] font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400 text-center border-b border-r border-slate-200 dark:border-slate-700 ${bg}`}>
-                V
-            </th>
-        </>
     );
 }
