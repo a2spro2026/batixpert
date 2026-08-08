@@ -160,11 +160,12 @@ function ViewModal({ row, onClose }) {
                 </div>
 
                 <div className="p-5 space-y-4 overflow-y-auto min-h-0 flex-1">
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                         {[
                             ['Date Bon', row.order_date],
                             ['N° Bon', row.reference],
                             ['Nom Fournisseur', row.fournisseur],
+                            ['Client Livré', row.client_livre],
                         ].map(([label, value]) => (
                             <div key={label} className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 px-3 py-2.5 text-center">
                                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">{label}</p>
