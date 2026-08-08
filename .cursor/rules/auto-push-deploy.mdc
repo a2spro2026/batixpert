@@ -1,0 +1,20 @@
+---
+description: Après une mise à jour, commit + push + déploiement VPS sans demander
+alwaysApply: true
+---
+
+# Push + déploiement automatique
+
+Quand une **mise à jour / correction / feature** est terminée (build OK), **ne pas demander** confirmation pour pousser ou déployer.
+
+## Workflow immédiat
+
+1. **Commit** les fichiers concernés (pas `.env`, pas `_tmp_vps_*` avec secrets).
+2. **Push** sur `origin` (branche courante).
+3. **Déployer** sur **batixpert.a2spr.com** via la procédure VPS A2S (`_tmp_vps_deploy_batixpert.py` / paramiko), en préservant `.env`.
+4. Indiquer l’URL finale : https://batixpert.a2spr.com
+
+## Exceptions
+
+- Ne pas push/deploy si l’utilisateur dit explicitement « local seulement », « ne déploie pas », ou « sans push ».
+- Ne pas committer de secrets.

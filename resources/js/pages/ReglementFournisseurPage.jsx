@@ -683,12 +683,12 @@ export default function ReglementFournisseurPage() {
     /* ───────────── LIST VIEW ───────────── */
     if (view === 'list') {
         return (
-            <div className="space-y-4">
+            <div className="flex flex-col gap-3 h-[calc(100dvh-11rem)] min-h-[360px]">
                 {error && (
-                    <div className="p-3 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm border border-red-100 dark:border-red-800">{error}</div>
+                    <div className="shrink-0 p-3 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm border border-red-100 dark:border-red-800">{error}</div>
                 )}
 
-                <div className="flex flex-wrap items-center gap-2.5">
+                <div className="shrink-0 flex flex-wrap items-center gap-2.5">
                     <button type="button" onClick={openNew} className="btn-primary">
                         <Plus className="w-4 h-4" />
                         Nouveau Règlement
@@ -740,7 +740,7 @@ export default function ReglementFournisseurPage() {
                     </div>
                 </div>
 
-                <form onSubmit={handleSearch} className="glass-card p-3 shadow-card border border-slate-200/60 dark:border-slate-700/60">
+                <form onSubmit={handleSearch} className="shrink-0 glass-card p-3 shadow-card border border-slate-200/60 dark:border-slate-700/60">
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-[repeat(5,minmax(0,1fr))_auto] gap-2 items-end">
                         <Field label="Statut">
                             <select value={filters.statut} onChange={(e) => setFilter('statut', e.target.value)} className={filterClass}>
@@ -787,16 +787,16 @@ export default function ReglementFournisseurPage() {
                     </div>
                 </form>
 
-                <div className="glass-card overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60">
-                    <div className="px-5 py-3.5 bg-gradient-to-r from-blue-600 via-blue-700 to-slate-800 border-b border-white/10">
+                <div className="flex-1 min-h-0 glass-card flex flex-col overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60">
+                    <div className="shrink-0 px-5 py-3.5 bg-gradient-to-r from-blue-600 via-blue-700 to-slate-800 border-b border-white/10">
                         <h3 className="text-sm font-bold text-white uppercase tracking-wide">Tableau de consultation</h3>
                     </div>
-                    <div className="overflow-x-auto">
+                    <div className="flex-1 min-h-0 overflow-auto">
                         <table className="w-full text-sm min-w-[1100px]">
-                            <thead>
-                                <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700">
+                            <thead className="sticky top-0 z-10">
+                                <tr className="bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 shadow-sm">
                                     {['Réf', 'Date', 'Fournisseur', 'Type', 'Nom de Tiré', 'N°', 'Bnq', 'Date Décaiss', 'Montant', 'Statut', 'Action'].map((h) => (
-                                        <th key={h} className="px-3 py-3 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap text-center">{h}</th>
+                                        <th key={h} className="px-3 py-3 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap text-center bg-slate-100 dark:bg-slate-800">{h}</th>
                                     ))}
                                 </tr>
                             </thead>
