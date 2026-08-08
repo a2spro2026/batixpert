@@ -447,9 +447,9 @@ export default function BonAchatsPage() {
             <ViewModal row={viewRow} onClose={() => setViewRow(null)} />
 
             {formOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/50 backdrop-blur-sm" onClick={closeFormPanel}>
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-sm" onClick={closeFormPanel}>
                     <div
-                        className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-6xl max-h-[92vh] overflow-hidden border border-slate-200 dark:border-slate-700 flex flex-col"
+                        className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-[min(98vw,1600px)] max-h-[96vh] overflow-hidden border border-slate-200 dark:border-slate-700 flex flex-col"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="flex items-center justify-between px-5 py-3.5 bg-gradient-to-r from-brand-navy via-blue-800 to-blue-900 shrink-0">
@@ -466,15 +466,15 @@ export default function BonAchatsPage() {
                                 <div className="p-3 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm border border-red-100 dark:border-red-800">{error}</div>
                             )}
 
-                            <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/40 p-2.5 overflow-x-auto">
-                                <div className="grid grid-cols-[100px_88px_minmax(130px,1.2fr)_90px_minmax(110px,1fr)_100px_72px_88px_minmax(100px,0.9fr)_95px] gap-1.5 items-end min-w-[1180px]">
+                            <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/40 p-2.5">
+                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 xl:grid-cols-10 gap-2 items-end">
                                     <Field label="Date">
                                         <input type="date" required value={form.order_date} onChange={(e) => set('order_date', e.target.value)} className={inputClass} />
                                     </Field>
                                     <Field label="N° B-A">
                                         <input type="text" readOnly value={currentRef} className={readOnlyClass} />
                                     </Field>
-                                    <Field label="Nom Fournisseur">
+                                    <Field label="Nom Fournisseur" className="sm:col-span-2 md:col-span-1 xl:col-span-1">
                                         <select required value={form.supplier_id} onChange={(e) => set('supplier_id', e.target.value)} className={inputClass}>
                                             <option value="">—</option>
                                             {suppliers.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
