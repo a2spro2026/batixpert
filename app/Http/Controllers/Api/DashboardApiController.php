@@ -13,7 +13,6 @@ use App\Models\Product;
 use App\Models\PurchaseOrder;
 use App\Models\SaleOrder;
 use App\Models\StockMovement;
-use App\Models\Supplier;
 use App\Models\SupplierInvoice;
 use App\Models\SupplierPayment;
 use App\Models\Task;
@@ -55,7 +54,26 @@ class DashboardApiController extends Controller
         $tresorerie = (float) Payment::where('type', 'client')->sum('amount')
             - (float) Payment::whereIn('type', ['fournisseur', 'personnel'])->sum('amount');
 
-        $soldeFournisseur = (float) Supplier::sum('initial_balance');
+        $achatsBySupplier = PurchaseOrder::query()
+            ->where('status', '!=', 'annule')
+            ->selectRaw('supplier_id, SUM(total_ttc) as total_achats')
+            ->groupBy('supplier_id')
+            ->pluck('total_achats', 'supplier_id');
+
+        $paiementsBySupplier = SupplierPayment::query()
+            ->selectRaw('supplier_id, SUM(montant) as montant_paye')
+            ->groupBy('supplier_id')
+            ->pluck('montant_paye', 'supplier_id');
+
+        $soldeFournisseur = $achatsBySupplier->keys()
+            ->merge($paiementsBySupplier->keys())
+            ->unique()
+            ->sum(function ($supplierId) use ($achatsBySupplier, $paiementsBySupplier) {
+                $totalAchats = (float) ($achatsBySupplier[$supplierId] ?? 0);
+                $montantPaye = (float) ($paiementsBySupplier[$supplierId] ?? 0);
+
+                return max($totalAchats - $montantPaye, 0);
+            });
 
         $chantiersActifs = Chantier::where('status', 'en_cours')->where('archived', false)->count();
         $chantiersTermines = Chantier::where('status', 'termine')->count();
