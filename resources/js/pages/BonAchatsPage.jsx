@@ -130,39 +130,90 @@ function ActionBtn({ title, onClick, icon: Icon, color = 'slate' }) {
 
 function ViewModal({ row, onClose }) {
     if (!row) return null;
-    const header = [
-        ['Date', row.order_date], ['N° B-A', row.reference], ['Fournisseur', row.fournisseur],
-        ['N° Frns', row.bc_number], ['Client Livré', row.client_livre], ['Ville Livraison', row.city],
-        ['Type Rég', row.reglement], ['Échéance', row.echeance], ['Chauffeur', row.chauffeur], ['Matricule', row.matricule],
-    ];
+
+    const items = row.items?.length
+        ? row.items
+        : [{
+            article_ref: row.article_ref,
+            description: row.designation,
+            quantity: row.quantity,
+            unit_price: row.unit_price,
+            total: row.subtotal ?? row.montant,
+        }];
+
+    const total = items.reduce((sum, i) => sum + (Number(i.total) || 0), 0);
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
-            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-lg border border-slate-200 dark:border-slate-700 overflow-hidden" onClick={(e) => e.stopPropagation()}>
-                <div className="flex items-center justify-between px-5 py-4 bg-gradient-to-r from-brand-navy to-blue-800">
+            <div
+                className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-4xl border border-slate-200 dark:border-slate-700 overflow-hidden flex flex-col max-h-[90vh]"
+                onClick={(e) => e.stopPropagation()}
+            >
+                <div className="flex items-center justify-between px-5 py-4 bg-gradient-to-r from-brand-navy to-blue-800 shrink-0">
                     <div>
-                        <p className="text-[10px] text-blue-200 uppercase tracking-wider">Bon d'Achat</p>
+                        <p className="text-[10px] text-blue-200 uppercase tracking-wider">Bon d&apos;Achat</p>
                         <h3 className="text-white font-bold">{row.reference}</h3>
                     </div>
-                    <button type="button" onClick={onClose} className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10"><X className="w-4 h-4" /></button>
+                    <button type="button" onClick={onClose} className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10">
+                        <X className="w-4 h-4" />
+                    </button>
                 </div>
-                <div className="p-5 space-y-2 text-sm max-h-[65vh] overflow-y-auto">
-                    {header.map(([label, value]) => (
-                        <div key={label} className="flex justify-between gap-4 py-1.5 border-b border-slate-100 dark:border-slate-800">
-                            <span className="text-slate-500 shrink-0">{label}</span>
-                            <span className="font-medium text-slate-800 dark:text-white text-right">{value || '—'}</span>
+
+                <div className="p-5 space-y-4 overflow-y-auto min-h-0 flex-1">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        {[
+                            ['Date Bon', row.order_date],
+                            ['N° Bon', row.reference],
+                            ['Nom Fournisseur', row.fournisseur],
+                        ].map(([label, value]) => (
+                            <div key={label} className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 px-3 py-2.5 text-center">
+                                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">{label}</p>
+                                <p className="mt-1 text-sm font-semibold text-slate-800 dark:text-white">{value || '—'}</p>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm min-w-[640px]">
+                                <thead>
+                                    <tr className="bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
+                                        {['Réf', 'Désignation', 'Qte', 'Prix/U', 'Sous-Total'].map((h) => (
+                                            <th key={h} className="px-3 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-center whitespace-nowrap">{h}</th>
+                                        ))}
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                                    {items.map((i, idx) => (
+                                        <tr key={i.id || idx} className="bg-white dark:bg-slate-900">
+                                            <td className="px-3 py-2 text-center font-mono text-xs font-semibold text-brand-navy dark:text-blue-300">{i.article_ref || '—'}</td>
+                                            <td className="px-3 py-2 text-center text-slate-700 dark:text-slate-200">{i.description || '—'}</td>
+                                            <td className="px-3 py-2 text-center tabular-nums text-slate-700 dark:text-slate-200">
+                                                {(Number(i.quantity) || 0).toLocaleString('fr-FR', { maximumFractionDigits: 3 })}
+                                            </td>
+                                            <td className="px-3 py-2 text-center tabular-nums font-medium text-slate-800 dark:text-white">{formatMontantDisplay(i.unit_price)}</td>
+                                            <td className="px-3 py-2 text-center tabular-nums font-semibold text-brand-navy dark:text-orange-400">{formatMontantDisplay(i.total)}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                                <tfoot>
+                                    <tr className="bg-slate-50 dark:bg-slate-800/80 border-t border-slate-200 dark:border-slate-700">
+                                        <td colSpan={4} className="px-3 py-2.5 text-right text-xs font-bold uppercase tracking-wider text-slate-500">Total</td>
+                                        <td className="px-3 py-2.5 text-center tabular-nums font-bold text-brand-navy dark:text-orange-400">{formatMontantDisplay(total || row.subtotal || row.montant)}</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
                         </div>
-                    ))}
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-brand-navy dark:text-orange-400 pt-2">Articles</p>
-                    {(row.items?.length ? row.items : []).map((i, idx) => (
-                        <div key={i.id || idx} className="rounded-lg border border-slate-100 dark:border-slate-800 px-3 py-2 text-xs">
-                            <div className="font-semibold">{i.article_ref || '—'} — {i.description}</div>
-                            <div className="text-slate-500 mt-0.5">{i.quantity} {i.unit || ''} × {formatMontant(i.unit_price)} = <strong>{formatMontant(i.total)}</strong></div>
-                        </div>
-                    ))}
+                    </div>
                 </div>
-                <div className="flex gap-2 px-5 py-4 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
-                    <button type="button" onClick={() => openPrintable(row)} className="btn-secondary text-xs flex-1"><Printer className="w-3.5 h-3.5" /> Imprimer</button>
-                    <button type="button" onClick={() => openPrintable(row)} className="btn-primary text-xs flex-1"><FileText className="w-3.5 h-3.5" /> PDF</button>
+
+                <div className="flex gap-2 px-5 py-4 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 shrink-0">
+                    <button type="button" onClick={() => openPrintable(row)} className="btn-primary text-xs flex-1">
+                        <Printer className="w-3.5 h-3.5" /> Imprimer
+                    </button>
+                    <button type="button" onClick={onClose} className="btn-danger text-xs flex-1">
+                        <XCircle className="w-3.5 h-3.5" /> Fermer
+                    </button>
                 </div>
             </div>
         </div>
@@ -598,7 +649,12 @@ export default function BonAchatsPage() {
                                 ))
                             ) : rows.length ? (
                                 rows.map((row) => (
-                                    <tr key={row.id} className="hover:bg-orange-50/40 dark:hover:bg-slate-800/40 transition-colors">
+                                    <tr
+                                        key={row.id}
+                                        className="hover:bg-orange-50/40 dark:hover:bg-slate-800/40 transition-colors cursor-pointer"
+                                        onDoubleClick={() => setViewRow(row)}
+                                        title="Double-clic pour afficher"
+                                    >
                                         <td className="px-4 py-2.5 text-center text-slate-600 dark:text-slate-300">{row.order_date}</td>
                                         <td className="px-4 py-2.5 text-center font-mono text-xs font-semibold text-brand-navy dark:text-orange-400">{row.reference}</td>
                                         <td className="px-4 py-2.5 text-center font-medium text-slate-800 dark:text-white">{row.fournisseur || '—'}</td>
@@ -614,7 +670,7 @@ export default function BonAchatsPage() {
                                                 {row.echeance || '—'}
                                             </span>
                                         </td>
-                                        <td className="px-4 py-2.5">
+                                        <td className="px-4 py-2.5" onDoubleClick={(e) => e.stopPropagation()}>
                                             <div className="flex items-center justify-center gap-0.5">
                                                 <ActionBtn title="Voir" icon={Eye} color="blue" onClick={() => setViewRow(row)} />
                                                 <ActionBtn title="Modifier" icon={Pencil} color="amber" onClick={() => fillForm(row)} />
