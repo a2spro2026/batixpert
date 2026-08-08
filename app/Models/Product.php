@@ -39,20 +39,16 @@ class Product extends Model
         return $this->quantity_in_stock <= $this->min_stock_alert;
     }
 
-    public function etatLabel(): string
+    public function etatLabel(?float $stock = null): string
     {
-        if ($this->etat) {
-            return $this->etat;
-        }
-
-        $qty = (float) $this->quantity_in_stock;
+        $qty = $stock ?? (float) $this->quantity_in_stock;
         $min = (float) $this->min_stock_alert;
 
         if ($qty <= 0) {
             return 'Rupture';
         }
 
-        if ($qty <= $min) {
+        if ($min > 0 && $qty <= $min) {
             return 'Faible';
         }
 

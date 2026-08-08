@@ -231,10 +231,17 @@ class ProductApiController extends Controller
         $purchased = $this->purchasedFor($product);
         $sold = $this->soldFor($product);
         $stockActuel = $purchased - $sold;
+        $etat = $product->etatLabel($stockActuel);
 
-        // Stock actuel = achats − ventes (aligné pour alertes / autres écrans).
+        $updates = [];
         if (abs((float) $product->quantity_in_stock - $stockActuel) > 0.0001) {
-            $product->forceFill(['quantity_in_stock' => $stockActuel])->saveQuietly();
+            $updates['quantity_in_stock'] = $stockActuel;
+        }
+        if ((string) $product->etat !== $etat) {
+            $updates['etat'] = $etat;
+        }
+        if ($updates !== []) {
+            $product->forceFill($updates)->saveQuietly();
         }
 
         return [
@@ -255,7 +262,7 @@ class ProductApiController extends Controller
             'min_stock_alert' => (float) $product->min_stock_alert,
             'status' => $product->status,
             'statut' => $product->status === 'actif' ? 'Actif' : 'Inactif',
-            'etat' => $product->etatLabel(),
+            'etat' => $etat,
             'created_at' => $product->created_at?->format('d/m/Y'),
         ];
     }
