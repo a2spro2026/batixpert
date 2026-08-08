@@ -208,17 +208,20 @@ class ClientPaymentApiController extends Controller
                 ]);
 
                 $newPaid = round((float) ($row['order']->montant_paye ?? 0) + $row['amount'], 2);
-                $orderTotal = (float) $row['order']->total_ttc;
-                $action = $row['action'];
+                $orderTotal = round((float) $row['order']->total_ttc, 2);
+                $action = $row['action'] ?? 'Inst';
 
-                if ($action === 'Payé' || ($newPaid + 0.009 >= $orderTotal && $orderTotal > 0)) {
-                    $action = $newPaid + 0.009 >= $orderTotal ? 'Payé' : ($action ?: 'Inst');
+                // Soldé uniquement si le montant payé couvre le bon
+                if (in_array($action, ['Inst', 'Payé', null], true) || $action === '') {
+                    $action = ($orderTotal > 0 && $newPaid + 0.009 >= $orderTotal) ? 'Payé' : 'Inst';
                 }
 
                 $row['order']->update([
                     'montant_paye' => $newPaid,
                     'payment_action' => $action,
                 ]);
+                $row['order']->montant_paye = $newPaid;
+                $row['order']->payment_action = $action;
             }
 
             return $payment->fresh(['client', 'allocations.saleOrder']);
@@ -284,7 +287,14 @@ class ClientPaymentApiController extends Controller
             'payment_action' => 'required|in:Inst,Payé,Report,Imp,Dévalidé',
         ]);
 
-        $sales_order->update(['payment_action' => $validated['payment_action']]);
+        $payload = ['payment_action' => $validated['payment_action']];
+
+        // Bouton Payé = marquer le bon comme soldé
+        if ($validated['payment_action'] === 'Payé') {
+            $payload['montant_paye'] = round((float) $sales_order->total_ttc, 2);
+        }
+
+        $sales_order->update($payload);
 
         return response()->json($this->formatOrder($sales_order->fresh('client')));
     }
@@ -297,8 +307,11 @@ class ClientPaymentApiController extends Controller
             foreach ($clientPayment->allocations as $allocation) {
                 $order = $allocation->saleOrder ?: $allocation->clientOrder;
                 if ($order && isset($order->montant_paye)) {
+                    $newPaid = round(max((float) ($order->montant_paye ?? 0) - (float) $allocation->amount, 0), 2);
+                    $orderTotal = round((float) $order->total_ttc, 2);
                     $order->update([
-                        'montant_paye' => round(max((float) ($order->montant_paye ?? 0) - (float) $allocation->amount, 0), 2),
+                        'montant_paye' => $newPaid,
+                        'payment_action' => ($orderTotal > 0 && $newPaid + 0.009 >= $orderTotal) ? 'Payé' : 'Inst',
                     ]);
                 }
                 $allocation->delete();

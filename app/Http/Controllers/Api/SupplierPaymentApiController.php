@@ -208,17 +208,19 @@ class SupplierPaymentApiController extends Controller
                 ]);
 
                 $newPaid = round((float) ($row['order']->montant_paye ?? 0) + $row['amount'], 2);
-                $orderTotal = (float) $row['order']->total_ttc;
-                $action = $row['action'];
+                $orderTotal = round((float) $row['order']->total_ttc, 2);
+                $action = $row['action'] ?? 'Inst';
 
-                if ($action === 'Payé' || ($newPaid + 0.009 >= $orderTotal && $orderTotal > 0)) {
-                    $action = $newPaid + 0.009 >= $orderTotal ? 'Payé' : ($action ?: 'Inst');
+                if (in_array($action, ['Inst', 'Payé', null], true) || $action === '') {
+                    $action = ($orderTotal > 0 && $newPaid + 0.009 >= $orderTotal) ? 'Payé' : 'Inst';
                 }
 
                 $row['order']->update([
                     'montant_paye' => $newPaid,
                     'payment_action' => $action,
                 ]);
+                $row['order']->montant_paye = $newPaid;
+                $row['order']->payment_action = $action;
             }
 
             if ($importedIds->isNotEmpty()) {
@@ -279,7 +281,13 @@ class SupplierPaymentApiController extends Controller
             'payment_action' => 'required|in:Inst,Payé,Report,Imp,Dévalidé',
         ]);
 
-        $purchaseOrder->update(['payment_action' => $validated['payment_action']]);
+        $payload = ['payment_action' => $validated['payment_action']];
+
+        if ($validated['payment_action'] === 'Payé') {
+            $payload['montant_paye'] = round((float) $purchaseOrder->total_ttc, 2);
+        }
+
+        $purchaseOrder->update($payload);
 
         return response()->json($this->formatOrder($purchaseOrder->fresh('supplier')));
     }
@@ -292,8 +300,11 @@ class SupplierPaymentApiController extends Controller
             foreach ($supplierPayment->allocations as $allocation) {
                 $order = $allocation->purchaseOrder;
                 if ($order) {
+                    $newPaid = round(max((float) ($order->montant_paye ?? 0) - (float) $allocation->amount, 0), 2);
+                    $orderTotal = round((float) $order->total_ttc, 2);
                     $order->update([
-                        'montant_paye' => round(max((float) ($order->montant_paye ?? 0) - (float) $allocation->amount, 0), 2),
+                        'montant_paye' => $newPaid,
+                        'payment_action' => ($orderTotal > 0 && $newPaid + 0.009 >= $orderTotal) ? 'Payé' : 'Inst',
                     ]);
                 }
                 $allocation->delete();

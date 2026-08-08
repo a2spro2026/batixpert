@@ -420,8 +420,14 @@ export default function ReglementClientPage() {
     const setAction = async (orderId, action) => {
         setActions((prev) => ({ ...prev, [orderId]: action }));
         try {
-            await api.patch(`/client-payments/orders/${orderId}/action`, { payment_action: action });
-            setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, payment_action: action } : o)));
+            const r = await api.patch(`/client-payments/orders/${orderId}/action`, { payment_action: action });
+            const updated = r.data;
+            if (updated?.id) {
+                setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, ...updated } : o)));
+                setActions((prev) => ({ ...prev, [orderId]: updated.payment_action || action }));
+            } else {
+                setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, payment_action: action } : o)));
+            }
         } catch {
             // keep local
         }
