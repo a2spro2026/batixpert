@@ -100,7 +100,7 @@ function KpiCard({ card, value, index, supplierFilter }) {
             <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
             <div className="absolute -top-6 -right-6 w-16 h-16 rounded-full bg-white/10 blur-xl pointer-events-none" />
 
-            <div className="relative p-2.5">
+            <div className={`relative p-2.5 flex flex-col ${supplierFilter ? 'min-h-[88px]' : 'min-h-[82px]'}`}>
                 <div className="flex items-center justify-between gap-1.5 mb-1.5">
                     <div className="p-1 rounded-md bg-white/20 backdrop-blur-sm">
                         <Icon className="w-3 h-3 text-white" strokeWidth={2} />
@@ -131,11 +131,13 @@ function KpiCard({ card, value, index, supplierFilter }) {
                     </select>
                 )}
 
-                <p className="text-[9px] font-semibold text-white/80 uppercase tracking-wide leading-tight mb-1 line-clamp-2">
+                <p className="text-[9px] font-semibold text-white/80 uppercase tracking-wide leading-tight line-clamp-2">
                     {card.label}
                 </p>
 
-                <p className="text-sm font-bold text-white tracking-tight leading-none tabular-nums">
+                <p className={`mt-auto font-bold text-white tracking-tight leading-none tabular-nums ${
+                    supplierFilter ? 'text-sm pt-1' : 'text-base pt-2.5'
+                }`}>
                     <AnimatedValue value={value} format={card.format} />
                 </p>
             </div>
@@ -182,7 +184,7 @@ export default function KpiCards({ kpis, loading }) {
                 <SectionTitle />
                 <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-2">
                     {cards.map((card) => (
-                        <div key={card.key} className={`kpi-card-skeleton rounded-lg ${card.supplierFilter ? 'h-[92px]' : 'h-[76px]'}`} />
+                        <div key={card.key} className={`kpi-card-skeleton rounded-lg ${card.supplierFilter ? 'h-[92px]' : 'h-[82px]'}`} />
                     ))}
                 </div>
             </div>
