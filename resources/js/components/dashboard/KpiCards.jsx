@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
     ShoppingCart, ShoppingBag, Scale, Receipt, Truck, TrendingUp, TrendingDown,
@@ -47,6 +47,7 @@ const cards = [
         gradient: 'from-violet-500 via-purple-600 to-indigo-900',
         glow: 'rgba(139, 92, 246, 0.4)',
         dynamic: true,
+        supplierFilter: true,
     },
 ];
 
@@ -81,7 +82,7 @@ function AnimatedValue({ value, format }) {
     return <>{formatValue(display, format)}</>;
 }
 
-function KpiCard({ card, value, index }) {
+function KpiCard({ card, value, index, supplierFilter }) {
     const Icon = card.icon;
     const isDynamic = card.dynamic;
     const num = Number(value) || 0;
@@ -117,6 +118,23 @@ function KpiCard({ card, value, index }) {
                     {card.label}
                 </p>
 
+                {supplierFilter && (
+                    <select
+                        value={supplierFilter.value}
+                        onChange={(e) => supplierFilter.onChange(e.target.value)}
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-full mb-2 rounded-md border border-white/25 bg-white/15 text-white text-[9px] font-semibold px-1.5 py-1 outline-none focus:ring-1 focus:ring-white/40 cursor-pointer appearance-none truncate"
+                        title="Filtrer par fournisseur"
+                    >
+                        <option value="" className="text-slate-900">Tous les fournisseurs</option>
+                        {supplierFilter.options.map((s) => (
+                            <option key={s.id} value={String(s.id)} className="text-slate-900">
+                                {s.name}
+                            </option>
+                        ))}
+                    </select>
+                )}
+
                 <p className="text-lg font-bold text-white tracking-tight leading-none">
                     <AnimatedValue value={value} format={card.format} />
                 </p>
@@ -137,13 +155,34 @@ function SectionTitle() {
 }
 
 export default function KpiCards({ kpis, loading }) {
+    const [supplierId, setSupplierId] = useState('');
+
+    const supplierOptions = useMemo(
+        () => (Array.isArray(kpis?.soldes_fournisseurs) ? kpis.soldes_fournisseurs : []),
+        [kpis?.soldes_fournisseurs],
+    );
+
+    const soldeFournisseurValue = useMemo(() => {
+        if (!supplierId) {
+            return Number(kpis?.solde_fournisseur) || 0;
+        }
+        const match = supplierOptions.find((s) => String(s.id) === String(supplierId));
+        return Number(match?.solde) || 0;
+    }, [supplierId, kpis?.solde_fournisseur, supplierOptions]);
+
+    const supplierFilter = {
+        value: supplierId,
+        onChange: setSupplierId,
+        options: supplierOptions,
+    };
+
     if (loading) {
         return (
             <div>
                 <SectionTitle />
                 <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
                     {cards.map((card) => (
-                        <div key={card.key} className="kpi-card-skeleton rounded-xl h-[88px]" />
+                        <div key={card.key} className={`kpi-card-skeleton rounded-xl ${card.supplierFilter ? 'h-[120px]' : 'h-[88px]'}`} />
                     ))}
                 </div>
             </div>
@@ -155,7 +194,13 @@ export default function KpiCards({ kpis, loading }) {
             <SectionTitle />
             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
                 {cards.map((card, i) => (
-                    <KpiCard key={card.key} card={card} value={kpis?.[card.key]} index={i} />
+                    <KpiCard
+                        key={card.key}
+                        card={card}
+                        value={card.key === 'solde_fournisseur' ? soldeFournisseurValue : kpis?.[card.key]}
+                        index={i}
+                        supplierFilter={card.supplierFilter ? supplierFilter : null}
+                    />
                 ))}
             </div>
         </div>
