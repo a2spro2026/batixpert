@@ -142,6 +142,20 @@ class SupplierReleveApiController extends Controller
         $totalImp = round((float) $payments->where('statut', 'Imp')->sum('montant'), 2);
         $totalDeva = round((float) $payments->where('statut', 'Dévalidé')->sum('montant'), 2);
         $totalRepo = round((float) $payments->where('statut', 'Report')->sum('montant'), 2);
+        $totalDebit = round((float) $orders->sum('total_ttc'), 2);
+        $totalCredit = round((float) $payments->sum('montant'), 2);
+        $totalEncaisse = round((float) $payments->where('statut', 'Payé')->sum('montant'), 2);
+        $totalCoffre = round((float) $payments
+            ->filter(function ($p) {
+                $due = $p->date_decaissement;
+                if (! $due) {
+                    return false;
+                }
+
+                return $due->gt(now()->startOfDay()) && ! in_array($p->statut, ['Payé', 'Imp', 'Dévalidé'], true);
+            })
+            ->sum('montant'), 2);
+        $totalQte = round((float) collect($rows)->sum(fn ($r) => (float) ($r['qte'] ?? 0)), 3);
 
         return response()->json([
             'data' => $rows,
@@ -149,7 +163,12 @@ class SupplierReleveApiController extends Controller
                 'total_imp' => number_format($totalImp, 2, '.', ''),
                 'total_deva' => number_format($totalDeva, 2, '.', ''),
                 'total_repo' => number_format($totalRepo, 2, '.', ''),
+                'total_debit' => number_format($totalDebit, 2, '.', ''),
+                'total_credit' => number_format($totalCredit, 2, '.', ''),
+                'total_encaisse' => number_format($totalEncaisse, 2, '.', ''),
+                'total_coffre' => number_format($totalCoffre, 2, '.', ''),
                 'solde' => number_format($running, 2, '.', ''),
+                'total_qte' => number_format($totalQte, 3, '.', ''),
             ],
         ]);
     }

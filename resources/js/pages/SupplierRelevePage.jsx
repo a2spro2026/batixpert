@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     FileText, Printer, X, RefreshCw, Search, AlertTriangle, Ban, Clock,
+    ArrowDownCircle, ArrowUpCircle, BadgeCheck, Vault, Scale, Package,
 } from 'lucide-react';
 import api from '../lib/api';
 
@@ -43,22 +44,26 @@ function Field({ label, children }) {
 const filterClass =
     'w-full rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-2.5 py-2 text-xs outline-none focus:ring-2 focus:ring-brand-navy/30 focus:border-brand-navy';
 
-function SummaryCard({ label, value, gradient, glow, icon: Icon }) {
+function SummaryCard({ label, value, gradient, glow, icon: Icon, compact = false, format = 'money' }) {
+    const display = format === 'qty'
+        ? (Number(value) || 0).toLocaleString('fr-FR', { maximumFractionDigits: 3 })
+        : (Number(value) || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
     return (
         <div
-            className={`group relative overflow-hidden rounded-xl bg-gradient-to-br ${gradient} p-4 shadow-lg text-white`}
+            className={`group relative overflow-hidden rounded-xl bg-gradient-to-br ${gradient} shadow-lg text-white ${compact ? 'p-2.5' : 'p-3.5'}`}
             style={{ boxShadow: `0 10px 28px -8px ${glow}` }}
         >
             <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-white/10 pointer-events-none" />
-            <div className="relative flex items-start justify-between gap-3">
+            <div className="relative flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-white/85">{label}</p>
-                    <p className="mt-1.5 text-lg sm:text-xl font-bold tabular-nums leading-tight">
-                        {(Number(value) || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    <p className={`font-semibold uppercase tracking-wider text-white/85 ${compact ? 'text-[9px]' : 'text-[10px]'}`}>{label}</p>
+                    <p className={`mt-1 font-bold tabular-nums leading-tight ${compact ? 'text-sm' : 'text-base sm:text-lg'}`}>
+                        {display}
                     </p>
                 </div>
-                <div className="p-2.5 rounded-xl bg-white/15 ring-1 ring-white/20 shrink-0">
-                    <Icon className="w-5 h-5" strokeWidth={2} />
+                <div className={`rounded-xl bg-white/15 ring-1 ring-white/20 shrink-0 ${compact ? 'p-1.5' : 'p-2'}`}>
+                    <Icon className={compact ? 'w-3.5 h-3.5' : 'w-4 h-4'} strokeWidth={2} />
                 </div>
             </div>
         </div>
@@ -141,7 +146,11 @@ export default function SupplierRelevePage() {
     const [applied, setApplied] = useState(emptyFilters);
     const [suppliers, setSuppliers] = useState([]);
     const [rows, setRows] = useState([]);
-    const [summary, setSummary] = useState({ total_imp: 0, total_deva: 0, total_repo: 0 });
+    const [summary, setSummary] = useState({
+        total_imp: 0, total_deva: 0, total_repo: 0,
+        total_debit: 0, total_credit: 0, total_encaisse: 0,
+        total_coffre: 0, solde: 0, total_qte: 0,
+    });
     const [loading, setLoading] = useState(true);
 
     const setFilter = (key, value) => setFilters((f) => ({ ...f, [key]: value }));
@@ -161,11 +170,21 @@ export default function SupplierRelevePage() {
                     total_imp: Number(r.data.meta?.total_imp) || 0,
                     total_deva: Number(r.data.meta?.total_deva) || 0,
                     total_repo: Number(r.data.meta?.total_repo) || 0,
+                    total_debit: Number(r.data.meta?.total_debit) || 0,
+                    total_credit: Number(r.data.meta?.total_credit) || 0,
+                    total_encaisse: Number(r.data.meta?.total_encaisse) || 0,
+                    total_coffre: Number(r.data.meta?.total_coffre) || 0,
+                    solde: Number(r.data.meta?.solde) || 0,
+                    total_qte: Number(r.data.meta?.total_qte) || 0,
                 });
             })
             .catch(() => {
                 setRows([]);
-                setSummary({ total_imp: 0, total_deva: 0, total_repo: 0 });
+                setSummary({
+                    total_imp: 0, total_deva: 0, total_repo: 0,
+                    total_debit: 0, total_credit: 0, total_encaisse: 0,
+                    total_coffre: 0, solde: 0, total_qte: 0,
+                });
             })
             .finally(() => setLoading(false));
     }, [applied]);
@@ -214,8 +233,9 @@ export default function SupplierRelevePage() {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-3 gap-2 max-w-xl">
                 <SummaryCard
+                    compact
                     label="Imp"
                     value={summary.total_imp}
                     gradient="from-red-500 via-rose-600 to-red-800"
@@ -223,6 +243,7 @@ export default function SupplierRelevePage() {
                     icon={AlertTriangle}
                 />
                 <SummaryCard
+                    compact
                     label="Déva"
                     value={summary.total_deva}
                     gradient="from-violet-500 via-purple-600 to-indigo-900"
@@ -230,6 +251,7 @@ export default function SupplierRelevePage() {
                     icon={Ban}
                 />
                 <SummaryCard
+                    compact
                     label="Repo"
                     value={summary.total_repo}
                     gradient="from-amber-400 via-yellow-500 to-amber-600"
@@ -275,6 +297,52 @@ export default function SupplierRelevePage() {
                         </button>
                     </div>
                 </div>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-2.5">
+                <SummaryCard
+                    label="Total Débit"
+                    value={summary.total_debit}
+                    gradient="from-rose-500 via-red-600 to-rose-800"
+                    glow="rgba(225, 29, 72, 0.4)"
+                    icon={ArrowDownCircle}
+                />
+                <SummaryCard
+                    label="Total Crédit"
+                    value={summary.total_credit}
+                    gradient="from-emerald-500 via-teal-600 to-green-800"
+                    glow="rgba(16, 185, 129, 0.4)"
+                    icon={ArrowUpCircle}
+                />
+                <SummaryCard
+                    label="Total Encaissé"
+                    value={summary.total_encaisse}
+                    gradient="from-blue-600 via-brand-navy to-slate-900"
+                    glow="rgba(30, 58, 95, 0.45)"
+                    icon={BadgeCheck}
+                />
+                <SummaryCard
+                    label="Coffre"
+                    value={summary.total_coffre}
+                    gradient="from-cyan-500 via-sky-600 to-blue-800"
+                    glow="rgba(14, 165, 233, 0.4)"
+                    icon={Vault}
+                />
+                <SummaryCard
+                    label="Solde"
+                    value={summary.solde}
+                    gradient="from-orange-500 via-amber-600 to-orange-800"
+                    glow="rgba(249, 115, 22, 0.4)"
+                    icon={Scale}
+                />
+                <SummaryCard
+                    label="Quantité"
+                    value={summary.total_qte}
+                    format="qty"
+                    gradient="from-slate-600 via-slate-700 to-slate-900"
+                    glow="rgba(71, 85, 105, 0.4)"
+                    icon={Package}
+                />
             </div>
 
             <div className="glass-card overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60">
