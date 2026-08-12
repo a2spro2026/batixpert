@@ -54,6 +54,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('products', ProductApiController::class);
     Route::get('stock-mouvements', [StockMouvementApiController::class, 'index']);
     Route::get('purchase-orders/balance', [PurchaseOrderApiController::class, 'balance']);
+    Route::get('purchase-orders/balance-clients', [PurchaseOrderApiController::class, 'balanceClients']);
     Route::apiResource('purchase-orders', PurchaseOrderApiController::class);
     Route::post('purchase-orders/{purchase_order}/validate', [PurchaseOrderApiController::class, 'validateOrder']);
     Route::apiResource('sales-orders', SaleOrderApiController::class);

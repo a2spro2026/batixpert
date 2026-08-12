@@ -122,6 +122,80 @@ class PurchaseOrderApiController extends Controller
         ]);
     }
 
+    public function balanceClients(Request $request)
+    {
+        $validated = $request->validate([
+            'supplier_id' => 'required|integer|exists:suppliers,id',
+            'mois' => 'nullable|string',
+        ]);
+
+        $supplierId = (int) $validated['supplier_id'];
+        $mois = $validated['mois'] ?? null;
+        $monthFilter = $mois && preg_match('/^\d{4}-\d{2}$/', $mois);
+
+        $supplier = Supplier::find($supplierId);
+        $fournisseur = $supplier?->name ?? '—';
+
+        $orders = PurchaseOrder::query()
+            ->with('paymentAllocations')
+            ->where('supplier_id', $supplierId)
+            ->where('status', '!=', 'annule')
+            ->when($monthFilter, function ($q) use ($mois) {
+                [$year, $month] = explode('-', $mois);
+                $q->whereYear('order_date', $year)->whereMonth('order_date', $month);
+            })
+            ->get();
+
+        $grouped = [];
+
+        foreach ($orders as $order) {
+            $clientName = trim((string) ($order->client_livre ?? ''));
+            $key = $clientName === '' ? '__sans__' : mb_strtolower($clientName);
+
+            if (! isset($grouped[$key])) {
+                $grouped[$key] = [
+                    'client' => $clientName === '' ? '—' : $clientName,
+                    'montant' => 0.0,
+                    'montant_paye' => 0.0,
+                ];
+            }
+
+            $paidFromAlloc = $order->paymentAllocations;
+            $paid = $paidFromAlloc->isNotEmpty()
+                ? round((float) $paidFromAlloc->sum('amount'), 2)
+                : round((float) ($order->montant_paye ?? 0), 2);
+
+            $grouped[$key]['montant'] += (float) $order->total_ttc;
+            $grouped[$key]['montant_paye'] += $paid;
+        }
+
+        $rows = collect($grouped)
+            ->map(function (array $item) use ($fournisseur) {
+                $montant = round($item['montant'], 2);
+                $montantPaye = round($item['montant_paye'], 2);
+
+                return [
+                    'fournisseur' => $fournisseur,
+                    'client' => $item['client'],
+                    'montant' => $montant,
+                    'montant_paye' => $montantPaye,
+                    'solde' => round(max($montant - $montantPaye, 0), 2),
+                    'reliquat' => round(max($montantPaye - $montant, 0), 2),
+                ];
+            })
+            ->sortBy(fn ($row) => mb_strtolower($row['client']))
+            ->values()
+            ->all();
+
+        return response()->json([
+            'data' => $rows,
+            'meta' => [
+                'fournisseur' => $fournisseur,
+                'supplier_id' => $supplierId,
+            ],
+        ]);
+    }
+
     public function store(Request $request)
     {
         $validated = $this->validated($request);
