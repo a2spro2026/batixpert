@@ -12,7 +12,6 @@ import {
     Contact,
     ClipboardList,
     Banknote,
-    CreditCard,
     Scale,
     ScrollText,
     // Client
@@ -84,7 +83,6 @@ export const navigation = [
             { to: '/facturation/depot-a', label: 'Ste A. BOUYAHYA', icon: Warehouse },
             { to: '/facturation/depot-b', label: 'Ste Fatari et Associes', icon: Warehouse },
             { to: '/facturation/depot-c', label: 'Ste Aabach Lilbinae', icon: Warehouse },
-            { to: '/facturation/reglement', label: 'Règlement', icon: CreditCard },
             { to: '/facturation/factures-ventes', label: 'Facture Ventes', icon: Receipt },
             { to: '/facturation/reglements', label: 'Règlements', icon: Wallet },
             { to: '/facturation/balance', label: 'Balance', icon: Scale },
