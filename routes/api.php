@@ -62,6 +62,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('sales-orders', SaleOrderApiController::class);
     Route::post('sales-orders/{sales_order}/validate', [SaleOrderApiController::class, 'validateOrder']);
 
+    Route::get('supplier-invoices/stock', [SupplierInvoiceApiController::class, 'stock']);
     Route::get('supplier-invoices/meta', [SupplierInvoiceApiController::class, 'meta']);
     Route::apiResource('supplier-invoices', SupplierInvoiceApiController::class);
 

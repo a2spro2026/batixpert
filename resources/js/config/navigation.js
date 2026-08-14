@@ -12,7 +12,6 @@ import {
     Contact,
     ClipboardList,
     Banknote,
-    FileInput,
     CreditCard,
     Scale,
     ScrollText,
@@ -82,7 +81,6 @@ export const navigation = [
         icon: FileText,
         perm: 'factures_clients.view',
         children: [
-            { to: '/facturation/factures-achats', label: 'Facture Achats', icon: FileInput },
             { to: '/facturation/depot-a', label: 'Ste A. BOUYAHYA', icon: Warehouse },
             { to: '/facturation/depot-b', label: 'Ste Fatari et Associes', icon: Warehouse },
             { to: '/facturation/depot-c', label: 'Ste Aabach Lilbinae', icon: Warehouse },

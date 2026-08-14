@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
-    Plus, Eye, Pencil, Trash2, Printer, FileText, X, RefreshCw, Receipt, Upload, Image,
+    Plus, Eye, EyeOff, Pencil, Trash2, Printer, FileText, X, RefreshCw, Receipt, Upload, Image, Package,
 } from 'lucide-react';
 import api from '../lib/api';
 
@@ -44,6 +44,10 @@ const lineInput =
 
 function formatMontant(value) {
     return (Number(value) || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function formatQty(value) {
+    return (Number(value) || 0).toLocaleString('fr-FR', { maximumFractionDigits: 3 });
 }
 
 function lineTotal(line) {
@@ -307,7 +311,7 @@ function FormModal({ open, form, lines, meta, editingId, saving, error, supplier
     );
 }
 
-export default function FactureAchatsPage({ depotFilter = null, pageTitle = 'Facture Achats', pageSubtitle = 'Saisie des factures fournisseurs' }) {
+export default function FactureAchatsPage({ depotFilter = null, pageTitle = '', pageSubtitle = '' }) {
     const [rows, setRows] = useState([]);
     const [summary, setSummary] = useState({ total_ht: 0, total_ttc: 0, count: 0 });
     const [meta, setMeta] = useState({ next_ref: 'FA-0001', date_raw: '' });
@@ -320,6 +324,9 @@ export default function FactureAchatsPage({ depotFilter = null, pageTitle = 'Fac
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
+    const [stockVisible, setStockVisible] = useState(false);
+    const [stockRows, setStockRows] = useState([]);
+    const [stockLoading, setStockLoading] = useState(false);
 
     const loadMeta = useCallback(() => {
         api.get('/supplier-invoices/meta').then((r) => setMeta(r.data ?? {})).catch(() => {});
@@ -433,6 +440,7 @@ export default function FactureAchatsPage({ depotFilter = null, pageTitle = 'Fac
             closeModal();
             load();
             loadMeta();
+            if (stockVisible) loadStock();
         } catch (err) {
             setError(err.response?.data?.message || 'Erreur lors de l\'enregistrement');
         } finally {
@@ -446,9 +454,28 @@ export default function FactureAchatsPage({ depotFilter = null, pageTitle = 'Fac
             await api.delete(`/supplier-invoices/${row.id}`);
             if (editingId === row.id) closeModal();
             load();
+            if (stockVisible) loadStock();
         } catch {
             setError('Impossible de supprimer cette facture');
         }
+    };
+
+    const loadStock = async () => {
+        setStockLoading(true);
+        try {
+            const response = await api.get('/supplier-invoices/stock', { params: { depot: depotFilter } });
+            setStockRows(response.data.data ?? []);
+        } catch {
+            setStockRows([]);
+        } finally {
+            setStockLoading(false);
+        }
+    };
+
+    const toggleStock = () => {
+        const nextVisible = !stockVisible;
+        setStockVisible(nextVisible);
+        if (nextVisible && !stockRows.length) loadStock();
     };
 
     const headers = ['Date', 'N° Facture', 'Fournisseur', 'Destination', 'Mode Paiement', 'Total HT', 'TVA', 'Total TTC', 'Actions'];
@@ -462,7 +489,7 @@ export default function FactureAchatsPage({ depotFilter = null, pageTitle = 'Fac
                 : 'from-brand-navy via-blue-800 to-indigo-900';
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-3">
             <ViewModal row={viewRow} onClose={() => setViewRow(null)} />
             <FormModal
                 open={modalOpen}
@@ -482,17 +509,25 @@ export default function FactureAchatsPage({ depotFilter = null, pageTitle = 'Fac
                 onSubmit={handleSubmit}
             />
 
-            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
                 <div>
                     <h1 className="text-xl font-bold text-slate-900 dark:text-white">{pageTitle}</h1>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">{pageSubtitle}</p>
+                    {pageSubtitle && <p className="text-sm text-slate-500 dark:text-slate-400">{pageSubtitle}</p>}
                 </div>
-                <button type="button" onClick={openNouveau} className="btn-primary text-sm self-start sm:self-auto">
-                    <Plus className="w-4 h-4" /> Nouveau
-                </button>
+                <div className="flex items-center gap-2 self-start">
+                    {depotFilter && (
+                        <button type="button" onClick={toggleStock} className="btn-secondary text-sm">
+                            {stockVisible ? <EyeOff className="w-4 h-4" /> : <Package className="w-4 h-4" />}
+                            Stock {stockVisible ? '(Masquer)' : '(Afficher)'}
+                        </button>
+                    )}
+                    <button type="button" onClick={openNouveau} className="btn-primary text-sm">
+                        <Plus className="w-4 h-4" /> Nouveau
+                    </button>
+                </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-3xl">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 max-w-3xl -mt-1">
                 <div className="rounded-xl bg-gradient-to-br from-slate-600 to-slate-800 p-4 text-white shadow-lg">
                     <p className="text-[10px] font-semibold uppercase tracking-wider text-white/80">Nombre</p>
                     <p className="mt-1 text-xl font-bold tabular-nums">{summary.count}</p>
@@ -506,6 +541,45 @@ export default function FactureAchatsPage({ depotFilter = null, pageTitle = 'Fac
                     <p className="mt-1 text-xl font-bold tabular-nums">{formatMontant(summary.total_ttc)}</p>
                 </div>
             </div>
+
+            {stockVisible && (
+                <div className="glass-card overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60">
+                    <div className={`px-5 py-3 bg-gradient-to-r ${accent} text-white flex items-center justify-between`}>
+                        <h3 className="text-sm font-bold uppercase tracking-wide flex items-center gap-2">
+                            <Package className="w-4 h-4" /> Stock - {pageTitle}
+                        </h3>
+                        <button type="button" onClick={toggleStock} className="p-1.5 rounded-lg text-white/75 hover:text-white hover:bg-white/10" title="Masquer">
+                            <EyeOff className="w-4 h-4" />
+                        </button>
+                    </div>
+                    <div className="overflow-x-auto max-h-[360px] overflow-y-auto">
+                        <table className="w-full text-sm min-w-[700px]">
+                            <thead className="sticky top-0 z-10">
+                                <tr className="bg-slate-100 dark:bg-slate-800 border-b-2 border-slate-200 dark:border-slate-700">
+                                    {['Réf', 'Désignation', 'Stock Initial', 'Vente/mois', 'Stock Actuel'].map((heading) => (
+                                        <th key={heading} className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 text-center">{heading}</th>
+                                    ))}
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                                {stockLoading ? (
+                                    <tr><td colSpan={5} className="px-4 py-10 text-center text-slate-400">Chargement...</td></tr>
+                                ) : stockRows.length ? stockRows.map((stock) => (
+                                    <tr key={`${stock.reference}-${stock.designation}`} className="hover:bg-blue-50/40 dark:hover:bg-slate-800/40">
+                                        <td className="px-4 py-2.5 text-center font-mono text-xs font-semibold text-brand-navy dark:text-orange-400">{stock.reference || '—'}</td>
+                                        <td className="px-4 py-2.5 text-center font-medium text-slate-800 dark:text-white">{stock.designation || '—'}</td>
+                                        <td className="px-4 py-2.5 text-center tabular-nums">{formatQty(stock.stock_initial)}</td>
+                                        <td className="px-4 py-2.5 text-center tabular-nums text-rose-700 dark:text-rose-400">{formatQty(stock.vente_mois)}</td>
+                                        <td className="px-4 py-2.5 text-center tabular-nums font-bold text-brand-navy dark:text-orange-400">{formatQty(stock.stock_actuel)}</td>
+                                    </tr>
+                                )) : (
+                                    <tr><td colSpan={5} className="px-4 py-10 text-center text-slate-400">Aucun produit en stock</td></tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
 
             <div className="glass-card overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60">
                 <div className={`px-5 py-3.5 bg-gradient-to-r ${accent} border-b border-white/10 flex items-center justify-between`}>

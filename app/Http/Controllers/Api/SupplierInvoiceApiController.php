@@ -35,6 +35,69 @@ class SupplierInvoiceApiController extends Controller
         ]);
     }
 
+    public function stock(Request $request)
+    {
+        $validated = $request->validate([
+            'depot' => 'required|in:'.implode(',', self::DEPOTS),
+        ]);
+
+        $keyFor = static function (?string $reference, ?string $description): string {
+            $reference = mb_strtolower(trim((string) $reference));
+
+            return $reference !== '' ? 'ref:'.$reference : 'desc:'.mb_strtolower(trim((string) $description));
+        };
+
+        $products = [];
+        $purchaseRows = DB::table('supplier_invoice_items as i')
+            ->join('supplier_invoices as f', 'f.id', '=', 'i.supplier_invoice_id')
+            ->where('f.depot', $validated['depot'])
+            ->select('i.article_reference', 'i.description', 'i.quantity')
+            ->get();
+
+        foreach ($purchaseRows as $row) {
+            $key = $keyFor($row->article_reference, $row->description);
+            if (! isset($products[$key])) {
+                $products[$key] = [
+                    'reference' => $row->article_reference,
+                    'designation' => $row->description,
+                    'stock_initial' => 0.0,
+                ];
+            }
+            $products[$key]['stock_initial'] += (float) $row->quantity;
+        }
+
+        $sales = [];
+        $currentMonth = now()->format('Y-m');
+        $saleRows = DB::table('sales_order_items as i')
+            ->join('sales_orders as o', 'o.id', '=', 'i.sales_order_id')
+            ->where('o.status', '!=', 'annule')
+            ->select('i.article_ref', 'i.description', 'i.quantity', 'o.order_date')
+            ->get();
+
+        foreach ($saleRows as $row) {
+            $key = $keyFor($row->article_ref, $row->description);
+            $sales[$key] ??= ['month' => 0.0, 'total' => 0.0];
+            $sales[$key]['total'] += (float) $row->quantity;
+            if (substr((string) $row->order_date, 0, 7) === $currentMonth) {
+                $sales[$key]['month'] += (float) $row->quantity;
+            }
+        }
+
+        $data = collect($products)->map(function (array $product, string $key) use ($sales) {
+            $sold = $sales[$key] ?? ['month' => 0.0, 'total' => 0.0];
+
+            return [
+                'reference' => $product['reference'],
+                'designation' => $product['designation'],
+                'stock_initial' => round($product['stock_initial'], 3),
+                'vente_mois' => round($sold['month'], 3),
+                'stock_actuel' => round($product['stock_initial'] - $sold['total'], 3),
+            ];
+        })->sortBy('reference', SORT_NATURAL | SORT_FLAG_CASE)->values()->all();
+
+        return response()->json(['data' => $data]);
+    }
+
     public function meta()
     {
         return response()->json([
