@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\SupplierInvoice;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class SupplierInvoiceApiController extends Controller
 {
@@ -52,8 +53,9 @@ class SupplierInvoiceApiController extends Controller
     public function store(Request $request)
     {
         $validated = $this->validated($request);
+        $photoPath = $request->file('photo')?->store('supplier-invoices', 'public');
 
-        $invoice = DB::transaction(function () use ($validated) {
+        $invoice = DB::transaction(function () use ($validated, $photoPath) {
             $totalHt = round(collect($validated['items'])->sum(fn ($item) => $item['quantity'] * $item['unit_price']), 2);
             $tva = round($totalHt * 0.20, 2);
 
@@ -61,19 +63,20 @@ class SupplierInvoiceApiController extends Controller
                 'supplier_id' => $validated['supplier_id'],
                 'chantier_id' => $validated['chantier_id'] ?? null,
                 'depot' => $validated['depot'],
-                'reference' => $this->nextReference(),
+                'reference' => $validated['reference'],
                 'invoice_date' => $validated['invoice_date'],
-                'due_date' => $validated['due_date'] ?? null,
+                'payment_mode' => $validated['payment_mode'] ?? null,
+                'photo_path' => $photoPath,
                 'total_ht' => $totalHt,
                 'tva' => $tva,
                 'total_ttc' => round($totalHt + $tva, 2),
-                'status' => $validated['status'] ?? 'en_attente',
-                'notes' => $validated['notes'] ?? null,
+                'status' => 'en_attente',
             ]);
 
             foreach ($validated['items'] as $item) {
                 $invoice->items()->create([
                     'product_id' => $item['product_id'] ?? null,
+                    'article_reference' => $item['article_reference'] ?? null,
                     'description' => $item['description'],
                     'quantity' => $item['quantity'],
                     'unit_price' => $item['unit_price'],
@@ -95,8 +98,10 @@ class SupplierInvoiceApiController extends Controller
     public function update(Request $request, SupplierInvoice $supplier_invoice)
     {
         $validated = $this->validated($request, $supplier_invoice->id);
+        $oldPhotoPath = $supplier_invoice->photo_path;
+        $photoPath = $request->file('photo')?->store('supplier-invoices', 'public');
 
-        $invoice = DB::transaction(function () use ($validated, $supplier_invoice) {
+        $invoice = DB::transaction(function () use ($validated, $supplier_invoice, $photoPath) {
             $totalHt = round(collect($validated['items'])->sum(fn ($item) => $item['quantity'] * $item['unit_price']), 2);
             $tva = round($totalHt * 0.20, 2);
 
@@ -104,19 +109,20 @@ class SupplierInvoiceApiController extends Controller
                 'supplier_id' => $validated['supplier_id'],
                 'chantier_id' => $validated['chantier_id'] ?? null,
                 'depot' => $validated['depot'],
+                'reference' => $validated['reference'],
                 'invoice_date' => $validated['invoice_date'],
-                'due_date' => $validated['due_date'] ?? null,
+                'payment_mode' => $validated['payment_mode'] ?? null,
+                'photo_path' => $photoPath ?: $supplier_invoice->photo_path,
                 'total_ht' => $totalHt,
                 'tva' => $tva,
                 'total_ttc' => round($totalHt + $tva, 2),
-                'status' => $validated['status'] ?? 'en_attente',
-                'notes' => $validated['notes'] ?? null,
             ]);
 
             $supplier_invoice->items()->delete();
             foreach ($validated['items'] as $item) {
                 $supplier_invoice->items()->create([
                     'product_id' => $item['product_id'] ?? null,
+                    'article_reference' => $item['article_reference'] ?? null,
                     'description' => $item['description'],
                     'quantity' => $item['quantity'],
                     'unit_price' => $item['unit_price'],
@@ -127,11 +133,18 @@ class SupplierInvoiceApiController extends Controller
             return $supplier_invoice->fresh(['supplier', 'items']);
         });
 
+        if ($photoPath && $oldPhotoPath) {
+            Storage::disk('public')->delete($oldPhotoPath);
+        }
+
         return response()->json(['data' => $this->format($invoice)]);
     }
 
     public function destroy(SupplierInvoice $supplier_invoice)
     {
+        if ($supplier_invoice->photo_path) {
+            Storage::disk('public')->delete($supplier_invoice->photo_path);
+        }
         $supplier_invoice->delete();
 
         return response()->json(['message' => 'Facture supprimée']);
@@ -148,12 +161,13 @@ class SupplierInvoiceApiController extends Controller
             'supplier_id' => 'required|exists:suppliers,id',
             'chantier_id' => 'nullable|exists:chantiers,id',
             'depot' => 'required|in:'.implode(',', self::DEPOTS),
+            'reference' => $refRule,
             'invoice_date' => 'required|date',
-            'due_date' => 'nullable|date|after_or_equal:invoice_date',
-            'status' => 'nullable|in:'.implode(',', self::STATUTS),
-            'notes' => 'nullable|string|max:2000',
+            'payment_mode' => 'nullable|string|max:100',
+            'photo' => 'nullable|image|max:5120',
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'nullable|exists:products,id',
+            'items.*.article_reference' => 'nullable|string|max:100',
             'items.*.description' => 'required|string|max:255',
             'items.*.quantity' => 'required|numeric|min:0.001',
             'items.*.unit_price' => 'required|numeric|min:0',
@@ -174,8 +188,8 @@ class SupplierInvoiceApiController extends Controller
             'reference' => $i->reference,
             'invoice_date' => $i->invoice_date?->format('d/m/Y'),
             'invoice_date_raw' => $i->invoice_date?->format('Y-m-d'),
-            'due_date' => $i->due_date?->format('d/m/Y'),
-            'due_date_raw' => $i->due_date?->format('Y-m-d'),
+            'payment_mode' => $i->payment_mode,
+            'photo_url' => $i->photo_path ? asset('storage/'.$i->photo_path) : null,
             'supplier_id' => $i->supplier_id,
             'fournisseur' => $i->supplier?->name ?? '—',
             'depot' => $i->depot,
@@ -190,6 +204,7 @@ class SupplierInvoiceApiController extends Controller
             'items' => $i->items->map(fn ($item) => [
                 'id' => $item->id,
                 'product_id' => $item->product_id,
+                'article_reference' => $item->article_reference,
                 'description' => $item->description,
                 'quantity' => (float) $item->quantity,
                 'unit_price' => round((float) $item->unit_price, 2),

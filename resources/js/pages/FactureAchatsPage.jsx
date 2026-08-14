@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-    Plus, Eye, Pencil, Trash2, Printer, FileText, X, RefreshCw, Receipt,
+    Plus, Eye, Pencil, Trash2, Printer, FileText, X, RefreshCw, Receipt, Upload, Image,
 } from 'lucide-react';
 import api from '../lib/api';
 
@@ -10,17 +10,9 @@ const DEPOT_OPTIONS = [
     { value: 'depot_c', label: 'Ste Aabach Lilbinae' },
 ];
 
-const STATUT_OPTIONS = [
-    { value: 'brouillon', label: 'Brouillon' },
-    { value: 'en_attente', label: 'En attente' },
-    { value: 'partielle', label: 'Partielle' },
-    { value: 'payee', label: 'Payée' },
-    { value: 'en_retard', label: 'En retard' },
-    { value: 'annulee', label: 'Annulée' },
-];
-
 const emptyLine = () => ({
     key: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    article_reference: '',
     description: '',
     quantity: '1',
     unit_price: '',
@@ -29,10 +21,11 @@ const emptyLine = () => ({
 const emptyForm = {
     supplier_id: '',
     depot: 'depot_a',
+    reference: '',
     invoice_date: '',
-    due_date: '',
-    status: 'en_attente',
-    notes: '',
+    payment_mode: '',
+    photo: null,
+    photo_url: null,
 };
 
 function Field({ label, children }) {
@@ -46,8 +39,6 @@ function Field({ label, children }) {
 
 const inputClass =
     'w-full rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-2.5 py-2 text-xs text-center outline-none focus:ring-2 focus:ring-brand-navy/30 focus:border-brand-navy transition-all';
-const readOnlyClass =
-    'w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 px-2.5 py-2 text-xs text-center cursor-not-allowed';
 const lineInput =
     'w-full rounded-md border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-1.5 py-1 text-[11px] text-center outline-none focus:ring-1 focus:ring-brand-navy/30';
 
@@ -92,8 +83,8 @@ function DepotBadge({ label }) {
 
 function buildPrintHtml(row) {
     const itemsRows = (row.items || []).map((i) =>
-        `<tr><td>${i.description || '—'}</td><td>${i.quantity}</td><td>${formatMontant(i.unit_price)}</td><td><strong>${formatMontant(i.total)}</strong></td></tr>`
-    ).join('') || '<tr><td colspan="4">—</td></tr>';
+        `<tr><td>${i.article_reference || '—'}</td><td>${i.description || '—'}</td><td>${i.quantity}</td><td>${formatMontant(i.unit_price)}</td><td><strong>${formatMontant(i.total)}</strong></td></tr>`
+    ).join('') || '<tr><td colspan="5">—</td></tr>';
 
     return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Facture ${row.reference}</title>
 <style>body{font-family:Arial,sans-serif;padding:32px;color:#1e293b}h1{color:#1e3a5f;font-size:22px}
@@ -103,11 +94,11 @@ th{background:#f8fafc;font-weight:700}.badge{background:#dbeafe;color:#1d4ed8;pa
 <h1>BATIXPERT — Facture Achat <span class="badge">${row.reference || ''}</span></h1>
 <table>
 <tr><th>Date</th><td>${row.invoice_date || '—'}</td><th>Fournisseur</th><td>${row.fournisseur || '—'}</td></tr>
-<tr><th>Destination</th><td>${row.depot_label || '—'}</td><th>Échéance</th><td>${row.due_date || '—'}</td></tr>
+<tr><th>Destination</th><td>${row.depot_label || '—'}</td><th>Mode Paiement</th><td>${row.payment_mode || '—'}</td></tr>
 <tr><th>Total HT</th><td>${formatMontant(row.total_ht)}</td><th>TVA</th><td>${formatMontant(row.tva)}</td></tr>
 <tr><th>Total TTC</th><td colspan="3"><strong>${formatMontant(row.total_ttc)}</strong></td></tr>
 </table>
-<table><thead><tr><th>Désignation</th><th>Qté</th><th>P/U</th><th>Total</th></tr></thead><tbody>${itemsRows}</tbody></table>
+<table><thead><tr><th>Réf Article</th><th>Désignation</th><th>Qté</th><th>P/U</th><th>Total</th></tr></thead><tbody>${itemsRows}</tbody></table>
 </body></html>`;
 }
 
@@ -123,16 +114,14 @@ function openPrintable(row) {
 function ViewModal({ row, onClose }) {
     if (!row) return null;
     const fields = [
-        ['Réf', row.reference],
+        ['N° Facture', row.reference],
         ['Date', row.invoice_date],
         ['Fournisseur', row.fournisseur],
         ['Destination', row.depot_label],
-        ['Échéance', row.due_date],
+        ['Mode Paiement', row.payment_mode],
         ['Total HT', formatMontant(row.total_ht)],
         ['TVA', formatMontant(row.tva)],
         ['Total TTC', formatMontant(row.total_ttc)],
-        ['Statut', row.status],
-        ['Remarque', row.notes],
     ];
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
@@ -154,10 +143,15 @@ function ViewModal({ row, onClose }) {
                     <p className="text-[10px] font-bold uppercase tracking-wider text-brand-navy dark:text-orange-400 pt-2">Lignes</p>
                     {(row.items || []).map((i, idx) => (
                         <div key={i.id || idx} className="rounded-lg border border-slate-100 dark:border-slate-800 px-3 py-2 text-xs">
-                            <div className="font-semibold">{i.description}</div>
+                            <div className="font-semibold">{i.article_reference ? `${i.article_reference} — ` : ''}{i.description}</div>
                             <div className="text-slate-500 mt-0.5">{i.quantity} × {formatMontant(i.unit_price)} = <strong>{formatMontant(i.total)}</strong></div>
                         </div>
                     ))}
+                    {row.photo_url && (
+                        <a href={row.photo_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-brand-navy dark:text-orange-400 font-semibold hover:underline pt-2">
+                            <Image className="w-4 h-4" /> Voir la photo
+                        </a>
+                    )}
                 </div>
                 <div className="flex gap-2 px-5 py-4 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
                     <button type="button" onClick={() => openPrintable(row)} className="btn-secondary text-xs flex-1"><Printer className="w-3.5 h-3.5" /> Imprimer</button>
@@ -178,7 +172,7 @@ function FormModal({ open, form, lines, meta, editingId, saving, error, supplier
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
-            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-4xl border border-slate-200 dark:border-slate-700 overflow-hidden max-h-[95vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-5xl border border-slate-200 dark:border-slate-700 overflow-hidden max-h-[95vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
                 <div className="flex items-center justify-between gap-3 px-5 py-4 bg-gradient-to-r from-brand-navy via-blue-800 to-indigo-900 shrink-0">
                     <h3 className="text-white font-bold text-sm uppercase tracking-wide min-w-0 truncate">
                         {editingId ? `Modifier ${form._ref || ''}` : 'Nouvelle Facture Achat'}
@@ -219,31 +213,39 @@ function FormModal({ open, form, lines, meta, editingId, saving, error, supplier
                             <div className="p-3 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm border border-red-100 dark:border-red-800">{error}</div>
                         )}
 
-                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-end">
+                            <div className="lg:col-span-2">
                             <Field label="Date">
                                 <input type="date" required value={form.invoice_date} onChange={(e) => onChange('invoice_date', e.target.value)} className={inputClass} />
                             </Field>
-                            <Field label="Réf">
-                                <input type="text" readOnly value={editingId ? (form._ref || '') : (meta.next_ref || 'FA-0001')} className={readOnlyClass} />
+                            </div>
+                            <div className="lg:col-span-2">
+                            <Field label="N° Facture">
+                                <input type="text" required value={form.reference} onChange={(e) => onChange('reference', e.target.value)} placeholder="N° facture" className={inputClass} />
                             </Field>
+                            </div>
+                            <div className="lg:col-span-4">
                             <Field label="Fournisseur">
                                 <select required value={form.supplier_id} onChange={(e) => onChange('supplier_id', e.target.value)} className={inputClass}>
                                     <option value="">—</option>
                                     {suppliers.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
                                 </select>
                             </Field>
-                            <Field label="Échéance">
-                                <input type="date" value={form.due_date} onChange={(e) => onChange('due_date', e.target.value)} className={inputClass} />
+                            </div>
+                            <div className="lg:col-span-4">
+                            <Field label="Mode Paiement">
+                                <input type="text" value={form.payment_mode} onChange={(e) => onChange('payment_mode', e.target.value)} placeholder="Espèces, chèque, virement..." className={inputClass} />
                             </Field>
-                            <Field label="Statut">
-                                <select value={form.status} onChange={(e) => onChange('status', e.target.value)} className={inputClass}>
-                                    {STATUT_OPTIONS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
-                                </select>
-                            </Field>
-                            <div className="col-span-2 sm:col-span-2 lg:col-span-3">
-                                <Field label="Remarque">
-                                    <input type="text" value={form.notes} onChange={(e) => onChange('notes', e.target.value)} placeholder="Remarque" className={inputClass} />
-                                </Field>
+                            </div>
+                            <div className="sm:col-span-2 lg:col-span-12">
+                                <label className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-brand-navy/40 dark:border-orange-400/40 text-xs font-semibold text-brand-navy dark:text-orange-400 cursor-pointer hover:bg-blue-50 dark:hover:bg-slate-800 transition-colors">
+                                    <Upload className="w-4 h-4" />
+                                    Importer Photo
+                                    <input type="file" accept="image/*" className="hidden" onChange={(e) => onChange('photo', e.target.files?.[0] || null)} />
+                                </label>
+                                <span className="ml-2 text-xs text-slate-500">
+                                    {form.photo?.name || (form.photo_url ? 'Photo existante' : 'Aucune photo')}
+                                </span>
                             </div>
                         </div>
 
@@ -253,10 +255,10 @@ function FormModal({ open, form, lines, meta, editingId, saving, error, supplier
                                 <button type="button" onClick={onAddLine} className="text-xs text-brand-navy dark:text-orange-400 font-semibold hover:underline">+ Ligne</button>
                             </div>
                             <div className="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-700">
-                                <table className="w-full text-xs min-w-[500px]">
+                                <table className="w-full text-xs min-w-[650px]">
                                     <thead>
                                         <tr className="bg-slate-50 dark:bg-slate-800/80">
-                                            {['Désignation', 'Qté', 'P/U', 'Total', ''].map((h) => (
+                                            {['Réf Article', 'Désignation', 'Qté', 'P/U', 'Total', ''].map((h) => (
                                                 <th key={h || 'x'} className="px-2 py-2 font-bold uppercase text-slate-500">{h}</th>
                                             ))}
                                         </tr>
@@ -264,6 +266,9 @@ function FormModal({ open, form, lines, meta, editingId, saving, error, supplier
                                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                                         {lines.map((line) => (
                                             <tr key={line.key}>
+                                                <td className="px-2 py-1.5 w-32">
+                                                    <input type="text" value={line.article_reference} onChange={(e) => onLineChange(line.key, 'article_reference', e.target.value)} placeholder="Réf Article" className={lineInput} />
+                                                </td>
                                                 <td className="px-2 py-1.5">
                                                     <input type="text" required value={line.description} onChange={(e) => onLineChange(line.key, 'description', e.target.value)} placeholder="Désignation" className={lineInput} />
                                                 </td>
@@ -361,8 +366,7 @@ export default function FactureAchatsPage({ depotFilter = null, pageTitle = 'Fac
             ...emptyForm,
             depot: depotFilter || 'depot_a',
             invoice_date: today,
-            due_date: '',
-            _ref: '',
+            reference: '',
         });
         setLines([emptyLine()]);
         setEditingId(null);
@@ -375,14 +379,16 @@ export default function FactureAchatsPage({ depotFilter = null, pageTitle = 'Fac
         setForm({
             supplier_id: row.supplier_id || '',
             depot: row.depot || depotFilter || 'depot_a',
+            reference: row.reference || '',
             invoice_date: row.invoice_date_raw || '',
-            due_date: row.due_date_raw || '',
-            status: row.status || 'en_attente',
-            notes: row.notes || '',
+            payment_mode: row.payment_mode || '',
+            photo: null,
+            photo_url: row.photo_url || null,
             _ref: row.reference || '',
         });
-        setLines((row.items?.length ? row.items : [{ description: '', quantity: 1, unit_price: 0 }]).map((i) => ({
+        setLines((row.items?.length ? row.items : [{ article_reference: '', description: '', quantity: 1, unit_price: 0 }]).map((i) => ({
             key: `${i.id || Date.now()}-${Math.random().toString(36).slice(2, 5)}`,
+            article_reference: i.article_reference || '',
             description: i.description || '',
             quantity: String(i.quantity ?? 1),
             unit_price: String(i.unit_price ?? ''),
@@ -405,21 +411,22 @@ export default function FactureAchatsPage({ depotFilter = null, pageTitle = 'Fac
         setError('');
         setSaving(true);
         try {
-            const payload = {
-                supplier_id: form.supplier_id,
-                depot: form.depot,
-                invoice_date: form.invoice_date,
-                due_date: form.due_date || null,
-                status: form.status,
-                notes: form.notes || null,
-                items: lines.map((l) => ({
-                    description: l.description,
-                    quantity: parseFloat(String(l.quantity).replace(',', '.')) || 0,
-                    unit_price: parseFloat(String(l.unit_price).replace(',', '.')) || 0,
-                })),
-            };
+            const payload = new FormData();
+            payload.append('supplier_id', form.supplier_id);
+            payload.append('depot', form.depot);
+            payload.append('reference', form.reference);
+            payload.append('invoice_date', form.invoice_date);
+            payload.append('payment_mode', form.payment_mode || '');
+            if (form.photo) payload.append('photo', form.photo);
+            lines.forEach((line, index) => {
+                payload.append(`items[${index}][article_reference]`, line.article_reference || '');
+                payload.append(`items[${index}][description]`, line.description);
+                payload.append(`items[${index}][quantity]`, parseFloat(String(line.quantity).replace(',', '.')) || 0);
+                payload.append(`items[${index}][unit_price]`, parseFloat(String(line.unit_price).replace(',', '.')) || 0);
+            });
             if (editingId) {
-                await api.put(`/supplier-invoices/${editingId}`, payload);
+                payload.append('_method', 'PUT');
+                await api.post(`/supplier-invoices/${editingId}`, payload);
             } else {
                 await api.post('/supplier-invoices', payload);
             }
@@ -444,7 +451,7 @@ export default function FactureAchatsPage({ depotFilter = null, pageTitle = 'Fac
         }
     };
 
-    const headers = ['Date', 'Réf', 'Fournisseur', 'Destination', 'Total HT', 'TVA', 'Total TTC', 'Statut', 'Actions'];
+    const headers = ['Date', 'N° Facture', 'Fournisseur', 'Destination', 'Mode Paiement', 'Total HT', 'TVA', 'Total TTC', 'Actions'];
 
     const accent = depotFilter === 'depot_b'
         ? 'from-violet-600 via-purple-700 to-indigo-900'
@@ -533,10 +540,10 @@ export default function FactureAchatsPage({ depotFilter = null, pageTitle = 'Fac
                                         <td className="px-3 py-2.5 text-center font-mono text-xs font-semibold text-brand-navy dark:text-orange-400">{row.reference}</td>
                                         <td className="px-3 py-2.5 text-center font-medium text-slate-800 dark:text-white">{row.fournisseur}</td>
                                         <td className="px-3 py-2.5 text-center"><DepotBadge label={row.depot_label} /></td>
+                                        <td className="px-3 py-2.5 text-center text-xs text-slate-600 dark:text-slate-300">{row.payment_mode || '—'}</td>
                                         <td className="px-3 py-2.5 text-center tabular-nums font-semibold">{formatMontant(row.total_ht)}</td>
                                         <td className="px-3 py-2.5 text-center tabular-nums">{formatMontant(row.tva)}</td>
                                         <td className="px-3 py-2.5 text-center tabular-nums font-semibold text-brand-navy dark:text-orange-400">{formatMontant(row.total_ttc)}</td>
-                                        <td className="px-3 py-2.5 text-center text-xs capitalize">{row.status?.replace('_', ' ')}</td>
                                         <td className="px-3 py-2.5">
                                             <div className="flex items-center justify-center gap-0.5">
                                                 <ActionBtn title="Voir" icon={Eye} color="blue" onClick={() => setViewRow(row)} />

@@ -11,7 +11,7 @@ class SupplierInvoice extends Model
 {
     protected $fillable = [
         'supplier_id', 'chantier_id', 'depot', 'reference', 'invoice_date', 'due_date',
-        'total_ht', 'tva', 'total_ttc', 'amount_paid', 'status', 'notes',
+        'payment_mode', 'photo_path', 'total_ht', 'tva', 'total_ttc', 'amount_paid', 'status', 'notes',
     ];
 
     protected function casts(): array
