@@ -9,6 +9,7 @@ import BonAchatsPage from './pages/BonAchatsPage';
 import BonVentesPage from './pages/BonVentesPage';
 import ReglementFournisseurPage from './pages/ReglementFournisseurPage';
 import ReglementClientPage from './pages/ReglementClientPage';
+import ReglementFactureVentePage from './pages/ReglementFactureVentePage';
 import FicheProduitPage from './pages/FicheProduitPage';
 import StockMouvementsPage from './pages/StockMouvementsPage';
 import GenericListPage from './pages/GenericListPage';
@@ -79,7 +80,7 @@ function AppRoutes() {
                 <Route path="facturation/depot-c" element={<FactureAchatsPage depotFilter="depot_c" pageTitle="Ste Aabach Lilbinae" />} />
                 <Route path="facturation/reglement" element={<ReglementFournisseurPage />} />
                 <Route path="facturation/factures-ventes" element={<ModulePage />} />
-                <Route path="facturation/reglements" element={<ReglementClientPage />} />
+                <Route path="facturation/reglements" element={<ReglementFactureVentePage />} />
                 <Route path="facturation/balance" element={<ModulePage />} />
                 <Route path="fournisseurs/reglements-achats" element={<ReglementFournisseurPage />} />
 

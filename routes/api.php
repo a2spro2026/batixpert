@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\DashboardApiController;
 use App\Http\Controllers\Api\DocumentApiController;
 use App\Http\Controllers\Api\EmployeeApiController;
 use App\Http\Controllers\Api\ExpenseApiController;
+use App\Http\Controllers\Api\InvoicePaymentApiController;
 use App\Http\Controllers\Api\ProductApiController;
 use App\Http\Controllers\Api\PurchaseOrderApiController;
 use App\Http\Controllers\Api\SaleOrderApiController;
@@ -61,6 +62,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('purchase-orders/{purchase_order}/validate', [PurchaseOrderApiController::class, 'validateOrder']);
     Route::apiResource('sales-orders', SaleOrderApiController::class);
     Route::post('sales-orders/{sales_order}/validate', [SaleOrderApiController::class, 'validateOrder']);
+
+    Route::get('invoice-payments/invoices', [InvoicePaymentApiController::class, 'invoices']);
+    Route::apiResource('invoice-payments', InvoicePaymentApiController::class)
+        ->parameters(['invoice-payments' => 'invoicePayment'])
+        ->only(['index', 'store', 'update', 'destroy']);
 
     Route::get('supplier-invoices/stock', [SupplierInvoiceApiController::class, 'stock']);
     Route::get('supplier-invoices/meta', [SupplierInvoiceApiController::class, 'meta']);
