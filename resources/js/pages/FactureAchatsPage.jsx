@@ -178,11 +178,28 @@ function FormModal({ open, form, lines, meta, editingId, saving, error, supplier
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
             <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-4xl border border-slate-200 dark:border-slate-700 overflow-hidden max-h-[95vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
-                <div className="flex items-center justify-between px-5 py-4 bg-gradient-to-r from-brand-navy via-blue-800 to-indigo-900 shrink-0">
-                    <h3 className="text-white font-bold text-sm uppercase tracking-wide">
+                <div className="flex items-center justify-between gap-3 px-5 py-4 bg-gradient-to-r from-brand-navy via-blue-800 to-indigo-900 shrink-0">
+                    <h3 className="text-white font-bold text-sm uppercase tracking-wide min-w-0 truncate">
                         {editingId ? `Modifier ${form._ref || ''}` : 'Nouvelle Facture Achat'}
                     </h3>
-                    <button type="button" onClick={onClose} className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10"><X className="w-4 h-4" /></button>
+                    <div className="flex items-center gap-2 shrink-0">
+                        <div className="flex items-center gap-2">
+                            <label className="text-[10px] font-semibold uppercase tracking-wider text-white/80 whitespace-nowrap">
+                                Destination achats
+                            </label>
+                            <select
+                                required
+                                value={form.depot}
+                                onChange={(e) => onChange('depot', e.target.value)}
+                                className="min-w-[180px] max-w-[240px] rounded-lg border border-white/25 bg-white/15 text-white px-2.5 py-1.5 text-xs outline-none focus:ring-2 focus:ring-white/30"
+                            >
+                                {DEPOT_OPTIONS.map((d) => (
+                                    <option key={d.value} value={d.value} className="text-slate-900">{d.label}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <button type="button" onClick={onClose} className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10"><X className="w-4 h-4" /></button>
+                    </div>
                 </div>
 
                 <form onSubmit={onSubmit} className="flex flex-col min-h-0 flex-1 overflow-hidden">
@@ -204,11 +221,6 @@ function FormModal({ open, form, lines, meta, editingId, saving, error, supplier
                                     {suppliers.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
                                 </select>
                             </Field>
-                            <Field label="Destination achats">
-                                <select required value={form.depot} onChange={(e) => onChange('depot', e.target.value)} className={inputClass}>
-                                    {DEPOT_OPTIONS.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}
-                                </select>
-                            </Field>
                             <Field label="Échéance">
                                 <input type="date" value={form.due_date} onChange={(e) => onChange('due_date', e.target.value)} className={inputClass} />
                             </Field>
@@ -217,7 +229,7 @@ function FormModal({ open, form, lines, meta, editingId, saving, error, supplier
                                     {STATUT_OPTIONS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
                                 </select>
                             </Field>
-                            <div className="col-span-2">
+                            <div className="col-span-2 sm:col-span-2 lg:col-span-3">
                                 <Field label="Remarque">
                                     <input type="text" value={form.notes} onChange={(e) => onChange('notes', e.target.value)} placeholder="Remarque" className={inputClass} />
                                 </Field>
