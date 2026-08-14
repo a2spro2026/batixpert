@@ -168,12 +168,13 @@ function ViewModal({ row, onClose }) {
     );
 }
 
-function FormModal({ open, form, lines, meta, editingId, saving, error, suppliers, onChange, onLineChange, onAddLine, onRemoveLine, onClose, onSubmit }) {
+function FormModal({ open, form, lines, meta, editingId, saving, error, suppliers, depotLocked = false, onChange, onLineChange, onAddLine, onRemoveLine, onClose, onSubmit }) {
     if (!open) return null;
 
     const totalHt = lines.reduce((sum, l) => sum + lineTotal(l), 0);
     const tva = totalHt * 0.2;
     const totalTtc = totalHt + tva;
+    const depotLabel = DEPOT_OPTIONS.find((d) => d.value === form.depot)?.label || form.depot || '—';
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
@@ -187,16 +188,26 @@ function FormModal({ open, form, lines, meta, editingId, saving, error, supplier
                             <label className="text-[10px] font-semibold uppercase tracking-wider text-white/80 whitespace-nowrap">
                                 Destination achats
                             </label>
-                            <select
-                                required
-                                value={form.depot}
-                                onChange={(e) => onChange('depot', e.target.value)}
-                                className="min-w-[180px] max-w-[240px] rounded-lg border border-white/25 bg-white/15 text-white px-2.5 py-1.5 text-xs outline-none focus:ring-2 focus:ring-white/30"
-                            >
-                                {DEPOT_OPTIONS.map((d) => (
-                                    <option key={d.value} value={d.value} className="text-slate-900">{d.label}</option>
-                                ))}
-                            </select>
+                            {depotLocked ? (
+                                <input
+                                    type="text"
+                                    readOnly
+                                    value={depotLabel}
+                                    className="min-w-[180px] max-w-[260px] rounded-lg border border-white/20 bg-white/10 text-white/90 px-2.5 py-1.5 text-xs cursor-not-allowed opacity-80"
+                                    title={depotLabel}
+                                />
+                            ) : (
+                                <select
+                                    required
+                                    value={form.depot}
+                                    onChange={(e) => onChange('depot', e.target.value)}
+                                    className="min-w-[180px] max-w-[240px] rounded-lg border border-white/25 bg-white/15 text-white px-2.5 py-1.5 text-xs outline-none focus:ring-2 focus:ring-white/30"
+                                >
+                                    {DEPOT_OPTIONS.map((d) => (
+                                        <option key={d.value} value={d.value} className="text-slate-900">{d.label}</option>
+                                    ))}
+                                </select>
+                            )}
                         </div>
                         <button type="button" onClick={onClose} className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10"><X className="w-4 h-4" /></button>
                     </div>
@@ -455,6 +466,7 @@ export default function FactureAchatsPage({ depotFilter = null, pageTitle = 'Fac
                 saving={saving}
                 error={error}
                 suppliers={suppliers}
+                depotLocked={Boolean(depotFilter)}
                 onChange={onChange}
                 onLineChange={onLineChange}
                 onAddLine={onAddLine}
