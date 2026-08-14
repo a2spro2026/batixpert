@@ -166,6 +166,29 @@ function ViewModal({ row, onClose }) {
     );
 }
 
+function PhotoModal({ row, onClose }) {
+    if (!row?.photo_url) return null;
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={onClose}>
+            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[92vh]" onClick={(e) => e.stopPropagation()}>
+                <div className="flex items-center justify-between px-5 py-3 bg-gradient-to-r from-brand-navy to-blue-800">
+                    <h3 className="text-white font-bold text-sm">Photo — {row.reference}</h3>
+                    <div className="flex items-center gap-1">
+                        <a href={row.photo_url} target="_blank" rel="noreferrer" title="Ouvrir dans un onglet" className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10">
+                            <Image className="w-4 h-4" />
+                        </a>
+                        <button type="button" onClick={onClose} className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10"><X className="w-4 h-4" /></button>
+                    </div>
+                </div>
+                <div className="p-3 overflow-auto bg-slate-100 dark:bg-slate-950">
+                    <img src={row.photo_url} alt={`Facture ${row.reference}`} className="mx-auto max-h-[75vh] rounded-lg" />
+                </div>
+            </div>
+        </div>
+    );
+}
+
 function FormModal({ open, form, lines, meta, editingId, saving, error, suppliers, depotLocked = false, onChange, onLineChange, onAddLine, onRemoveLine, onClose, onSubmit }) {
     if (!open) return null;
 
@@ -321,6 +344,7 @@ export default function FactureAchatsPage({ depotFilter = null, pageTitle = '', 
     const [modalOpen, setModalOpen] = useState(false);
     const [editingId, setEditingId] = useState(null);
     const [viewRow, setViewRow] = useState(null);
+    const [photoRow, setPhotoRow] = useState(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
@@ -478,7 +502,7 @@ export default function FactureAchatsPage({ depotFilter = null, pageTitle = '', 
         if (nextVisible && !stockRows.length) loadStock();
     };
 
-    const headers = ['Date', 'N° Facture', 'Fournisseur', 'Destination', 'Mode Paiement', 'Total HT', 'TVA', 'Total TTC', 'Actions'];
+    const headers = ['Date', 'N° Facture', 'Fournisseur', 'Destination', 'Mode Paiement', 'Photo', 'Total HT', 'TVA', 'Total TTC', 'Actions'];
 
     const accent = depotFilter === 'depot_b'
         ? 'from-violet-600 via-purple-700 to-indigo-900'
@@ -491,6 +515,7 @@ export default function FactureAchatsPage({ depotFilter = null, pageTitle = '', 
     return (
         <div className="space-y-3">
             <ViewModal row={viewRow} onClose={() => setViewRow(null)} />
+            <PhotoModal row={photoRow} onClose={() => setPhotoRow(null)} />
             <FormModal
                 open={modalOpen}
                 form={form}
@@ -603,7 +628,7 @@ export default function FactureAchatsPage({ depotFilter = null, pageTitle = '', 
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                             {loading ? (
                                 [...Array(4)].map((_, i) => (
-                                    <tr key={i}>{[...Array(9)].map((__, j) => (
+                                    <tr key={i}>{[...Array(10)].map((__, j) => (
                                         <td key={j} className="px-3 py-3 text-center"><div className="h-4 bg-slate-200 dark:bg-slate-700 rounded animate-pulse mx-auto max-w-[80px]" /></td>
                                     ))}</tr>
                                 ))
@@ -615,6 +640,20 @@ export default function FactureAchatsPage({ depotFilter = null, pageTitle = '', 
                                         <td className="px-3 py-2.5 text-center font-medium text-slate-800 dark:text-white">{row.fournisseur}</td>
                                         <td className="px-3 py-2.5 text-center"><DepotBadge label={row.depot_label} /></td>
                                         <td className="px-3 py-2.5 text-center text-xs text-slate-600 dark:text-slate-300">{row.payment_mode || '—'}</td>
+                                        <td className="px-3 py-2.5">
+                                            {row.photo_url ? (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setPhotoRow(row)}
+                                                    title="Agrandir la photo"
+                                                    className="mx-auto block w-11 h-11 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 hover:ring-2 hover:ring-brand-navy/40 transition-all"
+                                                >
+                                                    <img src={row.photo_url} alt={`Facture ${row.reference}`} className="w-full h-full object-cover" loading="lazy" />
+                                                </button>
+                                            ) : (
+                                                <span className="text-slate-300 dark:text-slate-600">—</span>
+                                            )}
+                                        </td>
                                         <td className="px-3 py-2.5 text-center tabular-nums font-semibold">{formatMontant(row.total_ht)}</td>
                                         <td className="px-3 py-2.5 text-center tabular-nums">{formatMontant(row.tva)}</td>
                                         <td className="px-3 py-2.5 text-center tabular-nums font-semibold text-brand-navy dark:text-orange-400">{formatMontant(row.total_ttc)}</td>
@@ -630,7 +669,7 @@ export default function FactureAchatsPage({ depotFilter = null, pageTitle = '', 
                                     </tr>
                                 ))
                             ) : (
-                                <tr><td colSpan={9} className="px-4 py-12 text-center text-slate-400">Aucune facture enregistrée</td></tr>
+                                <tr><td colSpan={10} className="px-4 py-12 text-center text-slate-400">Aucune facture enregistrée</td></tr>
                             )}
                         </tbody>
                     </table>
