@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\DB;
 
 class SupplierInvoiceApiController extends Controller
 {
-    private const DEPOTS = ['depot_a', 'depot_b'];
+    private const DEPOTS = ['depot_a', 'depot_b', 'depot_c'];
 
     private const STATUTS = ['brouillon', 'en_attente', 'partielle', 'payee', 'en_retard', 'annulee'];
 
@@ -41,8 +41,9 @@ class SupplierInvoiceApiController extends Controller
             'date' => now()->format('d/m/Y'),
             'date_raw' => now()->format('Y-m-d'),
             'depots' => [
-                ['value' => 'depot_a', 'label' => 'Depot A'],
-                ['value' => 'depot_b', 'label' => 'Depot B'],
+                ['value' => 'depot_a', 'label' => 'Ste A. BOUYAHYA'],
+                ['value' => 'depot_b', 'label' => 'Ste Fatari et Associes'],
+                ['value' => 'depot_c', 'label' => 'Ste Aabach Lilbinae'],
             ],
             'statuts' => self::STATUTS,
         ]);
@@ -200,8 +201,9 @@ class SupplierInvoiceApiController extends Controller
     private function depotLabel(?string $depot): string
     {
         return match ($depot) {
-            'depot_b' => 'Depot B',
-            default => 'Depot A',
+            'depot_b' => 'Ste Fatari et Associes',
+            'depot_c' => 'Ste Aabach Lilbinae',
+            default => 'Ste A. BOUYAHYA',
         };
     }
 }

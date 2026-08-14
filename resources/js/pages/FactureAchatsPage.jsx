@@ -5,8 +5,9 @@ import {
 import api from '../lib/api';
 
 const DEPOT_OPTIONS = [
-    { value: 'depot_a', label: 'Depot A' },
-    { value: 'depot_b', label: 'Depot B' },
+    { value: 'depot_a', label: 'Ste A. BOUYAHYA' },
+    { value: 'depot_b', label: 'Ste Fatari et Associes' },
+    { value: 'depot_c', label: 'Ste Aabach Lilbinae' },
 ];
 
 const STATUT_OPTIONS = [
@@ -76,9 +77,14 @@ function ActionBtn({ title, icon: Icon, color = 'slate', onClick }) {
 }
 
 function DepotBadge({ label }) {
-    const isA = label === 'Depot A';
+    const tones = {
+        'Ste A. BOUYAHYA': 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300',
+        'Ste Fatari et Associes': 'bg-violet-50 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300',
+        'Ste Aabach Lilbinae': 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300',
+    };
+    const tone = tones[label] || 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300';
     return (
-        <span className={`inline-flex px-2 py-0.5 rounded-md text-xs font-semibold ${isA ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' : 'bg-violet-50 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300'}`}>
+        <span className={`inline-flex px-2 py-0.5 rounded-md text-xs font-semibold ${tone}`}>
             {label}
         </span>
     );
@@ -419,9 +425,11 @@ export default function FactureAchatsPage({ depotFilter = null, pageTitle = 'Fac
 
     const accent = depotFilter === 'depot_b'
         ? 'from-violet-600 via-purple-700 to-indigo-900'
-        : depotFilter === 'depot_a'
-            ? 'from-blue-600 via-brand-navy to-slate-900'
-            : 'from-brand-navy via-blue-800 to-indigo-900';
+        : depotFilter === 'depot_c'
+            ? 'from-emerald-600 via-teal-700 to-slate-900'
+            : depotFilter === 'depot_a'
+                ? 'from-blue-600 via-brand-navy to-slate-900'
+                : 'from-brand-navy via-blue-800 to-indigo-900';
 
     return (
         <div className="space-y-4">

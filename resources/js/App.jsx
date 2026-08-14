@@ -75,8 +75,9 @@ function AppRoutes() {
 
                 {/* Facturation */}
                 <Route path="facturation/factures-achats" element={<FactureAchatsPage />} />
-                <Route path="facturation/depot-a" element={<FactureAchatsPage depotFilter="depot_a" pageTitle="Depot A" pageSubtitle="Factures achats — destination Depot A" />} />
-                <Route path="facturation/depot-b" element={<FactureAchatsPage depotFilter="depot_b" pageTitle="Depot B" pageSubtitle="Factures achats — destination Depot B" />} />
+                <Route path="facturation/depot-a" element={<FactureAchatsPage depotFilter="depot_a" pageTitle="Ste A. BOUYAHYA" pageSubtitle="Factures achats — Ste A. BOUYAHYA" />} />
+                <Route path="facturation/depot-b" element={<FactureAchatsPage depotFilter="depot_b" pageTitle="Ste Fatari et Associes" pageSubtitle="Factures achats — Ste Fatari et Associes" />} />
+                <Route path="facturation/depot-c" element={<FactureAchatsPage depotFilter="depot_c" pageTitle="Ste Aabach Lilbinae" pageSubtitle="Factures achats — Ste Aabach Lilbinae" />} />
                 <Route path="facturation/reglement" element={<ReglementFournisseurPage />} />
                 <Route path="facturation/factures-ventes" element={<ModulePage />} />
                 <Route path="facturation/reglements" element={<ReglementClientPage />} />
