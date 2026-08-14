@@ -8,6 +8,8 @@ const api = axios.create({
 api.interceptors.request.use((config) => {
     const token = localStorage.getItem('batixpert_token');
     if (token) config.headers.Authorization = `Bearer ${token}`;
+    // Sans ça axios sérialise le FormData en JSON et perd les fichiers.
+    if (config.data instanceof FormData) config.headers['Content-Type'] = 'multipart/form-data';
     return config;
 });
 
