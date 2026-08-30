@@ -277,8 +277,8 @@ function ImportPurchaseModal({ open, rows, loading, onClose, onSelect }) {
                                         ))}
                                     </tr>
                                 ))
-                            ) : purchaseOrders.length ? (
-                                purchaseOrders.map((row) => (
+                            ) : rows.length ? (
+                                rows.map((row) => (
                                     <tr key={row.id} className="hover:bg-emerald-50/60 dark:hover:bg-emerald-900/20 transition-colors">
                                         <td className="px-3 py-2.5 text-center text-slate-600 dark:text-slate-300">{row.order_date}</td>
                                         <td className="px-3 py-2.5 text-center font-mono text-xs font-semibold">{row.reference}</td>
