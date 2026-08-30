@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle2, Plus, PlusCircle, XCircle, Eye, Pencil, Trash2, Printer, FileText, X, Package, Wallet, Search } from 'lucide-react';
+import { CheckCircle2, Plus, PlusCircle, XCircle, Eye, Pencil, Trash2, Printer, FileText, X, Package, Wallet } from 'lucide-react';
 import api from '../lib/api';
 
 const UNIT_OPTIONS = ['', 'Kg', 'U', 'Sac', 'ML', 'M²', 'M³', 'Tn', 'M'];
@@ -27,6 +27,20 @@ const emptyLine = () => ({
     quantity: '1',
     unit_price: '',
 });
+
+const tableFilterClass =
+    'w-full rounded-lg border border-white/20 bg-white/15 text-white px-2 py-1.5 text-xs outline-none focus:ring-2 focus:ring-white/30';
+
+const emptyTableFilters = {
+    month: '',
+    client_id: '',
+};
+
+function matchesOrderMonth(row, month) {
+    if (!month) return true;
+    const raw = row.order_date_raw || '';
+    return raw.startsWith(month);
+}
 
 function Field({ label, children, className = '' }) {
     return (
@@ -182,18 +196,15 @@ export default function BonVentesPage() {
     const [error, setError] = useState('');
     const [editingId, setEditingId] = useState(null);
     const [viewRow, setViewRow] = useState(null);
-    const [tableSearch, setTableSearch] = useState('');
+    const [tableFilters, setTableFilters] = useState(emptyTableFilters);
 
-    const filteredRows = useMemo(() => {
-        const q = tableSearch.trim().toLowerCase();
-        if (!q) return rows;
-        return rows.filter((row) =>
-            (row.reference || '').toLowerCase().includes(q)
-            || (row.client || '').toLowerCase().includes(q)
-            || (row.city || '').toLowerCase().includes(q)
-            || (row.address || '').toLowerCase().includes(q),
-        );
-    }, [rows, tableSearch]);
+    const filteredRows = useMemo(() => rows.filter((row) => {
+        if (!matchesOrderMonth(row, tableFilters.month)) return false;
+        if (tableFilters.client_id && String(row.client_id) !== String(tableFilters.client_id)) return false;
+        return true;
+    }), [rows, tableFilters]);
+
+    const hasTableFilters = Boolean(tableFilters.month || tableFilters.client_id);
 
     const totalBon = useMemo(
         () => lines.reduce((sum, l) => sum + (parseFloat(lineSubtotal(l)) || 0), 0).toFixed(2),
@@ -557,17 +568,26 @@ export default function BonVentesPage() {
             </div>
 
             <div className="flex-1 min-h-0 glass-card overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60 flex flex-col">
-                <div className="px-5 py-3.5 bg-gradient-to-r from-amber-500 via-orange-500 to-orange-700 border-b border-white/10 shrink-0 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <div className="px-5 py-3.5 bg-gradient-to-r from-amber-500 via-orange-500 to-orange-700 border-b border-white/10 shrink-0 space-y-2">
                     <h3 className="text-sm font-bold text-white uppercase tracking-wide">Tableau des Bons de Vente</h3>
-                    <div className="relative w-full sm:max-w-xs">
-                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/70 pointer-events-none" />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-w-xl">
                         <input
-                            type="search"
-                            value={tableSearch}
-                            onChange={(e) => setTableSearch(e.target.value)}
-                            placeholder="Rechercher un bon, client, ville..."
-                            className="w-full rounded-lg border border-white/20 bg-white/15 text-white placeholder:text-white/60 pl-8 pr-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-white/30"
+                            type="month"
+                            value={tableFilters.month}
+                            onChange={(e) => setTableFilters((f) => ({ ...f, month: e.target.value }))}
+                            className={tableFilterClass}
+                            title="Mois"
                         />
+                        <select
+                            value={tableFilters.client_id}
+                            onChange={(e) => setTableFilters((f) => ({ ...f, client_id: e.target.value }))}
+                            className={tableFilterClass}
+                        >
+                            <option value="" className="text-slate-900">Tous les clients</option>
+                            {clients.map((c) => (
+                                <option key={c.id} value={c.id} className="text-slate-900">{c.name}</option>
+                            ))}
+                        </select>
                     </div>
                 </div>
                 <div className="flex-1 min-h-0 overflow-auto">
@@ -615,7 +635,7 @@ export default function BonVentesPage() {
                                     </tr>
                                 ))
                             ) : (
-                                <tr><td colSpan={9} className="px-4 py-12 text-center text-slate-400">{tableSearch ? 'Aucun bon ne correspond à la recherche' : 'Aucun bon de vente enregistré'}</td></tr>
+                                <tr><td colSpan={9} className="px-4 py-12 text-center text-slate-400">{hasTableFilters ? 'Aucun bon ne correspond aux filtres' : 'Aucun bon de vente enregistré'}</td></tr>
                             )}
                         </tbody>
                     </table>

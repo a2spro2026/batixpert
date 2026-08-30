@@ -106,6 +106,7 @@ export const navigation = [
         label: 'Chantiers',
         icon: HardHat,
         perm: 'chantiers.view',
+        disabled: true,
         children: [
             { to: '/chantiers/carte', label: 'Carte Chantiers', icon: MapPin },
             { to: '/clients/devis', label: 'Devis', icon: FileSignature },

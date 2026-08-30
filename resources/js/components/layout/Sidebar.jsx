@@ -115,11 +115,28 @@ function DashboardLink({ item, onClose }) {
 
 function NavGroup({ group, onClose, index }) {
     const location = useLocation();
-    const isChildActive = group.children?.some(
+    const isChildActive = !group.disabled && group.children?.some(
         (c) => location.pathname === c.to || location.pathname.startsWith(c.to + '/')
     );
     const [open, setOpen] = useState(isChildActive);
     const accent = sectionColors[group.id] || 'from-white/10 to-white/5';
+
+    if (group.disabled) {
+        return (
+            <motion.div
+                initial={{ opacity: 0, x: -16 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: index * 0.05, duration: 0.3 }}
+                className="mb-1 opacity-40 pointer-events-none select-none"
+                title="Section indisponible"
+            >
+                <div className="sidebar-nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-blue-100/50 bg-slate-800/25 border border-white/5">
+                    <NavIcon icon={group.icon} active={false} />
+                    <span className="flex-1 text-left truncate">{group.label}</span>
+                </div>
+            </motion.div>
+        );
+    }
 
     if (group.to) {
         return (
