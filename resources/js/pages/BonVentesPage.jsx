@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CheckCircle2, Plus, PlusCircle, XCircle, Eye, Pencil, Trash2, Printer, FileText, X, Package, Wallet } from 'lucide-react';
 import api from '../lib/api';
@@ -184,7 +184,7 @@ function ViewModal({ row, onClose }) {
 
 export default function BonVentesPage() {
     const navigate = useNavigate();
-    const formRef = useRef(null);
+    const [formOpen, setFormOpen] = useState(false);
     const [form, setForm] = useState(emptyHeader);
     const [lines, setLines] = useState([emptyLine()]);
     const [rows, setRows] = useState([]);
@@ -278,18 +278,18 @@ export default function BonVentesPage() {
         if (reload) load();
     };
 
-    const scrollToForm = () => {
-        formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const openNewBon = () => {
+        resetForm(false);
+        setFormOpen(true);
+    };
+
+    const closeForm = () => {
+        setFormOpen(false);
+        resetForm(false);
     };
 
     const handleNewBon = () => {
-        resetForm(true);
-        scrollToForm();
-    };
-
-    const handleClose = () => {
         resetForm(false);
-        navigate('/');
     };
 
     const fillForm = (row) => {
@@ -325,15 +325,17 @@ export default function BonVentesPage() {
         }
         setEditingId(row.id);
         setError('');
-        scrollToForm();
+        setFormOpen(true);
     };
 
     const handleDelete = async (row) => {
         if (!window.confirm(`Supprimer le bon « ${row.reference} » ?`)) return;
         try {
             await api.delete(`/sales-orders/${row.id}`);
-            if (editingId === row.id) resetForm();
-            else load();
+            if (editingId === row.id) {
+                closeForm();
+                load();
+            } else load();
         } catch {
             setError('Impossible de supprimer ce bon de vente');
         }
@@ -377,6 +379,7 @@ export default function BonVentesPage() {
                 await api.post('/sales-orders', payload);
             }
             resetForm();
+            setFormOpen(false);
         } catch (err) {
             setError(err.response?.data?.message || 'Erreur lors de la validation');
         } finally {
@@ -389,10 +392,123 @@ export default function BonVentesPage() {
         : meta.next_ref;
 
     return (
-        <div className="flex flex-col flex-1 h-full min-h-0 gap-3">
+        <div className="space-y-5">
             <ViewModal row={viewRow} onClose={() => setViewRow(null)} />
 
-            <div ref={formRef} className="shrink-0">
+            {!formOpen ? (
+                <>
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex flex-wrap items-center gap-2.5">
+                            <button type="button" onClick={openNewBon} className="btn-primary text-sm">
+                                <Plus className="w-4 h-4" />
+                                Ajouter
+                            </button>
+                            <button type="button" onClick={() => navigate('/')} className="btn-secondary text-sm">
+                                Fermer
+                            </button>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2.5">
+                            <div className="flex items-center gap-3 px-4 py-2 rounded-xl border shadow-sm bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/40 dark:to-teal-950/40 border-emerald-200 dark:border-emerald-800">
+                                <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300">
+                                    <Package className="w-4 h-4" />
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Total Qté</p>
+                                    <p className="text-base font-bold tabular-nums leading-tight text-emerald-700 dark:text-emerald-300">
+                                        {totalQteBons.toLocaleString('fr-FR', { maximumFractionDigits: 3 })}
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-3 px-4 py-2 rounded-xl border shadow-sm bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/40 dark:to-orange-950/40 border-amber-200 dark:border-amber-800">
+                                <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300">
+                                    <Wallet className="w-4 h-4" />
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Total Montant</p>
+                                    <p className="text-base font-bold tabular-nums leading-tight text-brand-navy dark:text-orange-300">
+                                        {formatMontantDisplay(totalMontantBons)}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="glass-card overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60">
+                        <div className="px-5 py-3.5 bg-gradient-to-r from-amber-500 via-orange-500 to-orange-700 border-b border-white/10 space-y-2">
+                            <h3 className="text-sm font-bold text-white uppercase tracking-wide">Tableau des Bons de Vente</h3>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-w-xl">
+                                <input
+                                    type="month"
+                                    value={tableFilters.month}
+                                    onChange={(e) => setTableFilters((f) => ({ ...f, month: e.target.value }))}
+                                    className={tableFilterClass}
+                                    title="Mois"
+                                />
+                                <select
+                                    value={tableFilters.client_id}
+                                    onChange={(e) => setTableFilters((f) => ({ ...f, client_id: e.target.value }))}
+                                    className={tableFilterClass}
+                                >
+                                    <option value="" className="text-slate-900">Tous les clients</option>
+                                    {clients.map((c) => (
+                                        <option key={c.id} value={c.id} className="text-slate-900">{c.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm min-w-[1100px]">
+                                <thead>
+                                    <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700">
+                                        {['Date', 'N° B-V', 'Client', 'Ville', 'Adresse Livraison', 'Qté totale', 'Total', 'Échéance', 'Actions'].map((h) => (
+                                            <th key={h} className="px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap text-center">{h}</th>
+                                        ))}
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                                    {loading ? (
+                                        [...Array(3)].map((_, i) => (
+                                            <tr key={i}>{[...Array(9)].map((__, j) => (
+                                                <td key={j} className="px-4 py-3 text-center"><div className="h-4 bg-slate-200 dark:bg-slate-700 rounded animate-pulse mx-auto max-w-[80px]" /></td>
+                                            ))}</tr>
+                                        ))
+                                    ) : filteredRows.length ? (
+                                        filteredRows.map((row) => (
+                                            <tr key={row.id} className="hover:bg-orange-50/40 dark:hover:bg-slate-800/40 transition-colors">
+                                                <td className="px-4 py-2.5 text-center text-slate-600 dark:text-slate-300">{row.order_date}</td>
+                                                <td className="px-4 py-2.5 text-center font-mono text-xs font-semibold text-brand-navy dark:text-orange-400">{row.reference}</td>
+                                                <td className="px-4 py-2.5 text-center font-medium text-slate-800 dark:text-white">{row.client || '—'}</td>
+                                                <td className="px-4 py-2.5 text-center text-slate-600 dark:text-slate-300">{row.city || '—'}</td>
+                                                <td className="px-4 py-2.5 text-center text-slate-600 dark:text-slate-300">{row.address || '—'}</td>
+                                                <td className="px-4 py-2.5 text-center font-semibold tabular-nums text-emerald-700 dark:text-emerald-300">
+                                                    {orderTotalQuantity(row).toLocaleString('fr-FR', { maximumFractionDigits: 3 })}
+                                                </td>
+                                                <td className="px-4 py-2.5 text-center font-semibold tabular-nums text-brand-navy dark:text-orange-400">{formatMontantDisplay(row.subtotal ?? row.montant)}</td>
+                                                <td className="px-4 py-2.5 text-center">
+                                                    <span className="inline-flex px-2 py-0.5 rounded-md text-xs font-semibold bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300">
+                                                        {row.echeance || '—'}
+                                                    </span>
+                                                </td>
+                                                <td className="px-4 py-2.5">
+                                                    <div className="flex items-center justify-center gap-0.5">
+                                                        <ActionBtn title="Voir" icon={Eye} color="blue" onClick={() => setViewRow(row)} />
+                                                        <ActionBtn title="Modifier" icon={Pencil} color="amber" onClick={() => fillForm(row)} />
+                                                        <ActionBtn title="Supprimer" icon={Trash2} color="red" onClick={() => handleDelete(row)} />
+                                                        <ActionBtn title="Imprimer" icon={Printer} color="slate" onClick={() => openPrintable(row)} />
+                                                        <ActionBtn title="PDF" icon={FileText} color="orange" onClick={() => openPrintable(row)} />
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    ) : (
+                                        <tr><td colSpan={9} className="px-4 py-12 text-center text-slate-400">{hasTableFilters ? 'Aucun bon ne correspond aux filtres' : 'Aucun bon de vente enregistré — cliquez sur Ajouter'}</td></tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </>
+            ) : (
             <form onSubmit={handleSubmit} className="space-y-3">
                 {error && (
                     <div className="p-3 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm border border-red-100 dark:border-red-800">{error}</div>
@@ -530,7 +646,7 @@ export default function BonVentesPage() {
                         <CheckCircle2 className="w-4 h-4" />
                         {saving ? 'Validation...' : 'Valider'}
                     </button>
-                    <button type="button" onClick={handleClose} className="btn-danger">
+                    <button type="button" onClick={closeForm} className="btn-danger">
                         <XCircle className="w-4 h-4" />
                         Fermer
                     </button>
@@ -539,108 +655,12 @@ export default function BonVentesPage() {
                         Nouveau
                     </button>
 
-                    <div className="ml-auto flex flex-wrap items-center gap-2.5">
-                        <div className="flex items-center gap-3 px-4 py-2 rounded-xl border shadow-sm bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/40 dark:to-teal-950/40 border-emerald-200 dark:border-emerald-800">
-                            <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300">
-                                <Package className="w-4 h-4" />
-                            </div>
-                            <div className="text-right">
-                                <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Total Qté</p>
-                                <p className="text-base font-bold tabular-nums leading-tight text-emerald-700 dark:text-emerald-300">
-                                    {totalQteBons.toLocaleString('fr-FR', { maximumFractionDigits: 3 })}
-                                </p>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-3 px-4 py-2 rounded-xl border shadow-sm bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/40 dark:to-orange-950/40 border-amber-200 dark:border-amber-800">
-                            <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300">
-                                <Wallet className="w-4 h-4" />
-                            </div>
-                            <div className="text-right">
-                                <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Total Montant</p>
-                                <p className="text-base font-bold tabular-nums leading-tight text-brand-navy dark:text-orange-300">
-                                    {formatMontantDisplay(totalMontantBons)}
-                                </p>
-                            </div>
-                        </div>
+                    <div className="ml-auto text-sm font-semibold tabular-nums text-brand-navy dark:text-orange-300">
+                        Total bon : {formatMontantDisplay(totalBon)}
                     </div>
                 </div>
             </form>
-            </div>
-
-            <div className="flex-1 min-h-0 glass-card overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60 flex flex-col">
-                <div className="px-5 py-3.5 bg-gradient-to-r from-amber-500 via-orange-500 to-orange-700 border-b border-white/10 shrink-0 space-y-2">
-                    <h3 className="text-sm font-bold text-white uppercase tracking-wide">Tableau des Bons de Vente</h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-w-xl">
-                        <input
-                            type="month"
-                            value={tableFilters.month}
-                            onChange={(e) => setTableFilters((f) => ({ ...f, month: e.target.value }))}
-                            className={tableFilterClass}
-                            title="Mois"
-                        />
-                        <select
-                            value={tableFilters.client_id}
-                            onChange={(e) => setTableFilters((f) => ({ ...f, client_id: e.target.value }))}
-                            className={tableFilterClass}
-                        >
-                            <option value="" className="text-slate-900">Tous les clients</option>
-                            {clients.map((c) => (
-                                <option key={c.id} value={c.id} className="text-slate-900">{c.name}</option>
-                            ))}
-                        </select>
-                    </div>
-                </div>
-                <div className="flex-1 min-h-0 overflow-auto">
-                    <table className="w-full text-sm min-w-[1100px]">
-                        <thead className="sticky top-0 z-10">
-                            <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700">
-                                {['Date', 'N° B-V', 'Client', 'Ville', 'Adresse Livraison', 'Qté totale', 'Total', 'Échéance', 'Actions'].map((h) => (
-                                    <th key={h} className="px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap text-center">{h}</th>
-                                ))}
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                            {loading ? (
-                                [...Array(3)].map((_, i) => (
-                                    <tr key={i}>{[...Array(9)].map((__, j) => (
-                                        <td key={j} className="px-4 py-3 text-center"><div className="h-4 bg-slate-200 dark:bg-slate-700 rounded animate-pulse mx-auto max-w-[80px]" /></td>
-                                    ))}</tr>
-                                ))
-                            ) : filteredRows.length ? (
-                                filteredRows.map((row) => (
-                                    <tr key={row.id} className={`hover:bg-orange-50/40 dark:hover:bg-slate-800/40 transition-colors ${editingId === row.id ? 'bg-amber-50/60 dark:bg-amber-900/10' : ''}`}>
-                                        <td className="px-4 py-2.5 text-center text-slate-600 dark:text-slate-300">{row.order_date}</td>
-                                        <td className="px-4 py-2.5 text-center font-mono text-xs font-semibold text-brand-navy dark:text-orange-400">{row.reference}</td>
-                                        <td className="px-4 py-2.5 text-center font-medium text-slate-800 dark:text-white">{row.client || '—'}</td>
-                                        <td className="px-4 py-2.5 text-center text-slate-600 dark:text-slate-300">{row.city || '—'}</td>
-                                        <td className="px-4 py-2.5 text-center text-slate-600 dark:text-slate-300">{row.address || '—'}</td>
-                                        <td className="px-4 py-2.5 text-center font-semibold tabular-nums text-emerald-700 dark:text-emerald-300">
-                                            {orderTotalQuantity(row).toLocaleString('fr-FR', { maximumFractionDigits: 3 })}
-                                        </td>
-                                        <td className="px-4 py-2.5 text-center font-semibold tabular-nums text-brand-navy dark:text-orange-400">{formatMontantDisplay(row.subtotal ?? row.montant)}</td>
-                                        <td className="px-4 py-2.5 text-center">
-                                            <span className="inline-flex px-2 py-0.5 rounded-md text-xs font-semibold bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300">
-                                                {row.echeance || '—'}
-                                            </span>
-                                        </td>
-                                        <td className="px-4 py-2.5">
-                                            <div className="flex items-center justify-center gap-0.5">
-                                                <ActionBtn title="Voir" icon={Eye} color="blue" onClick={() => setViewRow(row)} />
-                                                <ActionBtn title="Modifier" icon={Pencil} color="amber" onClick={() => fillForm(row)} />
-                                                <ActionBtn title="Supprimer" icon={Trash2} color="red" onClick={() => handleDelete(row)} />
-                                                <ActionBtn title="Imprimer" icon={Printer} color="slate" onClick={() => openPrintable(row)} />
-                                                <ActionBtn title="PDF" icon={FileText} color="orange" onClick={() => openPrintable(row)} />
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))
-                            ) : (
-                                <tr><td colSpan={9} className="px-4 py-12 text-center text-slate-400">{hasTableFilters ? 'Aucun bon ne correspond aux filtres' : 'Aucun bon de vente enregistré'}</td></tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+            )}
         </div>
     );
 }
