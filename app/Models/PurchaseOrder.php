@@ -43,6 +43,11 @@ class PurchaseOrder extends Model
         return $this->hasMany(PurchaseOrderItem::class);
     }
 
+    public function paymentAllocations(): HasMany
+    {
+        return $this->hasMany(SupplierPaymentAllocation::class, 'purchase_order_id');
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

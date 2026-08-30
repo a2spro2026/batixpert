@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { RefreshCw, Search, Scale, Wallet, Receipt } from 'lucide-react';
+import { RefreshCw, Search, Scale, Wallet, Receipt, X } from 'lucide-react';
 import api from '../lib/api';
 import { ReliquatCell } from './clients/clientAmountUtils';
 
@@ -71,6 +71,87 @@ function monthOptions() {
 }
 
 const columns = ['Date', 'Fournisseur', 'Total Achats', 'Montant Payé', 'Solde', 'Reliquat'];
+const detailColumns = ['Nom Fournisseur', 'Client', 'Montant', 'Montant Payé', 'Solde', 'Reliquat'];
+
+function ClientDetailModal({ open, supplierName, rows, loading, onClose }) {
+    if (!open) return null;
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
+            <div
+                className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-5xl border border-slate-200 dark:border-slate-700 overflow-hidden flex flex-col max-h-[90vh]"
+                onClick={(e) => e.stopPropagation()}
+            >
+                <div className="flex items-center justify-between px-5 py-4 bg-gradient-to-r from-orange-600 via-amber-600 to-orange-700 shrink-0">
+                    <div>
+                        <p className="text-[10px] text-orange-100 uppercase tracking-wider">Détail par client</p>
+                        <h3 className="text-white font-bold">{supplierName || 'Fournisseur'}</h3>
+                    </div>
+                    <button type="button" onClick={onClose} className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10">
+                        <X className="w-4 h-4" />
+                    </button>
+                </div>
+
+                <div className="overflow-auto min-h-0 flex-1">
+                    <table className="w-full text-sm min-w-[760px]">
+                        <thead className="sticky top-0 z-10">
+                            <tr className="bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
+                                {detailColumns.map((h) => (
+                                    <th
+                                        key={h}
+                                        className="px-4 py-3 text-[11px] font-bold uppercase tracking-[0.12em] text-slate-600 dark:text-slate-300 whitespace-nowrap text-center"
+                                    >
+                                        {h}
+                                    </th>
+                                ))}
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                            {loading ? (
+                                [...Array(4)].map((_, i) => (
+                                    <tr key={i}>
+                                        {detailColumns.map((__, j) => (
+                                            <td key={j} className="px-4 py-3 text-center">
+                                                <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded animate-pulse mx-auto max-w-[80px]" />
+                                            </td>
+                                        ))}
+                                    </tr>
+                                ))
+                            ) : rows.length ? (
+                                rows.map((row, idx) => (
+                                    <tr key={`${row.client}-${idx}`} className="hover:bg-orange-50/40 dark:hover:bg-slate-800/40">
+                                        <td className="px-4 py-2.5 text-center font-medium text-slate-800 dark:text-white">{row.fournisseur || '—'}</td>
+                                        <td className="px-4 py-2.5 text-center text-slate-700 dark:text-slate-200">{row.client || '—'}</td>
+                                        <td className="px-4 py-2.5 text-center font-semibold tabular-nums text-brand-navy dark:text-orange-400">{formatMontant(row.montant)}</td>
+                                        <td className="px-4 py-2.5 text-center tabular-nums text-emerald-700 dark:text-emerald-300">{formatMontant(row.montant_paye)}</td>
+                                        <td className="px-4 py-2.5 text-center">
+                                            <SoldeFournisseurCell value={row.solde} />
+                                        </td>
+                                        <td className="px-4 py-2.5 text-center">
+                                            <ReliquatCell value={row.reliquat} />
+                                        </td>
+                                    </tr>
+                                ))
+                            ) : (
+                                <tr>
+                                    <td colSpan={detailColumns.length} className="px-4 py-12 text-center text-slate-400">
+                                        Aucun bon d&apos;achat pour ce fournisseur
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div className="flex justify-end px-5 py-4 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 shrink-0">
+                    <button type="button" onClick={onClose} className="btn-secondary text-xs px-5">
+                        Fermer
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
 
 export default function SupplierBalancePage() {
     const [filters, setFilters] = useState(emptyFilters);
@@ -79,6 +160,10 @@ export default function SupplierBalancePage() {
     const [summary, setSummary] = useState({ total_achats: 0, solde_total: 0, reliquat_total: 0 });
     const [suppliers, setSuppliers] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [detailOpen, setDetailOpen] = useState(false);
+    const [detailName, setDetailName] = useState('');
+    const [detailRows, setDetailRows] = useState([]);
+    const [detailLoading, setDetailLoading] = useState(false);
     const months = monthOptions();
 
     const load = useCallback(() => {
@@ -117,8 +202,36 @@ export default function SupplierBalancePage() {
 
     const handleSearch = () => setAppliedFilters({ ...filters });
 
+    const openClientDetail = (row) => {
+        const supplierId = row.supplier_id || row.id;
+        if (!supplierId) return;
+
+        setDetailName(row.fournisseur || '');
+        setDetailOpen(true);
+        setDetailLoading(true);
+        setDetailRows([]);
+
+        const params = { supplier_id: supplierId };
+        if (appliedFilters.mois) params.mois = appliedFilters.mois;
+
+        api.get('/purchase-orders/balance-clients', { params })
+            .then((res) => {
+                setDetailRows(res.data.data ?? []);
+                setDetailName(res.data.meta?.fournisseur || row.fournisseur || '');
+            })
+            .catch(() => setDetailRows([]))
+            .finally(() => setDetailLoading(false));
+    };
+
     return (
         <div className="space-y-4">
+            <ClientDetailModal
+                open={detailOpen}
+                supplierName={detailName}
+                rows={detailRows}
+                loading={detailLoading}
+                onClose={() => setDetailOpen(false)}
+            />
             <div>
                 <h1 className="text-xl font-bold text-slate-900 dark:text-white">Balance Fournisseur</h1>
                 <p className="text-sm text-slate-500 dark:text-slate-400">Situation consolidée par fournisseur</p>
@@ -206,7 +319,12 @@ export default function SupplierBalancePage() {
                                 ))
                             ) : rows.length ? (
                                 rows.map((row) => (
-                                    <tr key={row.id} className="hover:bg-orange-50/40 dark:hover:bg-slate-800/40 transition-colors">
+                                    <tr
+                                        key={row.id}
+                                        className="hover:bg-orange-50/40 dark:hover:bg-slate-800/40 transition-colors cursor-pointer"
+                                        onDoubleClick={() => openClientDetail(row)}
+                                        title="Double-clic pour le détail par client"
+                                    >
                                         <td className="px-4 py-2.5 text-center text-slate-600 dark:text-slate-300">{row.date || '—'}</td>
                                         <td className="px-4 py-2.5 text-center font-medium text-slate-800 dark:text-white">{row.fournisseur}</td>
                                         <td className="px-4 py-2.5 text-center font-semibold tabular-nums text-brand-navy dark:text-orange-400">{formatMontant(row.total_achats)}</td>

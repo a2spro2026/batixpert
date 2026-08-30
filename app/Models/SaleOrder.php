@@ -41,6 +41,11 @@ class SaleOrder extends Model
         return $this->hasMany(SaleOrderItem::class, 'sales_order_id');
     }
 
+    public function paymentAllocations(): HasMany
+    {
+        return $this->hasMany(ClientPaymentAllocation::class, 'sales_order_id');
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

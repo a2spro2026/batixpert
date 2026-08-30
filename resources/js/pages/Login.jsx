@@ -1,9 +1,16 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Lock, User, Eye, EyeOff, ArrowRight, Shield, Sparkles, ChevronDown, ShieldCheck } from 'lucide-react';
+import { Lock, User, Eye, EyeOff, ArrowRight, Shield, Sparkles, BadgeCheck, ChevronDown } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { LoginBranding } from '../components/LoginBrand';
+
+const STATUT_OPTIONS = [
+    { value: 'Gerant', label: 'Gérant' },
+    { value: 'Assistant', label: 'Assistant(e)' },
+    { value: 'Commercial', label: 'Commercial' },
+    { value: 'Facturation', label: 'Facturation' },
+];
 
 function PasswordField({ value, onChange, showPassword, onToggle }) {
     const [focused, setFocused] = useState(false);
@@ -55,6 +62,7 @@ function PasswordField({ value, onChange, showPassword, onToggle }) {
 
                     <input
                         id="password"
+                        name="password"
                         type={showPassword ? 'text' : 'password'}
                         value={value}
                         onChange={onChange}
@@ -62,6 +70,7 @@ function PasswordField({ value, onChange, showPassword, onToggle }) {
                         onBlur={() => setFocused(false)}
                         placeholder="Votre mot de passe"
                         required
+                        autoComplete="new-password"
                         className="relative z-[1] block w-full pl-11 pr-11 py-3 text-sm text-slate-900 bg-transparent outline-none placeholder:text-slate-400"
                     />
 
@@ -120,42 +129,33 @@ function PasswordField({ value, onChange, showPassword, onToggle }) {
     );
 }
 
-const STATUT_OPTIONS = [
-    { value: 'Gerant', label: 'Gérant' },
-    { value: 'Assistant', label: 'Assistant(e)' },
-    { value: 'Commercial', label: 'Commercial' },
-    { value: 'Facturation', label: 'Facturation' },
-];
-
 export default function Login() {
-    const [login, setLogin] = useState('');
+    const [loginValue, setLoginValue] = useState('');
     const [password, setPassword] = useState('');
     const [statut, setStatut] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [remember, setRemember] = useState(false);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
-    const [loginFocused, setLoginFocused] = useState(false);
+    const [emailFocused, setEmailFocused] = useState(false);
     const [statutFocused, setStatutFocused] = useState(false);
-    const { login: authLogin } = useAuth();
+    const { login } = useAuth();
     const navigate = useNavigate();
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
-
         if (!statut) {
             setError('Veuillez sélectionner un statut');
             return;
         }
-        if (!login || !password) {
+        if (!loginValue || !password) {
             setError('Veuillez saisir le login et le mot de passe');
             return;
         }
-
         setLoading(true);
         try {
-            await authLogin(login, password, statut);
+            await login(loginValue, password, statut);
             navigate('/');
         } catch (err) {
             setError(
@@ -282,7 +282,7 @@ export default function Login() {
                                                             : 'border-slate-300'
                                                 }`}
                                             >
-                                                <ShieldCheck className={`absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none transition-colors ${statutFocused || statut ? 'text-brand-orange' : 'text-slate-400'}`} />
+                                                <BadgeCheck className={`absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none transition-colors ${statutFocused || statut ? 'text-brand-orange' : 'text-slate-400'}`} />
                                                 <select
                                                     id="statut"
                                                     value={statut}
@@ -290,13 +290,13 @@ export default function Login() {
                                                     onFocus={() => setStatutFocused(true)}
                                                     onBlur={() => setStatutFocused(false)}
                                                     required
-                                                    className={`block w-full appearance-none pl-11 pr-10 py-3 text-sm bg-white outline-none cursor-pointer ${statut ? 'text-slate-900 font-medium' : 'text-slate-400'}`}
+                                                    className={`block w-full appearance-none pl-11 pr-10 py-3 text-sm bg-white outline-none cursor-pointer ${
+                                                        statut ? 'text-slate-900 font-medium' : 'text-slate-400'
+                                                    }`}
                                                 >
                                                     <option value="" disabled>Sélectionner un statut</option>
-                                                    {STATUT_OPTIONS.map((option) => (
-                                                        <option key={option.value} value={option.value}>
-                                                            {option.label}
-                                                        </option>
+                                                    {STATUT_OPTIONS.map((opt) => (
+                                                        <option key={opt.value} value={opt.value}>{opt.label}</option>
                                                     ))}
                                                 </select>
                                                 <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
@@ -308,26 +308,26 @@ export default function Login() {
                                                 Login
                                             </label>
                                             <motion.div
-                                                animate={{ scale: loginFocused ? 1.01 : 1 }}
+                                                animate={{ scale: emailFocused ? 1.01 : 1 }}
                                                 transition={{ type: 'spring', stiffness: 400, damping: 25 }}
                                                 className={`relative rounded-xl border-2 transition-all duration-300 overflow-hidden ${
-                                                    loginFocused
+                                                    emailFocused
                                                         ? 'border-brand-navy shadow-[0_0_20px_rgba(30,58,95,0.2)]'
                                                         : 'border-slate-300'
                                                 }`}
                                             >
-                                                <User className={`absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none transition-colors ${loginFocused ? 'text-brand-navy' : 'text-slate-400'}`} />
+                                                <User className={`absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none transition-colors ${emailFocused ? 'text-brand-navy' : 'text-slate-400'}`} />
                                                 <input
                                                     id="login"
                                                     name="login"
                                                     type="text"
-                                                    autoComplete="off"
-                                                    value={login}
-                                                    onChange={(e) => setLogin(e.target.value)}
-                                                    onFocus={() => setLoginFocused(true)}
-                                                    onBlur={() => setLoginFocused(false)}
+                                                    value={loginValue}
+                                                    onChange={(e) => setLoginValue(e.target.value)}
+                                                    onFocus={() => setEmailFocused(true)}
+                                                    onBlur={() => setEmailFocused(false)}
                                                     placeholder="Votre login"
                                                     required
+                                                    autoComplete="off"
                                                     className="block w-full pl-11 pr-3 py-3 text-sm text-slate-900 bg-white outline-none placeholder:text-slate-400"
                                                 />
                                             </motion.div>

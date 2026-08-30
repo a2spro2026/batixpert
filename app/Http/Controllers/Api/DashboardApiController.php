@@ -8,7 +8,6 @@ use App\Models\Charge;
 use App\Models\Chantier;
 use App\Models\ClientInvoice;
 use App\Models\Employee;
-use App\Models\Expense;
 use App\Models\Payment;
 use App\Models\Product;
 use App\Models\PurchaseOrder;
@@ -51,17 +50,18 @@ class DashboardApiController extends Controller
         $totalVentes = (float) SaleOrder::where('status', '!=', 'annule')->sum('total_ttc');
         $reliquat = $totalAchats - $totalVentes;
 
-        $totalCharges = Expense::sum('amount');
+        $totalCharges = (float) Charge::sum('montant');
 
         $tresorerie = (float) Payment::where('type', 'client')->sum('amount')
             - (float) Payment::whereIn('type', ['fournisseur', 'personnel'])->sum('amount');
 
-        $soldeFournisseur = (float) Supplier::sum('initial_balance');
+        $soldesFournisseurs = $this->soldesFournisseurs();
+        $soldeFournisseur = round(collect($soldesFournisseurs)->sum('solde'), 2);
 
         $chantiersActifs = Chantier::where('status', 'en_cours')->where('archived', false)->count();
         $chantiersTermines = Chantier::where('status', 'termine')->count();
 
-        $depensesMois = Expense::where('expense_date', '>=', $monthStart)->sum('amount')
+        $depensesMois = (float) Charge::where('charge_date', '>=', $monthStart)->sum('montant')
             + SupplierInvoice::where('invoice_date', '>=', $monthStart)->sum('total_ttc')
             + Employee::where('status', 'actif')->sum('monthly_salary');
 
@@ -77,7 +77,7 @@ class DashboardApiController extends Controller
             ->selectRaw('COUNT(*) as count, SUM(total_ttc - amount_paid) as amount')
             ->first();
 
-        $chargesMensuelles = Expense::where('expense_date', '>=', $monthStart)->sum('amount');
+        $chargesMensuelles = (float) Charge::where('charge_date', '>=', $monthStart)->sum('montant');
 
         $recettesMois = ClientInvoice::where('invoice_date', '>=', $monthStart)->sum('total_ttc');
         $benefices = $recettesMois - $depensesMois;
@@ -90,10 +90,10 @@ class DashboardApiController extends Controller
             ->where('status', 'present')
             ->count();
 
-        $expensesChart = Expense::select(
-            DB::raw('MONTH(expense_date) as month'),
-            DB::raw('SUM(amount) as total')
-        )->whereYear('expense_date', now()->year)
+        $expensesChart = Charge::select(
+            DB::raw('MONTH(charge_date) as month'),
+            DB::raw('SUM(montant) as total')
+        )->whereYear('charge_date', now()->year)
             ->groupBy('month')->orderBy('month')->get();
 
         $revenueChart = ClientInvoice::select(
@@ -109,9 +109,9 @@ class DashboardApiController extends Controller
             ->whereIn('status', ['valide', 'livre'])
             ->groupBy('month')->orderBy('month')->get();
 
-        $chargesBreakdown = Expense::select('category', DB::raw('SUM(amount) as total'))
-            ->where('expense_date', '>=', $monthStart)
-            ->groupBy('category')->get();
+        $chargesBreakdown = Charge::select('designation as category', DB::raw('SUM(montant) as total'))
+            ->where('charge_date', '>=', $monthStart)
+            ->groupBy('designation')->get();
 
         $chantiersEnCours = Chantier::with('client')
             ->where('status', 'en_cours')->where('archived', false)
@@ -130,7 +130,7 @@ class DashboardApiController extends Controller
             ->select('id', 'name', 'reference', 'start_date', 'end_date', 'status', 'city')
             ->get();
 
-        $derniersBonsAchats = PurchaseOrder::with(['supplier', 'items'])
+        $derniersBonsAchats = PurchaseOrder::with(['supplier', 'items', 'paymentAllocations'])
             ->where('status', '!=', 'annule')
             ->latest('order_date')
             ->latest('id')
@@ -138,7 +138,7 @@ class DashboardApiController extends Controller
             ->get()
             ->map(function ($order) {
                 $montantBon = round((float) $order->total_ttc, 2);
-                $montantPaye = round((float) ($order->montant_paye ?? 0), 2);
+                $montantPaye = round((float) $order->paymentAllocations->sum('amount'), 2);
                 $qte = $order->items->isNotEmpty()
                     ? round((float) $order->items->sum('quantity'), 3)
                     : round((float) $order->quantity, 3);
@@ -153,7 +153,7 @@ class DashboardApiController extends Controller
                 ];
             });
 
-        $derniersBonsVentes = SaleOrder::with(['client', 'items'])
+        $derniersBonsVentes = SaleOrder::with(['client', 'items', 'paymentAllocations'])
             ->where('status', '!=', 'annule')
             ->latest('order_date')
             ->latest('id')
@@ -161,7 +161,7 @@ class DashboardApiController extends Controller
             ->get()
             ->map(function ($order) {
                 $montantBon = round((float) $order->total_ttc, 2);
-                $montantPaye = round((float) ($order->montant_paye ?? 0), 2);
+                $montantPaye = round((float) $order->paymentAllocations->sum('amount'), 2);
                 $qte = $order->items->isNotEmpty()
                     ? round((float) $order->items->sum('quantity'), 3)
                     : round((float) $order->quantity, 3);
@@ -225,7 +225,8 @@ class DashboardApiController extends Controller
                 'valeur_stock_chantiers' => round($stockChantiers, 2),
                 'valeur_stock_depot' => round($stockDepot, 2),
                 'total_charges' => round($totalCharges, 2),
-                'solde_fournisseur' => round($soldeFournisseur, 2),
+                'solde_fournisseur' => $soldeFournisseur,
+                'soldes_fournisseurs' => $soldesFournisseurs,
                 'tresorerie' => round($tresorerie, 2),
                 'chantiers_actifs' => $chantiersActifs,
                 'chantiers_termines' => $chantiersTermines,
@@ -255,5 +256,44 @@ class DashboardApiController extends Controller
                 'regl_a_decaisser' => $reglADecaisser->values(),
             ],
         ]);
+    }
+
+    /**
+     * @return array<int, array{id: int, name: string, solde: float}>
+     */
+    private function soldesFournisseurs(): array
+    {
+        $achatsBySupplier = PurchaseOrder::query()
+            ->where('status', '!=', 'annule')
+            ->selectRaw('supplier_id, SUM(total_ttc) as total_achats')
+            ->groupBy('supplier_id')
+            ->pluck('total_achats', 'supplier_id');
+
+        $paiementsBySupplier = SupplierPayment::query()
+            ->selectRaw('supplier_id, SUM(montant) as montant_paye')
+            ->groupBy('supplier_id')
+            ->pluck('montant_paye', 'supplier_id');
+
+        $supplierIds = $achatsBySupplier->keys()
+            ->merge($paiementsBySupplier->keys())
+            ->unique()
+            ->filter()
+            ->values();
+
+        $suppliers = Supplier::whereIn('id', $supplierIds)->get()->keyBy('id');
+
+        return $supplierIds->map(function ($supplierId) use ($achatsBySupplier, $paiementsBySupplier, $suppliers) {
+            $totalAchats = (float) ($achatsBySupplier[$supplierId] ?? 0);
+            $montantPaye = (float) ($paiementsBySupplier[$supplierId] ?? 0);
+
+            return [
+                'id' => (int) $supplierId,
+                'name' => $suppliers->get($supplierId)?->name ?? '—',
+                'solde' => round(max($totalAchats - $montantPaye, 0), 2),
+            ];
+        })
+            ->sortBy('name')
+            ->values()
+            ->all();
     }
 }

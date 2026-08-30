@@ -9,7 +9,9 @@ import BonAchatsPage from './pages/BonAchatsPage';
 import BonVentesPage from './pages/BonVentesPage';
 import ReglementFournisseurPage from './pages/ReglementFournisseurPage';
 import ReglementClientPage from './pages/ReglementClientPage';
+import ReglementFactureVentePage from './pages/ReglementFactureVentePage';
 import FicheProduitPage from './pages/FicheProduitPage';
+import StockMouvementsPage from './pages/StockMouvementsPage';
 import GenericListPage from './pages/GenericListPage';
 import ModulePage from './pages/ModulePage';
 import FicheFournisseurPage from './pages/FicheFournisseurPage';
@@ -22,11 +24,10 @@ import TransactionsPage from './pages/TransactionsPage';
 import ChargesPage from './pages/ChargesPage';
 import FactureAchatsPage from './pages/FactureAchatsPage';
 import SupplierBalancePage from './pages/SupplierBalancePage';
-import UsersPage from './pages/UsersPage';
-import StockMouvementsPage from './pages/StockMouvementsPage';
 import SupplierRelevePage from './pages/SupplierRelevePage';
 import ClientRelevePage from './pages/ClientRelevePage';
-import ReglementFactureVentePage from './pages/ReglementFactureVentePage';
+import UsersPage from './pages/UsersPage';
+import ChauffeursPage from './pages/ChauffeursPage';
 
 function ProtectedRoute({ children }) {
     const { user, loading } = useAuth();
@@ -75,9 +76,9 @@ function AppRoutes() {
                 <Route path="clients/releve-compte" element={<ClientRelevePage />} />
 
                 {/* Facturation */}
-                <Route path="facturation/factures-achats" element={<FactureAchatsPage />} />
-                <Route path="facturation/depot-a" element={<FactureAchatsPage depotFilter="depot_a" pageTitle="Depot A" pageSubtitle="Factures achats — destination Depot A" />} />
-                <Route path="facturation/depot-b" element={<FactureAchatsPage depotFilter="depot_b" pageTitle="Depot B" pageSubtitle="Factures achats — destination Depot B" />} />
+                <Route path="facturation/depot-a" element={<FactureAchatsPage depotFilter="depot_a" pageTitle="Ste A. BOUYAHYA" />} />
+                <Route path="facturation/depot-b" element={<FactureAchatsPage depotFilter="depot_b" pageTitle="Ste Fatari et Associes" />} />
+                <Route path="facturation/depot-c" element={<FactureAchatsPage depotFilter="depot_c" pageTitle="Ste Aabach Lilbinae" />} />
                 <Route path="facturation/reglement" element={<ReglementFournisseurPage />} />
                 <Route path="facturation/factures-ventes" element={<ModulePage />} />
                 <Route path="facturation/reglements" element={<ReglementFactureVentePage />} />
@@ -106,6 +107,7 @@ function AppRoutes() {
 
                 {/* Configuration */}
                 <Route path="configuration/utilisateurs" element={<UsersPage />} />
+                <Route path="configuration/chauffeurs" element={<ChauffeursPage />} />
 
                 {/* Redirections anciennes routes */}
                 <Route path="chantiers" element={<Navigate to="/chantiers/carte" replace />} />

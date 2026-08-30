@@ -34,6 +34,11 @@ class ClientPaymentApiController extends Controller
             $query->whereYear('payment_date', $year)->whereMonth('payment_date', $month);
         }
 
+        if ($request->boolean('available_for_import')) {
+            $query->whereNull('endosse_supplier_payment_id')
+                ->where('statut', '!=', 'Dévalidé');
+        }
+
         $payments = $query->latest('payment_date')->latest('id')->get();
 
         $allForTotals = ClientPayment::query();
@@ -103,6 +108,7 @@ class ClientPaymentApiController extends Controller
             'banque' => 'nullable|string|max:100',
             'nom_tire' => 'nullable|string|max:150',
             'montant' => 'required|numeric|min:0.01',
+            'tresorerie' => 'nullable|string|max:255',
             'date_decaissement' => 'nullable|date',
             'remarque' => 'nullable|string|max:1000',
             'statut' => 'nullable|in:'.implode(',', self::STATUTS),
@@ -181,6 +187,9 @@ class ClientPaymentApiController extends Controller
                 'banque' => $validated['banque'] ?? null,
                 'nom_tire' => $validated['nom_tire'] ?? null,
                 'montant' => $paymentAmount,
+                'tresorerie' => isset($validated['tresorerie']) && $validated['tresorerie'] !== ''
+                    ? mb_strtoupper(trim((string) $validated['tresorerie']))
+                    : null,
                 'date_decaissement' => $validated['date_decaissement'] ?? null,
                 'remarque' => $validated['remarque'] ?? null,
                 'solde' => round($soldeAvant - $paymentAmount, 2),
@@ -199,17 +208,20 @@ class ClientPaymentApiController extends Controller
                 ]);
 
                 $newPaid = round((float) ($row['order']->montant_paye ?? 0) + $row['amount'], 2);
-                $orderTotal = (float) $row['order']->total_ttc;
-                $action = $row['action'];
+                $orderTotal = round((float) $row['order']->total_ttc, 2);
+                $action = $row['action'] ?? 'Inst';
 
-                if ($action === 'Payé' || ($newPaid + 0.009 >= $orderTotal && $orderTotal > 0)) {
-                    $action = $newPaid + 0.009 >= $orderTotal ? 'Payé' : ($action ?: 'Inst');
+                // Soldé uniquement si le montant payé couvre le bon
+                if (in_array($action, ['Inst', 'Payé', null], true) || $action === '') {
+                    $action = ($orderTotal > 0 && $newPaid + 0.009 >= $orderTotal) ? 'Payé' : 'Inst';
                 }
 
                 $row['order']->update([
                     'montant_paye' => $newPaid,
                     'payment_action' => $action,
                 ]);
+                $row['order']->montant_paye = $newPaid;
+                $row['order']->payment_action = $action;
             }
 
             return $payment->fresh(['client', 'allocations.saleOrder']);
@@ -231,6 +243,7 @@ class ClientPaymentApiController extends Controller
             'banque' => 'nullable|string|max:100',
             'nom_tire' => 'nullable|string|max:150',
             'montant' => 'sometimes|required|numeric|min:0.01',
+            'tresorerie' => 'nullable|string|max:255',
             'date_decaissement' => 'nullable|date',
             'remarque' => 'nullable|string|max:1000',
             'statut' => 'nullable|in:'.implode(',', self::STATUTS),
@@ -238,6 +251,12 @@ class ClientPaymentApiController extends Controller
 
         if (isset($validated['client_id'])) {
             $validated['client_name'] = Client::find($validated['client_id'])?->name;
+        }
+
+        if (array_key_exists('tresorerie', $validated)) {
+            $validated['tresorerie'] = ($validated['tresorerie'] === null || $validated['tresorerie'] === '')
+                ? null
+                : mb_strtoupper(trim((string) $validated['tresorerie']));
         }
 
         $clientPayment->update($validated);
@@ -268,7 +287,29 @@ class ClientPaymentApiController extends Controller
             'payment_action' => 'required|in:Inst,Payé,Report,Imp,Dévalidé',
         ]);
 
-        $sales_order->update(['payment_action' => $validated['payment_action']]);
+        // Recalcule le payé depuis les allocations (source de vérité)
+        $paidFromAlloc = round((float) $sales_order->paymentAllocations()->sum('amount'), 2);
+        $total = round((float) $sales_order->total_ttc, 2);
+        $action = $validated['payment_action'];
+
+        // Payé = soldé uniquement si les règlements couvrent le montant du bon
+        if ($action === 'Payé' && $paidFromAlloc + 0.009 < $total) {
+            return response()->json([
+                'message' => 'Bon non soldé : payé '.number_format($paidFromAlloc, 2, '.', '')
+                    .' / '.number_format($total, 2, '.', '')
+                    .' (reste '.number_format(max($total - $paidFromAlloc, 0), 2, '.', '').')',
+                'data' => $this->formatOrder($sales_order->fresh('client')),
+            ], 422);
+        }
+
+        if (in_array($action, ['Inst', 'Payé'], true)) {
+            $action = ($total > 0 && $paidFromAlloc + 0.009 >= $total) ? 'Payé' : 'Inst';
+        }
+
+        $sales_order->update([
+            'montant_paye' => $paidFromAlloc,
+            'payment_action' => $action,
+        ]);
 
         return response()->json($this->formatOrder($sales_order->fresh('client')));
     }
@@ -281,8 +322,11 @@ class ClientPaymentApiController extends Controller
             foreach ($clientPayment->allocations as $allocation) {
                 $order = $allocation->saleOrder ?: $allocation->clientOrder;
                 if ($order && isset($order->montant_paye)) {
+                    $newPaid = round(max((float) ($order->montant_paye ?? 0) - (float) $allocation->amount, 0), 2);
+                    $orderTotal = round((float) $order->total_ttc, 2);
                     $order->update([
-                        'montant_paye' => round(max((float) ($order->montant_paye ?? 0) - (float) $allocation->amount, 0), 2),
+                        'montant_paye' => $newPaid,
+                        'payment_action' => ($orderTotal > 0 && $newPaid + 0.009 >= $orderTotal) ? 'Payé' : 'Inst',
                     ]);
                 }
                 $allocation->delete();
@@ -307,8 +351,24 @@ class ClientPaymentApiController extends Controller
     private function formatOrder(SaleOrder $order): array
     {
         $montantBon = round((float) $order->total_ttc, 2);
-        $montantPaye = round((float) ($order->montant_paye ?? 0), 2);
+        // Source de vérité = somme des allocations de règlements
+        $montantPaye = round((float) $order->paymentAllocations()->sum('amount'), 2);
         $solde = round($montantBon - $montantPaye, 2);
+        $paymentAction = $order->payment_action ?: 'Inst';
+        if (in_array($paymentAction, ['Inst', 'Payé'], true)) {
+            $paymentAction = ($montantBon > 0 && $montantPaye + 0.009 >= $montantBon) ? 'Payé' : 'Inst';
+        }
+
+        // Resynchronise si dérive (ex. forçage Payé sans règlement)
+        if (
+            round((float) ($order->montant_paye ?? 0), 2) !== $montantPaye
+            || ($order->payment_action ?: 'Inst') !== $paymentAction
+        ) {
+            $order->forceFill([
+                'montant_paye' => $montantPaye,
+                'payment_action' => $paymentAction,
+            ])->saveQuietly();
+        }
 
         return [
             'id' => $order->id,
@@ -323,7 +383,7 @@ class ClientPaymentApiController extends Controller
             'montant_bon' => number_format($montantBon, 2, '.', ''),
             'montant_paye' => number_format($montantPaye, 2, '.', ''),
             'solde' => number_format($solde, 2, '.', ''),
-            'payment_action' => $order->payment_action ?: 'Inst',
+            'payment_action' => $paymentAction,
             'status' => $order->status,
         ];
     }
@@ -344,12 +404,15 @@ class ClientPaymentApiController extends Controller
             'banque' => $payment->banque,
             'nom_tire' => $payment->nom_tire,
             'montant' => number_format((float) $payment->montant, 2, '.', ''),
+            'tresorerie' => $payment->tresorerie ? mb_strtoupper((string) $payment->tresorerie) : null,
             'date_decaissement' => $payment->date_decaissement?->format('d/m/Y'),
             'date_decaissement_raw' => $payment->date_decaissement?->format('Y-m-d'),
             'remarque' => $payment->remarque,
             'total_ttc' => number_format((float) $payment->montant_total, 2, '.', ''),
             'solde_ttc' => number_format((float) $payment->solde, 2, '.', ''),
             'statut' => $payment->statut ?: 'Inst',
+            'endosse' => (bool) $payment->endosse_supplier_payment_id,
+            'endosse_supplier_payment_id' => $payment->endosse_supplier_payment_id,
             'allocations' => $payment->allocations->map(fn ($a) => [
                 'id' => $a->id,
                 'sales_order_id' => $a->sales_order_id,

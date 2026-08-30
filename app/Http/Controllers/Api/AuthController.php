@@ -10,13 +10,20 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
+    private const STATUTS = [
+        'Gerant' => 'Gérant',
+        'Assistant' => 'Assistant(e)',
+        'Commercial' => 'Commercial',
+        'Facturation' => 'Facturation',
+    ];
+
     public function login(Request $request)
     {
         $request->validate([
             'login' => 'required_without:email|string',
             'email' => 'required_without:login|string',
-            'password' => 'required',
-            'statut' => 'required|in:'.implode(',', array_keys(UserApiController::STATUTS)),
+            'password' => 'required|string',
+            'statut' => 'required|in:'.implode(',', array_keys(self::STATUTS)),
         ]);
 
         $login = trim((string) $request->input('login', $request->email));
@@ -27,26 +34,33 @@ class AuthController extends Controller
                     ->orWhere('email', 'like', $login.'@%')
                     ->orWhereRaw('LOWER(name) = ?', [mb_strtolower($login)]);
             })
-            ->where('statut', $request->statut)
             ->first();
 
         if (! $user || ! Hash::check($request->password, $user->password)) {
             throw ValidationException::withMessages([
-                'login' => ['Identifiants incorrects.'],
+                'login' => ['Statut, login ou mot de passe incorrect.'],
             ]);
         }
 
         if (! $user->is_active) {
             throw ValidationException::withMessages([
-                'login' => ['Compte désactivé.'],
+                'login' => ['Compte suspendu.'],
+            ]);
+        }
+
+        if (($user->statut ?? '') !== $request->statut) {
+            throw ValidationException::withMessages([
+                'statut' => ['Le statut ne correspond pas à ce compte.'],
             ]);
         }
 
         $token = $user->createToken('batixpert-spa')->plainTextToken;
+        $statut = $user->statut;
+        $statutLabel = self::STATUTS[$statut] ?? $statut;
 
         return response()->json([
             'token' => $token,
-            'user' => $this->formatUser($user),
+            'user' => $this->formatUser($user, $statut, $statutLabel),
         ]);
     }
 
@@ -60,25 +74,28 @@ class AuthController extends Controller
     public function user(Request $request)
     {
         $user = $request->user()->load('role.permissions');
+        $statut = $user->statut;
+        $statutLabel = $statut ? (self::STATUTS[$statut] ?? $statut) : null;
 
-        return response()->json($this->formatUser($user));
+        return response()->json($this->formatUser($user, $statut, $statutLabel));
     }
 
-    private function formatUser(User $user): array
+    private function formatUser(User $user, ?string $statut = null, ?string $statutLabel = null): array
     {
-        $statutLabel = UserApiController::STATUTS[$user->statut] ?? $user->statut;
-
         return [
             'id' => $user->id,
             'name' => $user->name,
             'email' => $user->email,
+            'login' => $user->email,
             'phone' => $user->phone,
-            'statut' => $user->statut,
-            'statut_label' => $statutLabel,
+            'statut' => $statut ?? $user->statut,
+            'statut_label' => $statutLabel ?? (self::STATUTS[$user->statut] ?? $user->statut),
             'role' => $user->role?->only(['id', 'name', 'slug']),
             'permissions' => $user->role?->permissions->pluck('slug') ?? [],
             'is_admin' => $user->isAdmin(),
-            'title' => $statutLabel ?: ($user->isAdmin() ? 'Directeur Général' : ($user->role?->name ?? '')),
+            'title' => $statutLabel
+                ?? (self::STATUTS[$user->statut] ?? null)
+                ?? ($user->isAdmin() ? 'Directeur Général' : ($user->role?->name ?? '')),
         ];
     }
 }

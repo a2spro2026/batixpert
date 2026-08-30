@@ -7,12 +7,11 @@ import {
     UserCog,
     Landmark,
     Settings,
+    CarFront,
     // Fournisseur
     Contact,
     ClipboardList,
     Banknote,
-    FileInput,
-    CreditCard,
     Scale,
     ScrollText,
     // Client
@@ -81,12 +80,11 @@ export const navigation = [
         icon: FileText,
         perm: 'factures_clients.view',
         children: [
-            { to: '/facturation/factures-achats', label: 'Facture Achats', icon: FileInput },
-            { to: '/facturation/depot-a', label: 'Depot A', icon: Warehouse },
-            { to: '/facturation/depot-b', label: 'Depot B', icon: Warehouse },
-            { to: '/facturation/reglement', label: 'Règlement', icon: CreditCard },
+            { to: '/facturation/depot-a', label: 'Ste A. BOUYAHYA', icon: Warehouse },
+            { to: '/facturation/depot-b', label: 'Ste Fatari et Associes', icon: Warehouse },
+            { to: '/facturation/depot-c', label: 'Ste Aabach Lilbinae', icon: Warehouse },
             { to: '/facturation/factures-ventes', label: 'Facture Ventes', icon: Receipt },
-            { to: '/facturation/reglements', label: 'Règlements', icon: Wallet },
+            { to: '/facturation/reglements', label: 'Règlements Factures Ventes', icon: Wallet },
             { to: '/facturation/balance', label: 'Balance', icon: Scale },
         ],
     },
@@ -143,6 +141,7 @@ export const navigation = [
         perm: 'utilisateurs.view',
         children: [
             { to: '/configuration/utilisateurs', label: 'Utilisateur', icon: UserCog },
+            { to: '/configuration/chauffeurs', label: 'Chauffeur', icon: CarFront },
         ],
     },
 ];

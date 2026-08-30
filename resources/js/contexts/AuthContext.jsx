@@ -55,9 +55,7 @@ export function AuthProvider({ children }) {
         const { data } = await api.post('/login', { login: loginValue, password, statut });
         localStorage.setItem('batixpert_token', data.token);
         localStorage.setItem('batixpert_user', JSON.stringify(data.user));
-        if (statut) {
-            localStorage.setItem('batixpert_statut', statut);
-        }
+        if (statut) localStorage.setItem('batixpert_statut', statut);
         setUser(data.user);
         return data.user;
     };

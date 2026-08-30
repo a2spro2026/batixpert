@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
     ShoppingCart, ShoppingBag, Scale, Receipt, Truck, TrendingUp, TrendingDown,
@@ -47,6 +47,7 @@ const cards = [
         gradient: 'from-violet-500 via-purple-600 to-indigo-900',
         glow: 'rgba(139, 92, 246, 0.4)',
         dynamic: true,
+        supplierFilter: true,
     },
 ];
 
@@ -81,7 +82,7 @@ function AnimatedValue({ value, format }) {
     return <>{formatValue(display, format)}</>;
 }
 
-function KpiCard({ card, value, index }) {
+function KpiCard({ card, value, index, supplierFilter }) {
     const Icon = card.icon;
     const isDynamic = card.dynamic;
     const num = Number(value) || 0;
@@ -92,32 +93,51 @@ function KpiCard({ card, value, index }) {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.06, duration: 0.4 }}
-            whileHover={{ y: -3, scale: 1.02 }}
-            className={`kpi-card-compact group relative overflow-hidden rounded-xl bg-gradient-to-br ${card.gradient} shadow-md hover:shadow-lg transition-all duration-300`}
+            whileHover={{ y: -2, scale: 1.01 }}
+            className={`kpi-card-compact group relative overflow-hidden rounded-lg bg-gradient-to-br ${card.gradient} shadow-md hover:shadow-lg transition-all duration-300`}
             style={{ '--kpi-glow': card.glow }}
         >
             <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
-            <div className="absolute -top-8 -right-8 w-24 h-24 rounded-full bg-white/10 blur-xl pointer-events-none" />
+            <div className="absolute -top-6 -right-6 w-16 h-16 rounded-full bg-white/10 blur-xl pointer-events-none" />
 
-            <div className="relative p-3.5">
-                <div className="flex items-center justify-between gap-2 mb-2">
-                    <div className="p-1.5 rounded-lg bg-white/20 backdrop-blur-sm">
-                        <Icon className="w-4 h-4 text-white" strokeWidth={2} />
+            <div className={`relative p-2.5 flex flex-col ${supplierFilter ? 'min-h-[88px]' : 'min-h-[82px]'}`}>
+                <div className="flex items-center justify-between gap-1.5 mb-1.5">
+                    <div className="p-1 rounded-md bg-white/20 backdrop-blur-sm">
+                        <Icon className="w-3 h-3 text-white" strokeWidth={2} />
                     </div>
                     {isDynamic && (
-                        <span className={`inline-flex items-center gap-0.5 text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full ${
+                        <span className={`inline-flex items-center gap-0.5 text-[8px] font-bold uppercase px-1 py-0.5 rounded-full ${
                             positive ? 'bg-white/25 text-white' : 'bg-black/25 text-red-200'
                         }`}>
-                            {positive ? <TrendingUp className="w-2.5 h-2.5" /> : <TrendingDown className="w-2.5 h-2.5" />}
+                            {positive ? <TrendingUp className="w-2 h-2" /> : <TrendingDown className="w-2 h-2" />}
                         </span>
                     )}
                 </div>
 
-                <p className="text-[10px] font-semibold text-white/80 uppercase tracking-wide leading-tight mb-1 line-clamp-2 min-h-[2rem]">
+                {supplierFilter && (
+                    <select
+                        value={supplierFilter.value}
+                        onChange={(e) => supplierFilter.onChange(e.target.value)}
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-full mb-1.5 rounded border border-white/20 bg-white/10 text-white text-[8px] font-medium px-1 py-0.5 h-5 outline-none focus:ring-1 focus:ring-white/30 cursor-pointer truncate leading-none"
+                        title="Filtrer par fournisseur"
+                    >
+                        <option value="" className="text-slate-900">Tous</option>
+                        {supplierFilter.options.map((s) => (
+                            <option key={s.id} value={String(s.id)} className="text-slate-900">
+                                {s.name}
+                            </option>
+                        ))}
+                    </select>
+                )}
+
+                <p className="text-[9px] font-semibold text-white/80 uppercase tracking-wide leading-tight line-clamp-2">
                     {card.label}
                 </p>
 
-                <p className="text-lg font-bold text-white tracking-tight leading-none">
+                <p className={`mt-auto font-bold text-white tracking-tight leading-none tabular-nums ${
+                    supplierFilter ? 'text-sm pt-1' : 'text-base pt-2.5'
+                }`}>
                     <AnimatedValue value={value} format={card.format} />
                 </p>
             </div>
@@ -137,13 +157,34 @@ function SectionTitle() {
 }
 
 export default function KpiCards({ kpis, loading }) {
+    const [supplierId, setSupplierId] = useState('');
+
+    const supplierOptions = useMemo(
+        () => (Array.isArray(kpis?.soldes_fournisseurs) ? kpis.soldes_fournisseurs : []),
+        [kpis?.soldes_fournisseurs],
+    );
+
+    const soldeFournisseurValue = useMemo(() => {
+        if (!supplierId) {
+            return Number(kpis?.solde_fournisseur) || 0;
+        }
+        const match = supplierOptions.find((s) => String(s.id) === String(supplierId));
+        return Number(match?.solde) || 0;
+    }, [supplierId, kpis?.solde_fournisseur, supplierOptions]);
+
+    const supplierFilter = {
+        value: supplierId,
+        onChange: setSupplierId,
+        options: supplierOptions,
+    };
+
     if (loading) {
         return (
             <div>
                 <SectionTitle />
-                <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
+                <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-2">
                     {cards.map((card) => (
-                        <div key={card.key} className="kpi-card-skeleton rounded-xl h-[88px]" />
+                        <div key={card.key} className={`kpi-card-skeleton rounded-lg ${card.supplierFilter ? 'h-[92px]' : 'h-[82px]'}`} />
                     ))}
                 </div>
             </div>
@@ -153,9 +194,15 @@ export default function KpiCards({ kpis, loading }) {
     return (
         <div>
             <SectionTitle />
-            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-2">
                 {cards.map((card, i) => (
-                    <KpiCard key={card.key} card={card} value={kpis?.[card.key]} index={i} />
+                    <KpiCard
+                        key={card.key}
+                        card={card}
+                        value={card.key === 'solde_fournisseur' ? soldeFournisseurValue : kpis?.[card.key]}
+                        index={i}
+                        supplierFilter={card.supplierFilter ? supplierFilter : null}
+                    />
                 ))}
             </div>
         </div>

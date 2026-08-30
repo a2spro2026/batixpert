@@ -32,7 +32,7 @@ class SupplierInvoiceController extends Controller
         $validated = $request->validate([
             'supplier_id' => 'required|exists:suppliers,id',
             'chantier_id' => 'nullable|exists:chantiers,id',
-            'depot' => 'required|in:depot_a,depot_b',
+            'depot' => 'required|in:depot_a,depot_b,depot_c',
             'reference' => 'required|string|max:50|unique:supplier_invoices',
             'invoice_date' => 'required|date',
             'due_date' => 'nullable|date|after_or_equal:invoice_date',
@@ -98,7 +98,7 @@ class SupplierInvoiceController extends Controller
         $validated = $request->validate([
             'supplier_id' => 'required|exists:suppliers,id',
             'chantier_id' => 'nullable|exists:chantiers,id',
-            'depot' => 'required|in:depot_a,depot_b',
+            'depot' => 'required|in:depot_a,depot_b,depot_c',
             'reference' => 'required|string|max:50|unique:supplier_invoices,reference,'.$supplierInvoice->id,
             'invoice_date' => 'required|date',
             'due_date' => 'nullable|date',

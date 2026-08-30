@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle2, Plus, PlusCircle, XCircle, Eye, Pencil, Trash2, Printer, FileText, X, Package, Wallet } from 'lucide-react';
+import { CheckCircle2, Plus, PlusCircle, XCircle, Eye, Pencil, Trash2, Printer, FileText, X, Package, Wallet, Download } from 'lucide-react';
 import api from '../lib/api';
+import { useChauffeurs } from '../hooks/useChauffeurs';
 
 const UNIT_OPTIONS = ['', 'Kg', 'U', 'Sac', 'ML', 'M²', 'M³', 'Tn', 'M'];
 const REGLEMENT_OPTIONS = ['', 'Esp', 'Chq', 'Eff', 'Vir', 'Vers'];
@@ -143,39 +144,178 @@ function ActionBtn({ title, onClick, icon: Icon, color = 'slate' }) {
 
 function ViewModal({ row, onClose }) {
     if (!row) return null;
-    const header = [
-        ['Date', row.order_date], ['N° B-V', row.reference], ['Client', row.client],
-        ['Ville', row.city], ['Adresse Livraison', row.address],
-        ['Type Régl', row.reglement], ['Échéance', row.echeance], ['Chauffeur', row.chauffeur], ['Matricule', row.matricule],
-    ];
+
+    const items = row.items?.length
+        ? row.items
+        : [{
+            article_ref: row.article_ref,
+            description: row.designation,
+            quantity: row.quantity,
+            unit_price: row.unit_price,
+            total: row.subtotal ?? row.montant,
+        }];
+
+    const total = items.reduce((sum, i) => sum + (Number(i.total) || 0), 0);
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
-            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-lg border border-slate-200 dark:border-slate-700 overflow-hidden" onClick={(e) => e.stopPropagation()}>
-                <div className="flex items-center justify-between px-5 py-4 bg-gradient-to-r from-brand-navy to-blue-800">
+            <div
+                className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-4xl border border-slate-200 dark:border-slate-700 overflow-hidden flex flex-col max-h-[90vh]"
+                onClick={(e) => e.stopPropagation()}
+            >
+                <div className="flex items-center justify-between px-5 py-4 bg-gradient-to-r from-brand-navy to-blue-800 shrink-0">
                     <div>
                         <p className="text-[10px] text-blue-200 uppercase tracking-wider">Bon de Vente</p>
                         <h3 className="text-white font-bold">{row.reference}</h3>
                     </div>
-                    <button type="button" onClick={onClose} className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10"><X className="w-4 h-4" /></button>
+                    <button type="button" onClick={onClose} className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10">
+                        <X className="w-4 h-4" />
+                    </button>
                 </div>
-                <div className="p-5 space-y-2 text-sm max-h-[65vh] overflow-y-auto">
-                    {header.map(([label, value]) => (
-                        <div key={label} className="flex justify-between gap-4 py-1.5 border-b border-slate-100 dark:border-slate-800">
-                            <span className="text-slate-500 shrink-0">{label}</span>
-                            <span className="font-medium text-slate-800 dark:text-white text-right">{value || '—'}</span>
+
+                <div className="p-5 space-y-4 overflow-y-auto min-h-0 flex-1">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        {[
+                            ['Date Bon', row.order_date],
+                            ['N° Bon', row.reference],
+                            ['Nom Client', row.client],
+                        ].map(([label, value]) => (
+                            <div key={label} className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 px-3 py-2.5 text-center">
+                                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">{label}</p>
+                                <p className="mt-1 text-sm font-semibold text-slate-800 dark:text-white">{value || '—'}</p>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm min-w-[640px]">
+                                <thead>
+                                    <tr className="bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
+                                        {['Réf', 'Désignation', 'Qte', 'Prix/U', 'Sous-Total'].map((h) => (
+                                            <th key={h} className="px-3 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-center whitespace-nowrap">{h}</th>
+                                        ))}
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                                    {items.map((i, idx) => (
+                                        <tr key={i.id || idx} className="bg-white dark:bg-slate-900">
+                                            <td className="px-3 py-2 text-center font-mono text-xs font-semibold text-brand-navy dark:text-blue-300">{i.article_ref || '—'}</td>
+                                            <td className="px-3 py-2 text-center text-slate-700 dark:text-slate-200">{i.description || '—'}</td>
+                                            <td className="px-3 py-2 text-center tabular-nums text-slate-700 dark:text-slate-200">
+                                                {(Number(i.quantity) || 0).toLocaleString('fr-FR', { maximumFractionDigits: 3 })}
+                                            </td>
+                                            <td className="px-3 py-2 text-center tabular-nums font-medium text-slate-800 dark:text-white">{formatMontantDisplay(i.unit_price)}</td>
+                                            <td className="px-3 py-2 text-center tabular-nums font-semibold text-brand-navy dark:text-orange-400">{formatMontantDisplay(i.total)}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                                <tfoot>
+                                    <tr className="bg-slate-50 dark:bg-slate-800/80 border-t border-slate-200 dark:border-slate-700">
+                                        <td colSpan={4} className="px-3 py-2.5 text-right text-xs font-bold uppercase tracking-wider text-slate-500">Total</td>
+                                        <td className="px-3 py-2.5 text-center tabular-nums font-bold text-brand-navy dark:text-orange-400">{formatMontantDisplay(total || row.subtotal || row.montant)}</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
                         </div>
-                    ))}
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-brand-navy dark:text-orange-400 pt-2">Articles</p>
-                    {(row.items?.length ? row.items : []).map((i, idx) => (
-                        <div key={i.id || idx} className="rounded-lg border border-slate-100 dark:border-slate-800 px-3 py-2 text-xs">
-                            <div className="font-semibold">{i.article_ref || '—'} — {i.description}</div>
-                            <div className="text-slate-500 mt-0.5">{i.quantity} {i.unit || ''} × {formatMontant(i.unit_price)} = <strong>{formatMontant(i.total)}</strong></div>
-                        </div>
-                    ))}
+                    </div>
                 </div>
-                <div className="flex gap-2 px-5 py-4 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
-                    <button type="button" onClick={() => openPrintable(row)} className="btn-secondary text-xs flex-1"><Printer className="w-3.5 h-3.5" /> Imprimer</button>
-                    <button type="button" onClick={() => openPrintable(row)} className="btn-primary text-xs flex-1"><FileText className="w-3.5 h-3.5" /> PDF</button>
+
+                <div className="flex gap-2 px-5 py-4 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 shrink-0">
+                    <button type="button" onClick={() => openPrintable(row)} className="btn-primary text-xs flex-1">
+                        <Printer className="w-3.5 h-3.5" /> Imprimer
+                    </button>
+                    <button type="button" onClick={onClose} className="btn-danger text-xs flex-1">
+                        <XCircle className="w-3.5 h-3.5" /> Fermer
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function ImportPurchaseModal({ open, rows, loading, onClose, onSelect }) {
+    if (!open) return null;
+
+    return (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
+            <div
+                className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-5xl border border-slate-200 dark:border-slate-700 overflow-hidden max-h-[90vh] flex flex-col"
+                onClick={(e) => e.stopPropagation()}
+            >
+                <div className="flex items-center justify-between px-5 py-4 bg-gradient-to-r from-emerald-600 to-teal-800 shrink-0">
+                    <div>
+                        <p className="text-[10px] text-emerald-100 uppercase tracking-wider">Import</p>
+                        <h3 className="text-white font-bold text-sm">Sélectionner un Bon d&apos;Achat</h3>
+                    </div>
+                    <button type="button" onClick={onClose} className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10">
+                        <X className="w-4 h-4" />
+                    </button>
+                </div>
+
+                <p className="px-5 py-3 text-xs text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800 shrink-0">
+                    Date, client livré, ville et articles seront importés. Le N° bon de vente reste automatique. Les autres champs restent modifiables.
+                </p>
+
+                <div className="overflow-auto flex-1 min-h-0">
+                    <table className="w-full text-sm min-w-[900px]">
+                        <thead className="sticky top-0 z-10">
+                            <tr className="bg-slate-50 dark:bg-slate-800/90 border-b border-slate-200 dark:border-slate-700">
+                                {['Date', 'N° B-A', 'Fournisseur', 'Client Livré', 'Ville', 'Qté', 'Montant', ''].map((h) => (
+                                    <th key={h || 'act'} className="px-3 py-3 text-xs font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap text-center">{h}</th>
+                                ))}
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                            {loading ? (
+                                [...Array(4)].map((_, i) => (
+                                    <tr key={i}>
+                                        {[...Array(8)].map((__, j) => (
+                                            <td key={j} className="px-3 py-3 text-center">
+                                                <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded animate-pulse mx-auto max-w-[72px]" />
+                                            </td>
+                                        ))}
+                                    </tr>
+                                ))
+                            ) : purchaseOrders.length ? (
+                                purchaseOrders.map((row) => (
+                                    <tr key={row.id} className="hover:bg-emerald-50/60 dark:hover:bg-emerald-900/20 transition-colors">
+                                        <td className="px-3 py-2.5 text-center text-slate-600 dark:text-slate-300">{row.order_date}</td>
+                                        <td className="px-3 py-2.5 text-center font-mono text-xs font-semibold">{row.reference}</td>
+                                        <td className="px-3 py-2.5 text-center font-medium">{row.fournisseur || '—'}</td>
+                                        <td className="px-3 py-2.5 text-center">{row.client_livre || '—'}</td>
+                                        <td className="px-3 py-2.5 text-center">{row.city || '—'}</td>
+                                        <td className="px-3 py-2.5 text-center tabular-nums">
+                                            {orderTotalQuantity(row).toLocaleString('fr-FR', { maximumFractionDigits: 3 })}
+                                        </td>
+                                        <td className="px-3 py-2.5 text-center font-semibold tabular-nums text-brand-navy dark:text-orange-400">
+                                            {formatMontantDisplay(row.subtotal ?? row.montant)}
+                                        </td>
+                                        <td className="px-3 py-2.5 text-center">
+                                            <button
+                                                type="button"
+                                                onClick={() => onSelect(row)}
+                                                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-wide text-white bg-emerald-600 hover:bg-emerald-700"
+                                            >
+                                                <Download className="w-3.5 h-3.5" />
+                                                Importer
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))
+                            ) : (
+                                <tr>
+                                    <td colSpan={8} className="px-4 py-12 text-center text-slate-400">Aucun bon d&apos;achat disponible</td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div className="px-5 py-3 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 shrink-0 flex justify-end">
+                    <button type="button" onClick={onClose} className="btn-danger text-xs px-4">
+                        <XCircle className="w-3.5 h-3.5" /> Fermer
+                    </button>
                 </div>
             </div>
         </div>
@@ -184,7 +324,6 @@ function ViewModal({ row, onClose }) {
 
 export default function BonVentesPage() {
     const navigate = useNavigate();
-    const [formOpen, setFormOpen] = useState(false);
     const [form, setForm] = useState(emptyHeader);
     const [lines, setLines] = useState([emptyLine()]);
     const [rows, setRows] = useState([]);
@@ -196,6 +335,10 @@ export default function BonVentesPage() {
     const [error, setError] = useState('');
     const [editingId, setEditingId] = useState(null);
     const [viewRow, setViewRow] = useState(null);
+    const [formOpen, setFormOpen] = useState(false);
+    const [importOpen, setImportOpen] = useState(false);
+    const [purchaseOrders, setPurchaseOrders] = useState([]);
+    const [importLoading, setImportLoading] = useState(false);
     const [tableFilters, setTableFilters] = useState(emptyTableFilters);
 
     const filteredRows = useMemo(() => rows.filter((row) => {
@@ -238,12 +381,23 @@ export default function BonVentesPage() {
             .finally(() => setLoading(false));
     }, []);
 
+    const { chauffeurs, resolveMatricule, reloadChauffeurs } = useChauffeurs();
+
     useEffect(() => {
         setForm((f) => ({ ...f, order_date: new Date().toISOString().slice(0, 10) }));
         load();
     }, [load]);
 
     const set = (key, value) => setForm((f) => ({ ...f, [key]: value }));
+
+    const onChauffeurChange = (value) => {
+        const matricule = resolveMatricule(value);
+        setForm((f) => ({
+            ...f,
+            chauffeur: value,
+            ...(matricule ? { matricule } : {}),
+        }));
+    };
 
     const updateLine = (key, patch) => {
         setLines((prev) => prev.map((l) => (l.key === key ? { ...l, ...patch } : l)));
@@ -275,21 +429,88 @@ export default function BonVentesPage() {
         setLines([emptyLine()]);
         setEditingId(null);
         setError('');
-        if (reload) load();
-    };
-
-    const openNewBon = () => {
-        resetForm(false);
-        setFormOpen(true);
-    };
-
-    const closeForm = () => {
         setFormOpen(false);
-        resetForm(false);
+        if (reload) {
+            load();
+            reloadChauffeurs();
+        }
     };
 
     const handleNewBon = () => {
+        setForm({ ...emptyHeader, order_date: new Date().toISOString().slice(0, 10) });
+        setLines([emptyLine()]);
+        setEditingId(null);
+        setError('');
+        load();
+        reloadChauffeurs();
+        setFormOpen(true);
+    };
+
+    const handleClose = () => {
         resetForm(false);
+        navigate('/');
+    };
+
+    const closeFormPanel = () => {
+        setForm({ ...emptyHeader, order_date: new Date().toISOString().slice(0, 10) });
+        setLines([emptyLine()]);
+        setEditingId(null);
+        setError('');
+        setImportOpen(false);
+        setFormOpen(false);
+    };
+
+    const openImportModal = () => {
+        setImportOpen(true);
+        setImportLoading(true);
+        api.get('/purchase-orders', { params: { all: 1 } })
+            .then((r) => setPurchaseOrders(r.data.data ?? []))
+            .catch(() => setPurchaseOrders([]))
+            .finally(() => setImportLoading(false));
+    };
+
+    const applyImportPurchase = (purchase) => {
+        const clientName = String(purchase.client_livre || '').trim().toLowerCase();
+        const matchedClient = clients.find((c) => String(c.name || '').trim().toLowerCase() === clientName);
+
+        setForm((f) => ({
+            ...f,
+            order_date: purchase.order_date_raw || f.order_date || new Date().toISOString().slice(0, 10),
+            client_id: matchedClient ? String(matchedClient.id) : '',
+            city: purchase.city || '',
+            // N° B-V reste auto ; adresse / régl / échéance / chauffeur / matricule manuels
+        }));
+
+        if (purchase.items?.length) {
+            setLines(purchase.items.map((i) => ({
+                key: `imp-${purchase.id}-${i.id || Math.random().toString(36).slice(2, 7)}`,
+                product_id: i.product_id || '',
+                article_ref: i.article_ref || '',
+                description: i.description || '',
+                unit: i.unit || '',
+                quantity: i.quantity != null ? String(i.quantity) : '1',
+                unit_price: i.unit_price != null ? String(i.unit_price) : '',
+            })));
+        } else if (purchase.designation) {
+            setLines([{
+                ...emptyLine(),
+                product_id: '',
+                article_ref: purchase.article_ref || '',
+                description: purchase.designation || '',
+                unit: purchase.unit || '',
+                quantity: purchase.quantity != null ? String(purchase.quantity) : '1',
+                unit_price: purchase.unit_price != null ? String(purchase.unit_price) : '',
+            }]);
+        } else {
+            setLines([emptyLine()]);
+        }
+
+        setImportOpen(false);
+        setError(
+            matchedClient || !purchase.client_livre
+                ? ''
+                : `Client « ${purchase.client_livre} » non trouvé : sélectionnez le client manuellement.`,
+        );
     };
 
     const fillForm = (row) => {
@@ -332,10 +553,8 @@ export default function BonVentesPage() {
         if (!window.confirm(`Supprimer le bon « ${row.reference} » ?`)) return;
         try {
             await api.delete(`/sales-orders/${row.id}`);
-            if (editingId === row.id) {
-                closeForm();
-                load();
-            } else load();
+            if (editingId === row.id) resetForm();
+            else load();
         } catch {
             setError('Impossible de supprimer ce bon de vente');
         }
@@ -379,7 +598,6 @@ export default function BonVentesPage() {
                 await api.post('/sales-orders', payload);
             }
             resetForm();
-            setFormOpen(false);
         } catch (err) {
             setError(err.response?.data?.message || 'Erreur lors de la validation');
         } finally {
@@ -392,275 +610,286 @@ export default function BonVentesPage() {
         : meta.next_ref;
 
     return (
-        <div className="space-y-5">
+        <div className="space-y-4">
             <ViewModal row={viewRow} onClose={() => setViewRow(null)} />
 
-            {!formOpen ? (
-                <>
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                        <div className="flex flex-wrap items-center gap-2.5">
-                            <button type="button" onClick={openNewBon} className="btn-primary text-sm">
-                                <Plus className="w-4 h-4" />
-                                Ajouter
-                            </button>
-                            <button type="button" onClick={() => navigate('/')} className="btn-secondary text-sm">
-                                Fermer
-                            </button>
-                        </div>
-                        <div className="flex flex-wrap items-center gap-2.5">
-                            <div className="flex items-center gap-3 px-4 py-2 rounded-xl border shadow-sm bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/40 dark:to-teal-950/40 border-emerald-200 dark:border-emerald-800">
-                                <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300">
-                                    <Package className="w-4 h-4" />
-                                </div>
-                                <div className="text-right">
-                                    <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Total Qté</p>
-                                    <p className="text-base font-bold tabular-nums leading-tight text-emerald-700 dark:text-emerald-300">
-                                        {totalQteBons.toLocaleString('fr-FR', { maximumFractionDigits: 3 })}
-                                    </p>
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-3 px-4 py-2 rounded-xl border shadow-sm bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/40 dark:to-orange-950/40 border-amber-200 dark:border-amber-800">
-                                <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300">
-                                    <Wallet className="w-4 h-4" />
-                                </div>
-                                <div className="text-right">
-                                    <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Total Montant</p>
-                                    <p className="text-base font-bold tabular-nums leading-tight text-brand-navy dark:text-orange-300">
-                                        {formatMontantDisplay(totalMontantBons)}
-                                    </p>
-                                </div>
+            <ImportPurchaseModal
+                open={importOpen}
+                rows={purchaseOrders}
+                loading={importLoading}
+                onClose={() => setImportOpen(false)}
+                onSelect={applyImportPurchase}
+            />
+
+            {formOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-sm" onClick={closeFormPanel}>
+                    <div
+                        className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-[min(98vw,1600px)] max-h-[96vh] overflow-hidden border border-slate-200 dark:border-slate-700 flex flex-col"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="flex items-center justify-between gap-3 px-5 py-3.5 bg-gradient-to-r from-brand-navy via-blue-800 to-blue-900 shrink-0">
+                            <h3 className="text-white font-bold text-sm uppercase tracking-wide">
+                                {editingId ? `Modifier Bon de Vente ${currentRef}` : 'Nouveau Bon de Vente'}
+                            </h3>
+                            <div className="flex items-center gap-2">
+                                {!editingId && (
+                                    <button
+                                        type="button"
+                                        onClick={openImportModal}
+                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-wide text-white bg-emerald-500/90 hover:bg-emerald-500 border border-white/20"
+                                    >
+                                        <Download className="w-3.5 h-3.5" />
+                                        Importer
+                                    </button>
+                                )}
+                                <button type="button" onClick={closeFormPanel} className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10">
+                                    <X className="w-4 h-4" />
+                                </button>
                             </div>
                         </div>
-                    </div>
 
-                    <div className="glass-card overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60">
-                        <div className="px-5 py-3.5 bg-gradient-to-r from-amber-500 via-orange-500 to-orange-700 border-b border-white/10 space-y-2">
-                            <h3 className="text-sm font-bold text-white uppercase tracking-wide">Tableau des Bons de Vente</h3>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-w-xl">
-                                <input
-                                    type="month"
-                                    value={tableFilters.month}
-                                    onChange={(e) => setTableFilters((f) => ({ ...f, month: e.target.value }))}
-                                    className={tableFilterClass}
-                                    title="Mois"
-                                />
-                                <select
-                                    value={tableFilters.client_id}
-                                    onChange={(e) => setTableFilters((f) => ({ ...f, client_id: e.target.value }))}
-                                    className={tableFilterClass}
-                                >
-                                    <option value="" className="text-slate-900">Tous les clients</option>
-                                    {clients.map((c) => (
-                                        <option key={c.id} value={c.id} className="text-slate-900">{c.name}</option>
-                                    ))}
-                                </select>
+                        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 space-y-3">
+                            {error && (
+                                <div className="p-3 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm border border-red-100 dark:border-red-800">{error}</div>
+                            )}
+
+                            <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/40 p-2.5">
+                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 xl:grid-cols-9 gap-2 items-end">
+                                    <Field label="Date">
+                                        <input type="date" required value={form.order_date} onChange={(e) => set('order_date', e.target.value)} className={inputClass} />
+                                    </Field>
+                                    <Field label="N° B-V">
+                                        <input type="text" readOnly value={currentRef} className={readOnlyClass} />
+                                    </Field>
+                                    <Field label="Nom Client">
+                                        <select required value={form.client_id} onChange={(e) => set('client_id', e.target.value)} className={inputClass}>
+                                            <option value="">—</option>
+                                            {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                        </select>
+                                    </Field>
+                                    <Field label="Ville">
+                                        <input type="text" value={form.city} onChange={(e) => set('city', e.target.value)} placeholder="Ville" className={inputClass} />
+                                    </Field>
+                                    <Field label="Adresse Livraison">
+                                        <input type="text" value={form.address} onChange={(e) => set('address', e.target.value)} placeholder="Adresse livraison" className={inputClass} />
+                                    </Field>
+                                    <Field label="Type Régl">
+                                        <select value={form.reglement} onChange={(e) => set('reglement', e.target.value)} className={inputClass}>
+                                            {REGLEMENT_OPTIONS.map((v) => <option key={v || 'r'} value={v}>{v || '—'}</option>)}
+                                        </select>
+                                    </Field>
+                                    <Field label="Échéance">
+                                        <select value={form.echeance} onChange={(e) => set('echeance', e.target.value)} className={inputClass}>
+                                            {ECHEANCE_OPTIONS.map((v) => <option key={v || 'e'} value={v}>{v || '—'}</option>)}
+                                        </select>
+                                    </Field>
+                                    <Field label="Chauffeur">
+                                        <input
+                                            type="text"
+                                            list="bon-vente-chauffeurs"
+                                            value={form.chauffeur}
+                                            onChange={(e) => onChauffeurChange(e.target.value)}
+                                            placeholder="Chauffeur"
+                                            className={inputClass}
+                                            autoComplete="off"
+                                        />
+                                        <datalist id="bon-vente-chauffeurs">
+                                            {chauffeurs.map((c) => (
+                                                <option key={c.id} value={c.nom} />
+                                            ))}
+                                        </datalist>
+                                    </Field>
+                                    <Field label="Matricule">
+                                        <input type="text" value={form.matricule} onChange={(e) => set('matricule', e.target.value)} placeholder="Matricule" className={inputClass} />
+                                    </Field>
+                                </div>
                             </div>
-                        </div>
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-sm min-w-[1100px]">
-                                <thead>
-                                    <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700">
-                                        {['Date', 'N° B-V', 'Client', 'Ville', 'Adresse Livraison', 'Qté totale', 'Total', 'Échéance', 'Actions'].map((h) => (
-                                            <th key={h} className="px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap text-center">{h}</th>
-                                        ))}
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                                    {loading ? (
-                                        [...Array(3)].map((_, i) => (
-                                            <tr key={i}>{[...Array(9)].map((__, j) => (
-                                                <td key={j} className="px-4 py-3 text-center"><div className="h-4 bg-slate-200 dark:bg-slate-700 rounded animate-pulse mx-auto max-w-[80px]" /></td>
-                                            ))}</tr>
-                                        ))
-                                    ) : filteredRows.length ? (
-                                        filteredRows.map((row) => (
-                                            <tr key={row.id} className="hover:bg-orange-50/40 dark:hover:bg-slate-800/40 transition-colors">
-                                                <td className="px-4 py-2.5 text-center text-slate-600 dark:text-slate-300">{row.order_date}</td>
-                                                <td className="px-4 py-2.5 text-center font-mono text-xs font-semibold text-brand-navy dark:text-orange-400">{row.reference}</td>
-                                                <td className="px-4 py-2.5 text-center font-medium text-slate-800 dark:text-white">{row.client || '—'}</td>
-                                                <td className="px-4 py-2.5 text-center text-slate-600 dark:text-slate-300">{row.city || '—'}</td>
-                                                <td className="px-4 py-2.5 text-center text-slate-600 dark:text-slate-300">{row.address || '—'}</td>
-                                                <td className="px-4 py-2.5 text-center font-semibold tabular-nums text-emerald-700 dark:text-emerald-300">
-                                                    {orderTotalQuantity(row).toLocaleString('fr-FR', { maximumFractionDigits: 3 })}
-                                                </td>
-                                                <td className="px-4 py-2.5 text-center font-semibold tabular-nums text-brand-navy dark:text-orange-400">{formatMontantDisplay(row.subtotal ?? row.montant)}</td>
-                                                <td className="px-4 py-2.5 text-center">
-                                                    <span className="inline-flex px-2 py-0.5 rounded-md text-xs font-semibold bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300">
-                                                        {row.echeance || '—'}
-                                                    </span>
-                                                </td>
-                                                <td className="px-4 py-2.5">
-                                                    <div className="flex items-center justify-center gap-0.5">
-                                                        <ActionBtn title="Voir" icon={Eye} color="blue" onClick={() => setViewRow(row)} />
-                                                        <ActionBtn title="Modifier" icon={Pencil} color="amber" onClick={() => fillForm(row)} />
-                                                        <ActionBtn title="Supprimer" icon={Trash2} color="red" onClick={() => handleDelete(row)} />
-                                                        <ActionBtn title="Imprimer" icon={Printer} color="slate" onClick={() => openPrintable(row)} />
-                                                        <ActionBtn title="PDF" icon={FileText} color="orange" onClick={() => openPrintable(row)} />
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))
-                                    ) : (
-                                        <tr><td colSpan={9} className="px-4 py-12 text-center text-slate-400">{hasTableFilters ? 'Aucun bon ne correspond aux filtres' : 'Aucun bon de vente enregistré — cliquez sur Ajouter'}</td></tr>
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </>
-            ) : (
-            <form onSubmit={handleSubmit} className="space-y-3">
-                {error && (
-                    <div className="p-3 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm border border-red-100 dark:border-red-800">{error}</div>
-                )}
-                {editingId && (
-                    <div className="px-3 py-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 text-xs font-medium border border-amber-200 dark:border-amber-800">
-                        Mode modification — Mettez à jour puis validez
-                    </div>
-                )}
 
-                <div className="glass-card p-2.5 shadow-card border border-slate-200/60 dark:border-slate-700/60 overflow-x-auto">
-                    <div className="grid grid-cols-[100px_88px_minmax(140px,1.3fr)_100px_minmax(130px,1.1fr)_72px_88px_minmax(100px,0.9fr)_95px] gap-1.5 items-end min-w-[1080px]">
-                        <Field label="Date">
-                            <input type="date" required value={form.order_date} onChange={(e) => set('order_date', e.target.value)} className={inputClass} />
-                        </Field>
-                        <Field label="N° B-V">
-                            <input type="text" readOnly value={currentRef} className={readOnlyClass} />
-                        </Field>
-                        <Field label="Nom Client">
-                            <select required value={form.client_id} onChange={(e) => set('client_id', e.target.value)} className={inputClass}>
-                                <option value="">—</option>
-                                {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                            </select>
-                        </Field>
-                        <Field label="Ville">
-                            <input type="text" value={form.city} onChange={(e) => set('city', e.target.value)} placeholder="Ville" className={inputClass} />
-                        </Field>
-                        <Field label="Adresse Livraison">
-                            <input type="text" value={form.address} onChange={(e) => set('address', e.target.value)} placeholder="Adresse livraison" className={inputClass} />
-                        </Field>
-                        <Field label="Type Régl">
-                            <select value={form.reglement} onChange={(e) => set('reglement', e.target.value)} className={inputClass}>
-                                {REGLEMENT_OPTIONS.map((v) => <option key={v || 'r'} value={v}>{v || '—'}</option>)}
-                            </select>
-                        </Field>
-                        <Field label="Échéance">
-                            <select value={form.echeance} onChange={(e) => set('echeance', e.target.value)} className={inputClass}>
-                                {ECHEANCE_OPTIONS.map((v) => <option key={v || 'e'} value={v}>{v || '—'}</option>)}
-                            </select>
-                        </Field>
-                        <Field label="Chauffeur">
-                            <input type="text" value={form.chauffeur} onChange={(e) => set('chauffeur', e.target.value)} placeholder="Chauffeur" className={inputClass} />
-                        </Field>
-                        <Field label="Matricule">
-                            <input type="text" value={form.matricule} onChange={(e) => set('matricule', e.target.value)} placeholder="Matricule" className={inputClass} />
-                        </Field>
-                    </div>
-                </div>
-
-                <div className="glass-card overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60">
-                    <div className="px-4 py-2 bg-gradient-to-r from-brand-navy via-blue-800 to-blue-900 flex items-center justify-between">
-                        <h3 className="text-xs font-bold text-white uppercase tracking-wide">Tableau de saisie</h3>
-                        <span className="text-[10px] text-blue-200 font-semibold tabular-nums">Total : {totalBon}</span>
-                    </div>
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-sm min-w-[860px]">
-                            <thead>
-                                <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700">
-                                    {['Réf', 'Désignation', 'U', 'Qté', 'P/U', 'S/Total', ''].map((h) => (
-                                        <th key={h || 'act'} className="px-2 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-center whitespace-nowrap">{h}</th>
-                                    ))}
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                                {lines.map((line) => (
-                                    <tr key={line.key} className="hover:bg-orange-50/30 dark:hover:bg-slate-800/30">
-                                        <td className="px-2 py-1.5 w-[120px]">
-                                            <select
-                                                value={line.product_id}
-                                                onChange={(e) => handleSelectProduct(line.key, e.target.value)}
-                                                className={tableInput}
-                                                title="Liste des références"
-                                            >
-                                                <option value="">— Réf —</option>
-                                                {products.map((p) => (
-                                                    <option key={p.id} value={p.id}>
-                                                        {p.article_id || p.reference || p.name}
-                                                    </option>
+                            <div className="rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700">
+                                <div className="px-4 py-2 bg-gradient-to-r from-brand-navy via-blue-800 to-blue-900 flex items-center justify-between">
+                                    <h4 className="text-xs font-bold text-white uppercase tracking-wide">Tableau de saisie</h4>
+                                    <span className="text-[10px] text-blue-200 font-semibold tabular-nums">Total : {totalBon}</span>
+                                </div>
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-sm min-w-[860px]">
+                                        <thead>
+                                            <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700">
+                                                {['Réf', 'Désignation', 'U', 'Qté', 'P/U', 'S/Total', ''].map((h) => (
+                                                    <th key={h || 'act'} className="px-2 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-center whitespace-nowrap">{h}</th>
                                                 ))}
-                                            </select>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                                            {lines.map((line) => (
+                                                <tr key={line.key} className="hover:bg-orange-50/30 dark:hover:bg-slate-800/30">
+                                                    <td className="px-2 py-1.5 w-[120px]">
+                                                        <select value={line.product_id} onChange={(e) => handleSelectProduct(line.key, e.target.value)} className={tableInput} title="Liste des références">
+                                                            <option value="">— Réf —</option>
+                                                            {products.map((p) => (
+                                                                <option key={p.id} value={p.id}>{p.article_id || p.reference || p.name}</option>
+                                                            ))}
+                                                        </select>
+                                                    </td>
+                                                    <td className="px-2 py-1.5 min-w-[180px]">
+                                                        <input type="text" value={line.description} onChange={(e) => updateLine(line.key, { description: e.target.value })} placeholder="Désignation" className={`${tableInput} text-left`} />
+                                                    </td>
+                                                    <td className="px-2 py-1.5 w-[72px]">
+                                                        <select value={line.unit} onChange={(e) => updateLine(line.key, { unit: e.target.value })} className={tableInput}>
+                                                            {UNIT_OPTIONS.map((v) => <option key={v || 'u'} value={v}>{v || '—'}</option>)}
+                                                        </select>
+                                                    </td>
+                                                    <td className="px-2 py-1.5 w-[80px]">
+                                                        <input type="number" step="0.001" min="0" value={line.quantity} onChange={(e) => updateLine(line.key, { quantity: e.target.value })} className={tableInput} />
+                                                    </td>
+                                                    <td className="px-2 py-1.5 w-[95px]">
+                                                        <input type="number" step="0.01" min="0" value={line.unit_price} onChange={(e) => updateLine(line.key, { unit_price: e.target.value })} placeholder="0.00" className={tableInput} />
+                                                    </td>
+                                                    <td className="px-2 py-1.5 w-[95px]">
+                                                        <input type="text" readOnly value={lineSubtotal(line)} className={readOnlyClass} />
+                                                    </td>
+                                                    <td className="px-2 py-1.5 w-[44px] text-center">
+                                                        <button type="button" title="Supprimer la ligne" onClick={() => removeLine(line.key)} className="p-1 rounded-md text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20">
+                                                            <Trash2 className="w-3.5 h-3.5" />
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div className="px-3 py-2 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+                                    <button type="button" onClick={addLine} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide text-brand-navy dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 hover:bg-orange-100 dark:hover:bg-orange-900/40 transition-colors">
+                                        <PlusCircle className="w-4 h-4" /> Ajouter article
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="flex justify-end gap-2 pt-1 border-t border-slate-100 dark:border-slate-800">
+                                <button type="button" onClick={closeFormPanel} className="btn-secondary text-xs px-4">
+                                    <XCircle className="w-3.5 h-3.5" /> Fermer
+                                </button>
+                                <button type="submit" disabled={saving} className="btn-primary text-xs px-4">
+                                    <CheckCircle2 className="w-3.5 h-3.5" /> {saving ? 'Validation...' : 'Valider'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            <div className="flex flex-wrap items-center gap-2.5">
+                <button type="button" onClick={handleNewBon} className="btn-primary">
+                    <Plus className="w-4 h-4" /> Nouveau
+                </button>
+                <button type="button" onClick={handleClose} className="btn-secondary">
+                    <XCircle className="w-4 h-4" /> Fermer
+                </button>
+
+                <div className="ml-auto flex flex-wrap items-center gap-2.5">
+                    <div className="flex items-center gap-3 px-4 py-2 rounded-xl border shadow-sm bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/40 dark:to-teal-950/40 border-emerald-200 dark:border-emerald-800">
+                        <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300">
+                            <Package className="w-4 h-4" />
+                        </div>
+                        <div className="text-right">
+                            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Total Qté</p>
+                            <p className="text-base font-bold tabular-nums leading-tight text-emerald-700 dark:text-emerald-300">
+                                {totalQteBons.toLocaleString('fr-FR', { maximumFractionDigits: 3 })}
+                            </p>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-3 px-4 py-2 rounded-xl border shadow-sm bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/40 dark:to-orange-950/40 border-amber-200 dark:border-amber-800">
+                        <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300">
+                            <Wallet className="w-4 h-4" />
+                        </div>
+                        <div className="text-right">
+                            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Total Montant</p>
+                            <p className="text-base font-bold tabular-nums leading-tight text-brand-navy dark:text-orange-300">
+                                {formatMontantDisplay(totalMontantBons)}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div className="glass-card overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60">
+                <div className="px-5 py-3.5 bg-gradient-to-r from-amber-500 via-orange-500 to-orange-700 border-b border-white/10 space-y-2">
+                    <h3 className="text-sm font-bold text-white uppercase tracking-wide">Tableau des Bons de Vente</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-w-xl">
+                        <input
+                            type="month"
+                            value={tableFilters.month}
+                            onChange={(e) => setTableFilters((f) => ({ ...f, month: e.target.value }))}
+                            className={tableFilterClass}
+                            title="Mois"
+                        />
+                        <select
+                            value={tableFilters.client_id}
+                            onChange={(e) => setTableFilters((f) => ({ ...f, client_id: e.target.value }))}
+                            className={tableFilterClass}
+                        >
+                            <option value="" className="text-slate-900">Tous les clients</option>
+                            {clients.map((c) => (
+                                <option key={c.id} value={c.id} className="text-slate-900">{c.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-sm min-w-[1100px]">
+                        <thead>
+                            <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700">
+                                {['Date', 'N° B-V', 'Client', 'Ville', 'Adresse Livraison', 'Qté totale', 'Total', 'Échéance', 'Actions'].map((h) => (
+                                    <th key={h} className="px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap text-center">{h}</th>
+                                ))}
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                            {loading ? (
+                                [...Array(3)].map((_, i) => (
+                                    <tr key={i}>{[...Array(9)].map((__, j) => (
+                                        <td key={j} className="px-4 py-3 text-center"><div className="h-4 bg-slate-200 dark:bg-slate-700 rounded animate-pulse mx-auto max-w-[80px]" /></td>
+                                    ))}</tr>
+                                ))
+                            ) : filteredRows.length ? (
+                                filteredRows.map((row) => (
+                                    <tr
+                                        key={row.id}
+                                        className="hover:bg-orange-50/40 dark:hover:bg-slate-800/40 transition-colors cursor-pointer"
+                                        onDoubleClick={() => setViewRow(row)}
+                                        title="Double-clic pour afficher"
+                                    >
+                                        <td className="px-4 py-2.5 text-center text-slate-600 dark:text-slate-300">{row.order_date}</td>
+                                        <td className="px-4 py-2.5 text-center font-mono text-xs font-semibold text-brand-navy dark:text-orange-400">{row.reference}</td>
+                                        <td className="px-4 py-2.5 text-center font-medium text-slate-800 dark:text-white">{row.client || '—'}</td>
+                                        <td className="px-4 py-2.5 text-center text-slate-600 dark:text-slate-300">{row.city || '—'}</td>
+                                        <td className="px-4 py-2.5 text-center text-slate-600 dark:text-slate-300">{row.address || '—'}</td>
+                                        <td className="px-4 py-2.5 text-center font-semibold tabular-nums text-emerald-700 dark:text-emerald-300">
+                                            {orderTotalQuantity(row).toLocaleString('fr-FR', { maximumFractionDigits: 3 })}
                                         </td>
-                                        <td className="px-2 py-1.5 min-w-[180px]">
-                                            <input
-                                                type="text"
-                                                value={line.description}
-                                                onChange={(e) => updateLine(line.key, { description: e.target.value })}
-                                                placeholder="Désignation"
-                                                className={`${tableInput} text-left`}
-                                            />
+                                        <td className="px-4 py-2.5 text-center font-semibold tabular-nums text-brand-navy dark:text-orange-400">{formatMontantDisplay(row.subtotal ?? row.montant)}</td>
+                                        <td className="px-4 py-2.5 text-center">
+                                            <span className="inline-flex px-2 py-0.5 rounded-md text-xs font-semibold bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300">
+                                                {row.echeance || '—'}
+                                            </span>
                                         </td>
-                                        <td className="px-2 py-1.5 w-[72px]">
-                                            <select value={line.unit} onChange={(e) => updateLine(line.key, { unit: e.target.value })} className={tableInput}>
-                                                {UNIT_OPTIONS.map((v) => <option key={v || 'u'} value={v}>{v || '—'}</option>)}
-                                            </select>
-                                        </td>
-                                        <td className="px-2 py-1.5 w-[80px]">
-                                            <input type="number" step="0.001" min="0" value={line.quantity} onChange={(e) => updateLine(line.key, { quantity: e.target.value })} className={tableInput} />
-                                        </td>
-                                        <td className="px-2 py-1.5 w-[95px]">
-                                            <input type="number" step="0.01" min="0" value={line.unit_price} onChange={(e) => updateLine(line.key, { unit_price: e.target.value })} placeholder="0.00" className={tableInput} />
-                                        </td>
-                                        <td className="px-2 py-1.5 w-[95px]">
-                                            <input type="text" readOnly value={lineSubtotal(line)} className={readOnlyClass} />
-                                        </td>
-                                        <td className="px-2 py-1.5 w-[44px] text-center">
-                                            <button
-                                                type="button"
-                                                title="Supprimer la ligne"
-                                                onClick={() => removeLine(line.key)}
-                                                className="p-1 rounded-md text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
-                                            >
-                                                <Trash2 className="w-3.5 h-3.5" />
-                                            </button>
+                                        <td className="px-4 py-2.5" onDoubleClick={(e) => e.stopPropagation()}>
+                                            <div className="flex items-center justify-center gap-0.5">
+                                                <ActionBtn title="Voir" icon={Eye} color="blue" onClick={() => setViewRow(row)} />
+                                                <ActionBtn title="Modifier" icon={Pencil} color="amber" onClick={() => fillForm(row)} />
+                                                <ActionBtn title="Supprimer" icon={Trash2} color="red" onClick={() => handleDelete(row)} />
+                                                <ActionBtn title="Imprimer" icon={Printer} color="slate" onClick={() => openPrintable(row)} />
+                                                <ActionBtn title="PDF" icon={FileText} color="orange" onClick={() => openPrintable(row)} />
+                                            </div>
                                         </td>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                    <div className="px-3 py-2 border-t border-slate-100 dark:border-slate-800 flex justify-end">
-                        <button
-                            type="button"
-                            onClick={addLine}
-                            title="Ajouter article"
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide text-brand-navy dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 hover:bg-orange-100 dark:hover:bg-orange-900/40 transition-colors"
-                        >
-                            <PlusCircle className="w-4 h-4" />
-                            Ajouter article
-                        </button>
-                    </div>
+                                ))
+                            ) : (
+                                <tr><td colSpan={9} className="px-4 py-12 text-center text-slate-400">{hasTableFilters ? 'Aucun bon ne correspond aux filtres' : 'Aucun bon de vente enregistré'}</td></tr>
+                            )}
+                        </tbody>
+                    </table>
                 </div>
-
-                <div className="flex flex-wrap items-center gap-2.5">
-                    <button type="submit" disabled={saving} className="btn-primary">
-                        <CheckCircle2 className="w-4 h-4" />
-                        {saving ? 'Validation...' : 'Valider'}
-                    </button>
-                    <button type="button" onClick={closeForm} className="btn-danger">
-                        <XCircle className="w-4 h-4" />
-                        Fermer
-                    </button>
-                    <button type="button" onClick={handleNewBon} className="btn-muted">
-                        <Plus className="w-4 h-4" />
-                        Nouveau
-                    </button>
-
-                    <div className="ml-auto text-sm font-semibold tabular-nums text-brand-navy dark:text-orange-300">
-                        Total bon : {formatMontantDisplay(totalBon)}
-                    </div>
-                </div>
-            </form>
-            )}
+            </div>
         </div>
     );
 }

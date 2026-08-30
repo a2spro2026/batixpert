@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\ClientPayment;
 use App\Models\PurchaseOrder;
 use App\Models\SupplierPayment;
 use Illuminate\Http\Request;
@@ -109,6 +110,8 @@ class SupplierPaymentApiController extends Controller
             'date_decaissement' => 'nullable|date',
             'remarque' => 'nullable|string|max:1000',
             'statut' => 'nullable|in:'.implode(',', self::STATUTS),
+            'imported_client_payment_ids' => 'nullable|array',
+            'imported_client_payment_ids.*' => 'integer|exists:client_payments,id',
             'allocations' => 'required|array|min:1',
             'allocations.*.purchase_order_id' => 'required|exists:purchase_orders,id',
             'allocations.*.amount' => 'nullable|numeric|min:0',
@@ -116,6 +119,17 @@ class SupplierPaymentApiController extends Controller
         ]);
 
         $payment = DB::transaction(function () use ($validated, $request) {
+            $importedIds = collect($validated['imported_client_payment_ids'] ?? [])->unique()->values();
+
+            if ($importedIds->isNotEmpty()) {
+                $alreadyUsed = ClientPayment::whereIn('id', $importedIds)
+                    ->whereNotNull('endosse_supplier_payment_id')
+                    ->exists();
+                if ($alreadyUsed) {
+                    abort(422, 'Un ou plusieurs règlements clients ont déjà été endossés');
+                }
+            }
+
             $orderIds = collect($validated['allocations'])->pluck('purchase_order_id')->all();
             $orders = PurchaseOrder::whereIn('id', $orderIds)
                 ->where('supplier_id', $validated['supplier_id'])
@@ -194,17 +208,25 @@ class SupplierPaymentApiController extends Controller
                 ]);
 
                 $newPaid = round((float) ($row['order']->montant_paye ?? 0) + $row['amount'], 2);
-                $orderTotal = (float) $row['order']->total_ttc;
-                $action = $row['action'];
+                $orderTotal = round((float) $row['order']->total_ttc, 2);
+                $action = $row['action'] ?? 'Inst';
 
-                if ($action === 'Payé' || ($newPaid + 0.009 >= $orderTotal && $orderTotal > 0)) {
-                    $action = $newPaid + 0.009 >= $orderTotal ? 'Payé' : ($action ?: 'Inst');
+                if (in_array($action, ['Inst', 'Payé', null], true) || $action === '') {
+                    $action = ($orderTotal > 0 && $newPaid + 0.009 >= $orderTotal) ? 'Payé' : 'Inst';
                 }
 
                 $row['order']->update([
                     'montant_paye' => $newPaid,
                     'payment_action' => $action,
                 ]);
+                $row['order']->montant_paye = $newPaid;
+                $row['order']->payment_action = $action;
+            }
+
+            if ($importedIds->isNotEmpty()) {
+                ClientPayment::whereIn('id', $importedIds)
+                    ->whereNull('endosse_supplier_payment_id')
+                    ->update(['endosse_supplier_payment_id' => $payment->id]);
             }
 
             return $payment->fresh(['supplier', 'allocations.purchaseOrder']);
@@ -259,7 +281,27 @@ class SupplierPaymentApiController extends Controller
             'payment_action' => 'required|in:Inst,Payé,Report,Imp,Dévalidé',
         ]);
 
-        $purchaseOrder->update(['payment_action' => $validated['payment_action']]);
+        $paidFromAlloc = round((float) $purchaseOrder->paymentAllocations()->sum('amount'), 2);
+        $total = round((float) $purchaseOrder->total_ttc, 2);
+        $action = $validated['payment_action'];
+
+        if ($action === 'Payé' && $paidFromAlloc + 0.009 < $total) {
+            return response()->json([
+                'message' => 'Bon non soldé : payé '.number_format($paidFromAlloc, 2, '.', '')
+                    .' / '.number_format($total, 2, '.', '')
+                    .' (reste '.number_format(max($total - $paidFromAlloc, 0), 2, '.', '').')',
+                'data' => $this->formatOrder($purchaseOrder->fresh('supplier')),
+            ], 422);
+        }
+
+        if (in_array($action, ['Inst', 'Payé'], true)) {
+            $action = ($total > 0 && $paidFromAlloc + 0.009 >= $total) ? 'Payé' : 'Inst';
+        }
+
+        $purchaseOrder->update([
+            'montant_paye' => $paidFromAlloc,
+            'payment_action' => $action,
+        ]);
 
         return response()->json($this->formatOrder($purchaseOrder->fresh('supplier')));
     }
@@ -272,12 +314,18 @@ class SupplierPaymentApiController extends Controller
             foreach ($supplierPayment->allocations as $allocation) {
                 $order = $allocation->purchaseOrder;
                 if ($order) {
+                    $newPaid = round(max((float) ($order->montant_paye ?? 0) - (float) $allocation->amount, 0), 2);
+                    $orderTotal = round((float) $order->total_ttc, 2);
                     $order->update([
-                        'montant_paye' => round(max((float) ($order->montant_paye ?? 0) - (float) $allocation->amount, 0), 2),
+                        'montant_paye' => $newPaid,
+                        'payment_action' => ($orderTotal > 0 && $newPaid + 0.009 >= $orderTotal) ? 'Payé' : 'Inst',
                     ]);
                 }
                 $allocation->delete();
             }
+
+            ClientPayment::where('endosse_supplier_payment_id', $supplierPayment->id)
+                ->update(['endosse_supplier_payment_id' => null]);
 
             $supplierPayment->delete();
         });
@@ -298,8 +346,22 @@ class SupplierPaymentApiController extends Controller
     private function formatOrder(PurchaseOrder $order): array
     {
         $montantBon = round((float) $order->total_ttc, 2);
-        $montantPaye = round((float) ($order->montant_paye ?? 0), 2);
+        $montantPaye = round((float) $order->paymentAllocations()->sum('amount'), 2);
         $solde = round($montantBon - $montantPaye, 2);
+        $paymentAction = $order->payment_action ?: 'Inst';
+        if (in_array($paymentAction, ['Inst', 'Payé'], true)) {
+            $paymentAction = ($montantBon > 0 && $montantPaye + 0.009 >= $montantBon) ? 'Payé' : 'Inst';
+        }
+
+        if (
+            round((float) ($order->montant_paye ?? 0), 2) !== $montantPaye
+            || ($order->payment_action ?: 'Inst') !== $paymentAction
+        ) {
+            $order->forceFill([
+                'montant_paye' => $montantPaye,
+                'payment_action' => $paymentAction,
+            ])->saveQuietly();
+        }
 
         return [
             'id' => $order->id,
@@ -312,7 +374,7 @@ class SupplierPaymentApiController extends Controller
             'montant_bon' => number_format($montantBon, 2, '.', ''),
             'montant_paye' => number_format($montantPaye, 2, '.', ''),
             'solde' => number_format($solde, 2, '.', ''),
-            'payment_action' => $order->payment_action ?: 'Inst',
+            'payment_action' => $paymentAction,
             'status' => $order->status,
         ];
     }

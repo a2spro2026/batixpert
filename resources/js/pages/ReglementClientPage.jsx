@@ -30,6 +30,7 @@ const emptyForm = {
     banque: '',
     nom_tire: '',
     montant: '',
+    tresorerie: '',
     date_decaissement: '',
     remarque: '',
 };
@@ -108,8 +109,9 @@ th{background:#f8fafc;font-weight:700}.badge{background:#dbeafe;color:#1d4ed8;pa
 <tr><th>Date</th><td>${row.payment_date || '—'}</td><th>Client</th><td>${row.client || '—'}</td></tr>
 <tr><th>Type</th><td>${row.reglement || '—'}</td><th>N°</th><td>${row.numero || '—'}</td></tr>
 <tr><th>Banque</th><td>${row.banque || '—'}</td><th>Date Décaiss</th><td>${row.date_decaissement || '—'}</td></tr>
-<tr><th>Montant</th><td><strong>${formatMontant(row.montant)}</strong></td><th>Statut</th><td>${row.statut || '—'}</td></tr>
-<tr><th>Nom tiré</th><td>${row.nom_tire || '—'}</td><th>Remarque</th><td>${row.remarque || '—'}</td></tr>
+<tr><th>Montant</th><td><strong>${formatMontant(row.montant)}</strong></td><th>Trésorerie</th><td>${row.tresorerie != null && row.tresorerie !== '' ? String(row.tresorerie) : '—'}</td></tr>
+<tr><th>Statut</th><td>${row.statut || '—'}</td><th>Nom tiré</th><td>${row.nom_tire || '—'}</td></tr>
+<tr><th>Remarque</th><td colspan="3">${row.remarque || '—'}</td></tr>
 </table>
 <table><thead><tr><th>Bon</th><th>Montant</th><th>Action</th></tr></thead><tbody>${allocRows}</tbody></table>
 </body></html>`;
@@ -135,6 +137,7 @@ function ViewModal({ row, onClose }) {
         ['Banque', row.banque],
         ['Date Décaiss', row.date_decaissement],
         ['Montant', formatMontant(row.montant)],
+        ['Trésorerie', row.tresorerie != null && row.tresorerie !== '' ? String(row.tresorerie) : '—'],
         ['Statut', row.statut],
         ['Nom tiré', row.nom_tire],
         ['Remarque', row.remarque],
@@ -382,6 +385,7 @@ export default function ReglementClientPage() {
             banque: row.banque || '',
             nom_tire: row.nom_tire || '',
             montant: row.montant || '',
+            tresorerie: row.tresorerie ? String(row.tresorerie).toUpperCase() : '',
             date_decaissement: row.date_decaissement_raw || '',
             remarque: row.remarque || '',
         });
@@ -416,10 +420,25 @@ export default function ReglementClientPage() {
     const setAction = async (orderId, action) => {
         setActions((prev) => ({ ...prev, [orderId]: action }));
         try {
-            await api.patch(`/client-payments/orders/${orderId}/action`, { payment_action: action });
-            setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, payment_action: action } : o)));
-        } catch {
-            // keep local
+            const r = await api.patch(`/client-payments/orders/${orderId}/action`, { payment_action: action });
+            const updated = r.data;
+            if (updated?.id) {
+                setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, ...updated } : o)));
+                setActions((prev) => ({ ...prev, [orderId]: updated.payment_action || action }));
+            } else {
+                setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, payment_action: action } : o)));
+            }
+            setError('');
+        } catch (err) {
+            const msg = err.response?.data?.message || 'Action impossible';
+            setError(msg);
+            const data = err.response?.data?.data;
+            if (data?.id) {
+                setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, ...data } : o)));
+                setActions((prev) => ({ ...prev, [orderId]: data.payment_action || 'Inst' }));
+            } else if (form.client_id) {
+                loadOrders(form.client_id);
+            }
         }
     };
 
@@ -463,6 +482,9 @@ export default function ReglementClientPage() {
             return;
         }
 
+        const tresorerieRaw = String(form.tresorerie ?? '').trim();
+        const tresorerie = tresorerieRaw === '' ? null : tresorerieRaw.toUpperCase();
+
         setSaving(true);
         try {
             if (editingId) {
@@ -474,6 +496,7 @@ export default function ReglementClientPage() {
                     banque: form.banque || null,
                     nom_tire: form.nom_tire || null,
                     montant,
+                    tresorerie,
                     date_decaissement: form.date_decaissement || null,
                     remarque: form.remarque || null,
                 });
@@ -491,6 +514,7 @@ export default function ReglementClientPage() {
                     banque: form.banque || null,
                     nom_tire: form.nom_tire || null,
                     montant,
+                    tresorerie,
                     date_decaissement: form.date_decaissement || null,
                     remarque: form.remarque || null,
                     allocations: selectedIds.map((id) => ({
@@ -513,12 +537,12 @@ export default function ReglementClientPage() {
     /* ───────────── LIST VIEW ───────────── */
     if (view === 'list') {
         return (
-            <div className="space-y-4">
+            <div className="flex flex-col gap-3 h-[calc(100dvh-11rem)] min-h-[360px]">
                 {error && (
-                    <div className="p-3 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm border border-red-100 dark:border-red-800">{error}</div>
+                    <div className="shrink-0 p-3 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm border border-red-100 dark:border-red-800">{error}</div>
                 )}
 
-                <div className="flex flex-wrap items-center gap-2.5">
+                <div className="shrink-0 flex flex-wrap items-center gap-2.5">
                     <button type="button" onClick={openNew} className="btn-primary">
                         <Plus className="w-4 h-4" />
                         Nouveau Règlement
@@ -570,7 +594,7 @@ export default function ReglementClientPage() {
                     </div>
                 </div>
 
-                <form onSubmit={handleSearch} className="glass-card p-3 shadow-card border border-slate-200/60 dark:border-slate-700/60">
+                <form onSubmit={handleSearch} className="shrink-0 glass-card p-3 shadow-card border border-slate-200/60 dark:border-slate-700/60">
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-[repeat(5,minmax(0,1fr))_auto] gap-2 items-end">
                         <Field label="Statut">
                             <select value={filters.statut} onChange={(e) => setFilter('statut', e.target.value)} className={filterClass}>
@@ -617,23 +641,23 @@ export default function ReglementClientPage() {
                     </div>
                 </form>
 
-                <div className="glass-card overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60">
-                    <div className="px-5 py-3.5 bg-gradient-to-r from-blue-600 via-blue-700 to-slate-800 border-b border-white/10">
+                <div className="flex-1 min-h-0 glass-card flex flex-col overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60">
+                    <div className="shrink-0 px-5 py-3.5 bg-gradient-to-r from-blue-600 via-blue-700 to-slate-800 border-b border-white/10">
                         <h3 className="text-sm font-bold text-white uppercase tracking-wide">Tableau de consultation</h3>
                     </div>
-                    <div className="overflow-x-auto">
+                    <div className="flex-1 min-h-0 overflow-auto">
                         <table className="w-full text-sm min-w-[1100px]">
-                            <thead>
-                                <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700">
-                                    {['Réf', 'Date', 'Client', 'Type', 'Nom de Tiré', 'N°', 'Bnq', 'Date Décaiss', 'Montant', 'Statut', 'Action'].map((h) => (
-                                        <th key={h} className="px-3 py-3 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap text-center">{h}</th>
+                            <thead className="sticky top-0 z-10">
+                                <tr className="bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 shadow-sm">
+                                    {['Réf', 'Date', 'Client', 'Type', 'Nom de Tiré', 'N°', 'Bnq', 'Date Décaiss', 'Montant', 'Trésorerie', 'Statut', 'Action'].map((h) => (
+                                        <th key={h} className="px-3 py-3 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap text-center bg-slate-100 dark:bg-slate-800">{h}</th>
                                     ))}
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                                 {loadingList ? (
                                     [...Array(4)].map((_, i) => (
-                                        <tr key={i}>{[...Array(11)].map((__, j) => (
+                                        <tr key={i}>{[...Array(12)].map((__, j) => (
                                             <td key={j} className="px-3 py-3 text-center"><div className="h-4 bg-slate-200 dark:bg-slate-700 rounded animate-pulse mx-auto max-w-[80px]" /></td>
                                         ))}</tr>
                                     ))
@@ -649,6 +673,9 @@ export default function ReglementClientPage() {
                                             <td className="px-3 py-2.5 text-center text-slate-600 dark:text-slate-300">{row.banque || '—'}</td>
                                             <td className="px-3 py-2.5 text-center text-slate-600 dark:text-slate-300">{row.date_decaissement || '—'}</td>
                                             <td className="px-3 py-2.5 text-center font-semibold tabular-nums text-brand-navy dark:text-blue-300">{formatMontant(row.montant)}</td>
+                                            <td className="px-3 py-2.5 text-center font-semibold tabular-nums text-emerald-700 dark:text-emerald-300">
+                                                {row.tresorerie != null && row.tresorerie !== '' ? String(row.tresorerie) : '—'}
+                                            </td>
                                             <td className="px-3 py-2.5 text-center">
                                                 <select
                                                     value={row.statut || 'Inst'}
@@ -669,7 +696,7 @@ export default function ReglementClientPage() {
                                         </tr>
                                     ))
                                 ) : (
-                                    <tr><td colSpan={11} className="px-4 py-12 text-center text-slate-400">Aucun règlement enregistré</td></tr>
+                                    <tr><td colSpan={12} className="px-4 py-12 text-center text-slate-400">Aucun règlement enregistré</td></tr>
                                 )}
                             </tbody>
                         </table>
@@ -735,7 +762,7 @@ export default function ReglementClientPage() {
                 </div>
 
                 <div className="glass-card p-2.5 shadow-card border border-slate-200/60 dark:border-slate-700/60 overflow-x-auto">
-                    <div className="grid grid-cols-[100px_88px_minmax(140px,1.3fr)_72px_90px_minmax(110px,1fr)_minmax(110px,1fr)_95px_100px_minmax(120px,1fr)] gap-1.5 items-end min-w-[1280px]">
+                    <div className="grid grid-cols-[100px_88px_minmax(140px,1.3fr)_72px_90px_minmax(110px,1fr)_minmax(110px,1fr)_95px_95px_100px_minmax(120px,1fr)] gap-1.5 items-end min-w-[1380px]">
                         <Field label="Date">
                             <input type="date" required value={form.payment_date} onChange={(e) => set('payment_date', e.target.value)} className={inputClass} />
                         </Field>
@@ -796,6 +823,15 @@ export default function ReglementClientPage() {
                         </Field>
                         <Field label="Montant Régl">
                             <input type="number" step="0.01" min="0" value={form.montant} onChange={(e) => set('montant', e.target.value)} placeholder="0.00" className={inputClass} disabled={!!editingId} />
+                        </Field>
+                        <Field label="Trésorerie">
+                            <input
+                                type="text"
+                                value={form.tresorerie}
+                                onChange={(e) => set('tresorerie', e.target.value.toUpperCase())}
+                                placeholder="Saisir en lettres"
+                                className={inputClass}
+                            />
                         </Field>
                         <Field label="Date Décaiss">
                             <input type="date" value={form.date_decaissement} onChange={(e) => set('date_decaissement', e.target.value)} className={inputClass} />
