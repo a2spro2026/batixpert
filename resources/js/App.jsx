@@ -22,6 +22,11 @@ import TransactionsPage from './pages/TransactionsPage';
 import ChargesPage from './pages/ChargesPage';
 import FactureAchatsPage from './pages/FactureAchatsPage';
 import SupplierBalancePage from './pages/SupplierBalancePage';
+import UsersPage from './pages/UsersPage';
+import StockMouvementsPage from './pages/StockMouvementsPage';
+import SupplierRelevePage from './pages/SupplierRelevePage';
+import ClientRelevePage from './pages/ClientRelevePage';
+import ReglementFactureVentePage from './pages/ReglementFactureVentePage';
 
 function ProtectedRoute({ children }) {
     const { user, loading } = useAuth();
@@ -53,7 +58,7 @@ function AppRoutes() {
                 <Route path="fournisseurs/fiches" element={<FicheFournisseurPage />} />
                 <Route path="fournisseurs/bons-achats" element={<BonAchatsPage />} />
                 <Route path="fournisseurs/balance" element={<SupplierBalancePage />} />
-                <Route path="fournisseurs/releve-compte" element={<ModulePage />} />
+                <Route path="fournisseurs/releve-compte" element={<SupplierRelevePage />} />
 
                 {/* Client */}
                 <Route path="clients/fiches" element={<FicheClientPage />} />
@@ -65,9 +70,9 @@ function AppRoutes() {
                 <Route path="clients/reglements-vente" element={<ReglementClientPage />} />
                 <Route path="clients/reglements" element={<ReglementClientPage />} />
                 <Route path="clients/factures-ventes" element={<ModulePage />} />
-                <Route path="clients/reglements-factures" element={<ModulePage />} />
+                <Route path="clients/reglements-factures" element={<ReglementFactureVentePage />} />
                 <Route path="clients/balance" element={<ClientBalancePage />} />
-                <Route path="clients/releve-compte" element={<ModulePage />} />
+                <Route path="clients/releve-compte" element={<ClientRelevePage />} />
 
                 {/* Facturation */}
                 <Route path="facturation/factures-achats" element={<FactureAchatsPage />} />
@@ -75,13 +80,13 @@ function AppRoutes() {
                 <Route path="facturation/depot-b" element={<FactureAchatsPage depotFilter="depot_b" pageTitle="Depot B" pageSubtitle="Factures achats — destination Depot B" />} />
                 <Route path="facturation/reglement" element={<ReglementFournisseurPage />} />
                 <Route path="facturation/factures-ventes" element={<ModulePage />} />
-                <Route path="facturation/reglements" element={<ReglementClientPage />} />
+                <Route path="facturation/reglements" element={<ReglementFactureVentePage />} />
                 <Route path="facturation/balance" element={<ModulePage />} />
                 <Route path="fournisseurs/reglements-achats" element={<ReglementFournisseurPage />} />
 
                 {/* Stock */}
                 <Route path="stock/produits" element={<FicheProduitPage />} />
-                <Route path="stock/mouvements" element={<ModulePage />} />
+                <Route path="stock/mouvements" element={<StockMouvementsPage />} />
                 <Route path="stock/fiscal" element={<ModulePage />} />
 
                 {/* Chantiers */}
@@ -100,7 +105,7 @@ function AppRoutes() {
                 <Route path="monetaire/tresorerie" element={<ModulePage />} />
 
                 {/* Configuration */}
-                <Route path="configuration/utilisateurs" element={<ModulePage />} />
+                <Route path="configuration/utilisateurs" element={<UsersPage />} />
 
                 {/* Redirections anciennes routes */}
                 <Route path="chantiers" element={<Navigate to="/chantiers/carte" replace />} />

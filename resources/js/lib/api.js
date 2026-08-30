@@ -17,6 +17,7 @@ api.interceptors.response.use(
         if (error.response?.status === 401) {
             localStorage.removeItem('batixpert_token');
             localStorage.removeItem('batixpert_user');
+            localStorage.removeItem('batixpert_statut');
             if (!window.location.pathname.includes('/login')) {
                 window.location.href = '/app/login';
             }

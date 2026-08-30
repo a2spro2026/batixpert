@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle2, Plus, PlusCircle, XCircle, Eye, Pencil, Trash2, Printer, FileText, X, Package, Wallet } from 'lucide-react';
+import { CheckCircle2, Plus, PlusCircle, XCircle, Eye, Pencil, Trash2, Printer, FileText, X, Package, Wallet, Search } from 'lucide-react';
 import api from '../lib/api';
 
 const UNIT_OPTIONS = ['', 'Kg', 'U', 'Sac', 'ML', 'M²', 'M³', 'Tn', 'M'];
@@ -170,6 +170,7 @@ function ViewModal({ row, onClose }) {
 
 export default function BonVentesPage() {
     const navigate = useNavigate();
+    const formRef = useRef(null);
     const [form, setForm] = useState(emptyHeader);
     const [lines, setLines] = useState([emptyLine()]);
     const [rows, setRows] = useState([]);
@@ -181,6 +182,18 @@ export default function BonVentesPage() {
     const [error, setError] = useState('');
     const [editingId, setEditingId] = useState(null);
     const [viewRow, setViewRow] = useState(null);
+    const [tableSearch, setTableSearch] = useState('');
+
+    const filteredRows = useMemo(() => {
+        const q = tableSearch.trim().toLowerCase();
+        if (!q) return rows;
+        return rows.filter((row) =>
+            (row.reference || '').toLowerCase().includes(q)
+            || (row.client || '').toLowerCase().includes(q)
+            || (row.city || '').toLowerCase().includes(q)
+            || (row.address || '').toLowerCase().includes(q),
+        );
+    }, [rows, tableSearch]);
 
     const totalBon = useMemo(
         () => lines.reduce((sum, l) => sum + (parseFloat(lineSubtotal(l)) || 0), 0).toFixed(2),
@@ -254,9 +267,13 @@ export default function BonVentesPage() {
         if (reload) load();
     };
 
+    const scrollToForm = () => {
+        formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+
     const handleNewBon = () => {
         resetForm(true);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        scrollToForm();
     };
 
     const handleClose = () => {
@@ -297,7 +314,7 @@ export default function BonVentesPage() {
         }
         setEditingId(row.id);
         setError('');
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        scrollToForm();
     };
 
     const handleDelete = async (row) => {
@@ -361,9 +378,10 @@ export default function BonVentesPage() {
         : meta.next_ref;
 
     return (
-        <div className="space-y-5">
+        <div className="flex flex-col flex-1 h-full min-h-0 gap-3">
             <ViewModal row={viewRow} onClose={() => setViewRow(null)} />
 
+            <div ref={formRef} className="shrink-0">
             <form onSubmit={handleSubmit} className="space-y-3">
                 {error && (
                     <div className="p-3 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm border border-red-100 dark:border-red-800">{error}</div>
@@ -536,14 +554,25 @@ export default function BonVentesPage() {
                     </div>
                 </div>
             </form>
+            </div>
 
-            <div className="glass-card overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60">
-                <div className="px-5 py-3.5 bg-gradient-to-r from-amber-500 via-orange-500 to-orange-700 border-b border-white/10">
+            <div className="flex-1 min-h-0 glass-card overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60 flex flex-col">
+                <div className="px-5 py-3.5 bg-gradient-to-r from-amber-500 via-orange-500 to-orange-700 border-b border-white/10 shrink-0 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                     <h3 className="text-sm font-bold text-white uppercase tracking-wide">Tableau des Bons de Vente</h3>
+                    <div className="relative w-full sm:max-w-xs">
+                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/70 pointer-events-none" />
+                        <input
+                            type="search"
+                            value={tableSearch}
+                            onChange={(e) => setTableSearch(e.target.value)}
+                            placeholder="Rechercher un bon, client, ville..."
+                            className="w-full rounded-lg border border-white/20 bg-white/15 text-white placeholder:text-white/60 pl-8 pr-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-white/30"
+                        />
+                    </div>
                 </div>
-                <div className="overflow-x-auto">
+                <div className="flex-1 min-h-0 overflow-auto">
                     <table className="w-full text-sm min-w-[1100px]">
-                        <thead>
+                        <thead className="sticky top-0 z-10">
                             <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700">
                                 {['Date', 'N° B-V', 'Client', 'Ville', 'Adresse Livraison', 'Qté totale', 'Total', 'Échéance', 'Actions'].map((h) => (
                                     <th key={h} className="px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap text-center">{h}</th>
@@ -557,8 +586,8 @@ export default function BonVentesPage() {
                                         <td key={j} className="px-4 py-3 text-center"><div className="h-4 bg-slate-200 dark:bg-slate-700 rounded animate-pulse mx-auto max-w-[80px]" /></td>
                                     ))}</tr>
                                 ))
-                            ) : rows.length ? (
-                                rows.map((row) => (
+                            ) : filteredRows.length ? (
+                                filteredRows.map((row) => (
                                     <tr key={row.id} className={`hover:bg-orange-50/40 dark:hover:bg-slate-800/40 transition-colors ${editingId === row.id ? 'bg-amber-50/60 dark:bg-amber-900/10' : ''}`}>
                                         <td className="px-4 py-2.5 text-center text-slate-600 dark:text-slate-300">{row.order_date}</td>
                                         <td className="px-4 py-2.5 text-center font-mono text-xs font-semibold text-brand-navy dark:text-orange-400">{row.reference}</td>
@@ -586,7 +615,7 @@ export default function BonVentesPage() {
                                     </tr>
                                 ))
                             ) : (
-                                <tr><td colSpan={9} className="px-4 py-12 text-center text-slate-400">Aucun bon de vente enregistré</td></tr>
+                                <tr><td colSpan={9} className="px-4 py-12 text-center text-slate-400">{tableSearch ? 'Aucun bon ne correspond à la recherche' : 'Aucun bon de vente enregistré'}</td></tr>
                             )}
                         </tbody>
                     </table>

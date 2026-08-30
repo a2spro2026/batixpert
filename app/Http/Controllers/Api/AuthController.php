@@ -13,21 +13,32 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         $request->validate([
-            'email' => 'required|email',
+            'login' => 'required_without:email|string',
+            'email' => 'required_without:login|string',
             'password' => 'required',
+            'statut' => 'required|in:'.implode(',', array_keys(UserApiController::STATUTS)),
         ]);
 
-        $user = User::with('role.permissions')->where('email', $request->email)->first();
+        $login = trim((string) $request->input('login', $request->email));
+
+        $user = User::with('role.permissions')
+            ->where(function ($query) use ($login) {
+                $query->where('email', $login)
+                    ->orWhere('email', 'like', $login.'@%')
+                    ->orWhereRaw('LOWER(name) = ?', [mb_strtolower($login)]);
+            })
+            ->where('statut', $request->statut)
+            ->first();
 
         if (! $user || ! Hash::check($request->password, $user->password)) {
             throw ValidationException::withMessages([
-                'email' => ['Identifiants incorrects.'],
+                'login' => ['Identifiants incorrects.'],
             ]);
         }
 
         if (! $user->is_active) {
             throw ValidationException::withMessages([
-                'email' => ['Compte désactivé.'],
+                'login' => ['Compte désactivé.'],
             ]);
         }
 
@@ -55,15 +66,19 @@ class AuthController extends Controller
 
     private function formatUser(User $user): array
     {
+        $statutLabel = UserApiController::STATUTS[$user->statut] ?? $user->statut;
+
         return [
             'id' => $user->id,
             'name' => $user->name,
             'email' => $user->email,
             'phone' => $user->phone,
+            'statut' => $user->statut,
+            'statut_label' => $statutLabel,
             'role' => $user->role?->only(['id', 'name', 'slug']),
             'permissions' => $user->role?->permissions->pluck('slug') ?? [],
             'is_admin' => $user->isAdmin(),
-            'title' => $user->isAdmin() ? 'Directeur Général' : ($user->role?->name ?? ''),
+            'title' => $statutLabel ?: ($user->isAdmin() ? 'Directeur Général' : ($user->role?->name ?? '')),
         ];
     }
 }
