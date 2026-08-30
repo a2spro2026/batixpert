@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-    Plus, Eye, Pencil, Trash2, Ban, RefreshCw, X, UserCog, PauseCircle, PlayCircle,
+    Plus, Eye, Pencil, Trash2, Ban, RefreshCw, X, UserCog, PauseCircle, PlayCircle, Shield,
 } from 'lucide-react';
 import api from '../lib/api';
 
@@ -263,11 +263,19 @@ export default function UsersPage() {
 
             if (editingId) {
                 await api.put(`/users/${editingId}`, payload);
+                closeForm();
+                load();
             } else {
-                await api.post('/users', { ...payload, password: form.password });
+                const res = await api.post('/users', { ...payload, password: form.password });
+                const created = res.data.data;
+                closeForm();
+                load();
+                if (created?.id && window.confirm(
+                    `Utilisateur « ${created.name} » créé.\n\nLogin : ${created.login}\n\nAffecter les autorisations maintenant ?`,
+                )) {
+                    navigate(`/configuration/autorisations?user_id=${created.id}`);
+                }
             }
-            closeForm();
-            load();
         } catch (err) {
             const msg = err.response?.data?.message
                 || Object.values(err.response?.data?.errors || {}).flat()?.[0]
@@ -286,6 +294,10 @@ export default function UsersPage() {
         } catch (err) {
             alert(err.response?.data?.message || 'Suppression impossible');
         }
+    };
+
+    const goToAuthorizations = (row) => {
+        navigate(`/configuration/autorisations?user_id=${row.id}`);
     };
 
     const onSuspend = async (row) => {
@@ -371,6 +383,7 @@ export default function UsersPage() {
                                             <div className="inline-flex items-center justify-center gap-0.5">
                                                 <ActionBtn title="Voir" icon={Eye} color="blue" onClick={() => setViewRow(row)} />
                                                 <ActionBtn title="Modifier" icon={Pencil} color="amber" onClick={() => openEdit(row)} />
+                                                <ActionBtn title="Affecter autorisations" icon={Shield} color="emerald" onClick={() => goToAuthorizations(row)} />
                                                 <ActionBtn title="Supprimer" icon={Trash2} color="red" onClick={() => onDelete(row)} />
                                                 <ActionBtn
                                                     title={row.is_active ? 'Suspendre' : 'Réactiver'}

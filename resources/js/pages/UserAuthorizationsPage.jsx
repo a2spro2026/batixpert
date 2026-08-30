@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Shield, X, Ban, CheckCircle2, RefreshCw } from 'lucide-react';
 import api from '../lib/api';
 import { authorizationSections, allAuthorizationPerms } from '../config/authorizationMenu';
@@ -52,8 +52,10 @@ function SectionPermissions({ section, selected, onToggle, onToggleSection }) {
 
 export default function UserAuthorizationsPage() {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const urlUserId = Number(searchParams.get('user_id')) || null;
     const [users, setUsers] = useState([]);
-    const [selectedId, setSelectedId] = useState(null);
+    const [selectedId, setSelectedId] = useState(urlUserId);
     const [checkedUserIds, setCheckedUserIds] = useState(new Set());
     const [selectedPerms, setSelectedPerms] = useState(new Set());
     const [loading, setLoading] = useState(true);
@@ -67,11 +69,16 @@ export default function UserAuthorizationsPage() {
             .then((r) => {
                 const rows = r.data.data ?? [];
                 setUsers(rows);
-                setSelectedId((current) => current ?? rows[0]?.id ?? null);
+                setSelectedId((current) => {
+                    if (urlUserId && rows.some((u) => u.id === urlUserId)) {
+                        return urlUserId;
+                    }
+                    return current ?? rows[0]?.id ?? null;
+                });
             })
             .catch(() => setUsers([]))
             .finally(() => setLoading(false));
-    }, []);
+    }, [urlUserId]);
 
     useEffect(() => {
         load();
@@ -110,14 +117,17 @@ export default function UserAuthorizationsPage() {
     };
 
     useEffect(() => {
+        if (urlUserId) {
+            setSelectedId(urlUserId);
+        }
+    }, [urlUserId]);
+
+    useEffect(() => {
         if (!selectedUser) {
             setSelectedPerms(new Set());
             return;
         }
-        const direct = selectedUser.permissions?.length
-            ? selectedUser.permissions
-            : selectedUser.effective_permissions || [];
-        setSelectedPerms(new Set(direct));
+        setSelectedPerms(new Set(selectedUser.permissions || []));
         setMessage('');
         setError('');
     }, [selectedUser]);
@@ -169,8 +179,12 @@ export default function UserAuthorizationsPage() {
             const r = await api.put(`/users/${selectedUser.id}/authorizations`, {
                 permissions: [...selectedPerms],
             });
+            const updated = r.data.data;
+            if (updated) {
+                setUsers((prev) => prev.map((u) => (u.id === updated.id ? updated : u)));
+                setSelectedPerms(new Set(updated.permissions || []));
+            }
             setMessage(r.data.message || 'Autorisations enregistrées.');
-            load();
         } catch (err) {
             setError(err.response?.data?.message || 'Enregistrement impossible.');
         } finally {

@@ -38,7 +38,7 @@ class UserApiController extends Controller
     {
         $validated = $this->validated($request);
 
-        $adminRole = Role::where('slug', 'administrateur')->first();
+        $defaultRole = Role::where('slug', 'employe')->first();
 
         $user = User::create([
             'name' => $validated['name'],
@@ -46,7 +46,7 @@ class UserApiController extends Controller
             'phone' => $validated['phone'] ?? null,
             'statut' => $validated['statut'],
             'password' => Hash::make($validated['password']),
-            'role_id' => $adminRole?->id,
+            'role_id' => $defaultRole?->id,
             'is_active' => true,
             'email_verified_at' => now(),
         ]);

@@ -113,9 +113,11 @@ function DashboardLink({ item, onClose }) {
     );
 }
 
-function NavGroup({ group, onClose, index }) {
+function NavGroup({ group, onClose, index, can }) {
     const location = useLocation();
-    const isChildActive = !group.disabled && group.children?.some(
+    const hasSection = can(group.perm);
+    const visibleChildren = group.children?.filter((c) => hasSection || can(c.perm)) ?? [];
+    const isChildActive = !group.disabled && visibleChildren.some(
         (c) => location.pathname === c.to || location.pathname.startsWith(c.to + '/')
     );
     const [open, setOpen] = useState(isChildActive);
@@ -213,7 +215,7 @@ function NavGroup({ group, onClose, index }) {
                         className="overflow-hidden"
                     >
                         <div className="mt-1.5 ml-4 pl-3 border-l-2 sidebar-tree-line space-y-0.5 py-1">
-                            {group.children.map((child, i) => (
+                            {visibleChildren.map((child, i) => (
                                 <NavChildItem key={child.to} child={child} onClose={onClose} index={i} />
                             ))}
                         </div>
@@ -229,7 +231,17 @@ export default function Sidebar({ mobile, onClose }) {
     const navigate = useNavigate();
     const { pathname } = useLocation();
     const pageTitle = getPageTitle(pathname);
-    const visibleNav = navigation.filter((item) => can(item.perm));
+    const visibleNav = navigation
+        .map((item) => {
+            if (item.children) {
+                const hasSection = can(item.perm);
+                const children = item.children.filter((c) => hasSection || can(c.perm));
+                if (!children.length) return null;
+                return { ...item, children };
+            }
+            return can(item.perm) ? item : null;
+        })
+        .filter(Boolean);
     const dashboardItem = visibleNav.find((item) => item.id === 'dashboard');
     const menuGroups = visibleNav.filter((item) => item.id !== 'dashboard');
 
@@ -267,7 +279,7 @@ export default function Sidebar({ mobile, onClose }) {
             <nav className="relative flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-3">
                 <div className="space-y-1">
                     {menuGroups.map((group, i) => (
-                        <NavGroup key={group.id} group={group} onClose={onClose} index={i} />
+                        <NavGroup key={group.id} group={group} onClose={onClose} index={i} can={can} />
                     ))}
                 </div>
             </nav>
