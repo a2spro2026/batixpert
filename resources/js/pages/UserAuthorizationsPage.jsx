@@ -2,7 +2,9 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Shield, X, Ban, CheckCircle2, RefreshCw } from 'lucide-react';
 import api from '../lib/api';
-import { authorizationSections } from '../config/authorizationMenu';
+import { authorizationSections, allAuthorizationPerms } from '../config/authorizationMenu';
+
+const ALL_PERMS = allAuthorizationPerms();
 
 function SectionPermissions({ section, selected, onToggle, onToggleSection }) {
     const childPerms = (section.children || []).map((c) => c.perm);
@@ -118,6 +120,18 @@ export default function UserAuthorizationsPage() {
         });
     };
 
+    const allSelected = ALL_PERMS.length > 0 && ALL_PERMS.every((p) => selectedPerms.has(p));
+    const someSelected = ALL_PERMS.some((p) => selectedPerms.has(p));
+
+    const toggleSelectAll = () => {
+        setSelectedPerms((prev) => {
+            if (ALL_PERMS.every((p) => prev.has(p))) {
+                return new Set();
+            }
+            return new Set(ALL_PERMS);
+        });
+    };
+
     const handleValidate = async () => {
         if (!selectedUser) return;
         setSaving(true);
@@ -219,6 +233,23 @@ export default function UserAuthorizationsPage() {
                         <h3 className="text-sm font-bold text-white uppercase tracking-wide">
                             Autorisations — {selectedUser.name}
                         </h3>
+                    </div>
+                    <div className="shrink-0 flex items-center justify-between gap-3 px-4 py-2.5 border-b border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/40">
+                        <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-700 dark:text-slate-200">
+                            <input
+                                type="checkbox"
+                                checked={allSelected}
+                                ref={(el) => {
+                                    if (el) el.indeterminate = !allSelected && someSelected;
+                                }}
+                                onChange={toggleSelectAll}
+                                className="rounded border-slate-300 text-brand-navy focus:ring-brand-navy"
+                            />
+                            Tout sélectionner
+                        </label>
+                        <span className="text-[10px] text-slate-500 tabular-nums">
+                            {selectedPerms.size} / {ALL_PERMS.length}
+                        </span>
                     </div>
                     <div className="flex-1 min-h-0 overflow-auto p-4">
                         <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
