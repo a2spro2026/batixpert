@@ -7,10 +7,9 @@ import {
 import api from '../lib/api';
 
 const emptyFilters = {
-    date_from: '',
-    date_to: '',
+    mois: '',
     client_id: '',
-    city: '',
+    tresorerie: '',
 };
 
 const columns = [
@@ -85,6 +84,20 @@ function StatusMark({ active, tone }) {
     );
 }
 
+function monthOptions() {
+    const now = new Date();
+    const options = [{ value: '', label: 'Tous les mois' }];
+    for (let i = 0; i < 24; i++) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        const label = d.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+        options.push({ value, label: label.charAt(0).toUpperCase() + label.slice(1) });
+    }
+    return options;
+}
+
+const MONTH_OPTIONS = monthOptions();
+
 function buildPrintHtml(rows, summary, filtersLabel) {
     const body = rows.map((row) => `<tr>
         <td>${row.operation || '—'}</td>
@@ -151,6 +164,7 @@ export default function ClientRelevePage() {
         total_debit: 0, total_credit: 0, total_encaisse: 0,
         total_coffre: 0, solde: 0, total_qte: 0,
     });
+    const [tresoreries, setTresoreries] = useState([]);
     const [loading, setLoading] = useState(true);
 
     const setFilter = (key, value) => setFilters((f) => ({ ...f, [key]: value }));
@@ -158,10 +172,9 @@ export default function ClientRelevePage() {
     const load = useCallback(() => {
         setLoading(true);
         const params = {};
-        if (applied.date_from) params.date_from = applied.date_from;
-        if (applied.date_to) params.date_to = applied.date_to;
+        if (applied.mois) params.mois = applied.mois;
         if (applied.client_id) params.client_id = applied.client_id;
-        if (applied.city) params.city = applied.city;
+        if (applied.tresorerie) params.tresorerie = applied.tresorerie;
 
         api.get('/client-releve', { params })
             .then((r) => {
@@ -193,6 +206,9 @@ export default function ClientRelevePage() {
         api.get('/clients', { params: { all: 1 } })
             .then((r) => setClients(r.data.data ?? []))
             .catch(() => setClients([]));
+        api.get('/client-payments/meta')
+            .then((r) => setTresoreries(r.data?.tresoreries ?? []))
+            .catch(() => setTresoreries([]));
     }, []);
 
     useEffect(() => {
@@ -206,11 +222,11 @@ export default function ClientRelevePage() {
     };
 
     const clientName = clients.find((c) => String(c.id) === String(applied.client_id))?.name || 'Tous les clients';
+    const monthLabel = MONTH_OPTIONS.find((m) => m.value === applied.mois)?.label || null;
     const filtersLabel = [
-        applied.date_from ? `Du ${applied.date_from}` : null,
-        applied.date_to ? `au ${applied.date_to}` : null,
-        clientName,
-        applied.city ? `Ville : ${applied.city}` : null,
+        monthLabel,
+        clientName !== 'Tous les clients' ? clientName : null,
+        applied.tresorerie ? `Trésorerie : ${applied.tresorerie}` : null,
     ].filter(Boolean).join(' · ');
 
     return (
@@ -307,12 +323,13 @@ export default function ClientRelevePage() {
                 </div>
 
                 <div className="glass-card p-3 shadow-card border border-slate-200/60 dark:border-slate-700/60">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-[1fr_1fr_1.3fr_1.3fr_auto] gap-2.5 items-end">
-                        <Field label="De">
-                            <input type="date" value={filters.date_from} onChange={(e) => setFilter('date_from', e.target.value)} className={filterClass} />
-                        </Field>
-                        <Field label="A">
-                            <input type="date" value={filters.date_to} onChange={(e) => setFilter('date_to', e.target.value)} className={filterClass} />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-[1fr_1.3fr_1fr_auto] gap-2.5 items-end">
+                        <Field label="Mois">
+                            <select value={filters.mois} onChange={(e) => setFilter('mois', e.target.value)} className={filterClass}>
+                                {MONTH_OPTIONS.map((m) => (
+                                    <option key={m.value || 'all'} value={m.value}>{m.label}</option>
+                                ))}
+                            </select>
                         </Field>
                         <Field label="Nom Client">
                             <select value={filters.client_id} onChange={(e) => setFilter('client_id', e.target.value)} className={filterClass}>
@@ -322,14 +339,17 @@ export default function ClientRelevePage() {
                                 ))}
                             </select>
                         </Field>
-                        <Field label="Ville">
-                            <input
-                                type="text"
-                                value={filters.city}
-                                onChange={(e) => setFilter('city', e.target.value)}
-                                placeholder="Ville livraison"
+                        <Field label="Trésorerie">
+                            <select
+                                value={filters.tresorerie}
+                                onChange={(e) => setFilter('tresorerie', e.target.value)}
                                 className={filterClass}
-                            />
+                            >
+                                <option value="">Toutes</option>
+                                {tresoreries.map((t) => (
+                                    <option key={t} value={t}>{t}</option>
+                                ))}
+                            </select>
                         </Field>
                         <div className="flex items-center gap-1.5 self-end">
                             <button type="button" onClick={handleSearch} className="p-2 rounded-lg border border-slate-200 dark:border-slate-600 text-slate-500 hover:text-brand-navy hover:bg-slate-50 dark:hover:bg-slate-800" title="Actualiser">

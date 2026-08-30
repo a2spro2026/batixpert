@@ -78,12 +78,14 @@ class SupplierPaymentApiController extends Controller
             'supplier_id' => 'required|exists:suppliers,id',
         ]);
 
-        $orders = PurchaseOrder::with('supplier')
+        $orders = PurchaseOrder::with(['supplier', 'paymentAllocations.payment'])
             ->where('supplier_id', $request->supplier_id)
             ->where('status', '!=', 'annule')
             ->latest('order_date')
             ->get()
-            ->map(fn ($o) => $this->formatOrder($o));
+            ->map(fn ($o) => $this->formatOrder($o))
+            ->filter(fn (array $o) => (float) $o['solde'] > 0.009)
+            ->values();
 
         $totalTtc = round($orders->sum(fn ($o) => (float) $o['montant_bon']), 2);
         $soldeTtc = round($orders->sum(fn ($o) => (float) $o['solde']), 2);
@@ -131,7 +133,8 @@ class SupplierPaymentApiController extends Controller
             }
 
             $orderIds = collect($validated['allocations'])->pluck('purchase_order_id')->all();
-            $orders = PurchaseOrder::whereIn('id', $orderIds)
+            $orders = PurchaseOrder::with(['paymentAllocations.payment'])
+                ->whereIn('id', $orderIds)
                 ->where('supplier_id', $validated['supplier_id'])
                 ->lockForUpdate()
                 ->get()
@@ -148,7 +151,7 @@ class SupplierPaymentApiController extends Controller
             foreach ($validated['allocations'] as $row) {
                 $order = $orders->get($row['purchase_order_id']);
                 $action = $row['action'] ?? 'Payé';
-                $due = round(max((float) $order->total_ttc - (float) ($order->montant_paye ?? 0), 0), 2);
+                $due = $order->computeSolde();
 
                 $explicit = array_key_exists('amount', $row) && $row['amount'] !== null && $row['amount'] !== ''
                     ? round((float) $row['amount'], 2)
@@ -174,7 +177,7 @@ class SupplierPaymentApiController extends Controller
             }
 
             $totalTtc = round($orders->sum(fn ($o) => (float) $o->total_ttc), 2);
-            $soldeAvant = round($orders->sum(fn ($o) => max((float) $o->total_ttc - (float) ($o->montant_paye ?? 0), 0)), 2);
+            $soldeAvant = round($orders->sum(fn ($o) => $o->computeSolde()), 2);
 
             $statut = $validated['statut'] ?? 'Inst';
             if (! empty($validated['date_decaissement']) && $statut === 'Inst') {
@@ -207,7 +210,8 @@ class SupplierPaymentApiController extends Controller
                     'action' => $row['action'],
                 ]);
 
-                $newPaid = round((float) ($row['order']->montant_paye ?? 0) + $row['amount'], 2);
+                $row['order']->load(['paymentAllocations.payment']);
+                $newPaid = $row['order']->effectiveMontantPaye();
                 $orderTotal = round((float) $row['order']->total_ttc, 2);
                 $action = $row['action'] ?? 'Inst';
 
@@ -281,7 +285,7 @@ class SupplierPaymentApiController extends Controller
             'payment_action' => 'required|in:Inst,Payé,Report,Imp,Dévalidé',
         ]);
 
-        $paidFromAlloc = round((float) $purchaseOrder->paymentAllocations()->sum('amount'), 2);
+        $paidFromAlloc = $purchaseOrder->effectiveMontantPaye();
         $total = round((float) $purchaseOrder->total_ttc, 2);
         $action = $validated['payment_action'];
 
@@ -346,8 +350,8 @@ class SupplierPaymentApiController extends Controller
     private function formatOrder(PurchaseOrder $order): array
     {
         $montantBon = round((float) $order->total_ttc, 2);
-        $montantPaye = round((float) $order->paymentAllocations()->sum('amount'), 2);
-        $solde = round($montantBon - $montantPaye, 2);
+        $montantPaye = $order->effectiveMontantPaye();
+        $solde = $order->computeSolde();
         $paymentAction = $order->payment_action ?: 'Inst';
         if (in_array($paymentAction, ['Inst', 'Payé'], true)) {
             $paymentAction = ($montantBon > 0 && $montantPaye + 0.009 >= $montantBon) ? 'Payé' : 'Inst';

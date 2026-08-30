@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\PurchaseOrder;
 use App\Models\SupplierPayment;
+use App\Support\PaymentSettlement;
 use Illuminate\Http\Request;
 
 class SupplierReleveApiController extends Controller
@@ -98,6 +99,8 @@ class SupplierReleveApiController extends Controller
                 ->implode(', ');
 
             $statut = $payment->statut ?: 'Inst';
+            $montant = round((float) $payment->montant, 2);
+            $creditEffectif = PaymentSettlement::effectiveCreditAmount($montant, $statut);
 
             $events->push([
                 'sort_date' => optional($payment->payment_date)?->format('Y-m-d') ?? '0000-00-00',
@@ -110,7 +113,8 @@ class SupplierReleveApiController extends Controller
                 'ville_liv' => $ville !== '' ? $ville : null,
                 'qte' => null,
                 'debit' => 0.0,
-                'credit' => round((float) $payment->montant, 2),
+                'credit' => $montant,
+                'credit_effectif' => $creditEffectif,
                 'type_reg' => $payment->reglement,
                 'numero_reg' => $payment->numero,
                 'nom_tire' => $payment->nom_tire,
@@ -132,8 +136,9 @@ class SupplierReleveApiController extends Controller
 
         $running = 0.0;
         $rows = $sorted->map(function (array $row) use (&$running) {
-            $running = round($running + $row['debit'] - $row['credit'], 2);
-            unset($row['sort_date'], $row['sort_id'], $row['sort_type']);
+            $creditForSolde = (float) ($row['credit_effectif'] ?? $row['credit'] ?? 0);
+            $running = round($running + $row['debit'] - $creditForSolde, 2);
+            unset($row['sort_date'], $row['sort_id'], $row['sort_type'], $row['credit_effectif']);
             $row['solde'] = $running;
 
             return $row;
@@ -143,7 +148,12 @@ class SupplierReleveApiController extends Controller
         $totalDeva = round((float) $payments->where('statut', 'Dévalidé')->sum('montant'), 2);
         $totalRepo = round((float) $payments->where('statut', 'Report')->sum('montant'), 2);
         $totalDebit = round((float) $orders->sum('total_ttc'), 2);
-        $totalCredit = round((float) $payments->sum('montant'), 2);
+        $totalCredit = round((float) $payments->sum(function ($payment) {
+            return PaymentSettlement::effectiveCreditAmount(
+                (float) $payment->montant,
+                $payment->statut,
+            );
+        }), 2);
         $totalEncaisse = round((float) $payments->where('statut', 'Payé')->sum('montant'), 2);
         $totalCoffre = round((float) $payments
             ->filter(function ($p) {

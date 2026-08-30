@@ -5,23 +5,27 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\ClientPayment;
 use App\Models\SaleOrder;
+use App\Support\PaymentSettlement;
 use Illuminate\Http\Request;
 
 class ClientReleveApiController extends Controller
 {
     public function index(Request $request)
     {
-        $dateFrom = $request->date_from;
-        $dateTo = $request->date_to;
+        $mois = $request->mois;
+        $monthFilter = is_string($mois) && preg_match('/^\d{4}-\d{2}$/', $mois);
         $clientId = $request->client_id;
         $city = trim((string) $request->city);
+        $tresorerie = mb_strtoupper(trim((string) $request->tresorerie));
 
         $orders = SaleOrder::query()
             ->with(['client', 'items'])
             ->where('status', '!=', 'annule')
             ->when($clientId, fn ($q, $id) => $q->where('client_id', $id))
-            ->when($dateFrom, fn ($q, $d) => $q->whereDate('order_date', '>=', $d))
-            ->when($dateTo, fn ($q, $d) => $q->whereDate('order_date', '<=', $d))
+            ->when($monthFilter, function ($q) use ($mois) {
+                [$year, $month] = explode('-', $mois);
+                $q->whereYear('order_date', $year)->whereMonth('order_date', $month);
+            })
             ->when($city !== '', fn ($q) => $q->where('city', 'like', '%'.$city.'%'))
             ->orderBy('order_date')
             ->orderBy('id')
@@ -30,14 +34,17 @@ class ClientReleveApiController extends Controller
         $payments = ClientPayment::query()
             ->with(['client', 'allocations.saleOrder.client'])
             ->when($clientId, fn ($q, $id) => $q->where('client_id', $id))
-            ->when($dateFrom, fn ($q, $d) => $q->whereDate('payment_date', '>=', $d))
-            ->when($dateTo, fn ($q, $d) => $q->whereDate('payment_date', '<=', $d))
+            ->when($monthFilter, function ($q) use ($mois) {
+                [$year, $month] = explode('-', $mois);
+                $q->whereYear('payment_date', $year)->whereMonth('payment_date', $month);
+            })
             ->when($city !== '', function ($q) use ($city) {
                 $q->where(function ($query) use ($city) {
                     $query->where('ville_chantier', 'like', '%'.$city.'%')
                         ->orWhereHas('allocations.saleOrder', fn ($oq) => $oq->where('city', 'like', '%'.$city.'%'));
                 });
             })
+            ->when($tresorerie !== '', fn ($q) => $q->where('tresorerie', $tresorerie))
             ->orderBy('payment_date')
             ->orderBy('id')
             ->get();
@@ -107,6 +114,8 @@ class ClientReleveApiController extends Controller
                 ->implode(', ');
 
             $statut = $payment->statut ?: 'Inst';
+            $montant = round((float) $payment->montant, 2);
+            $creditEffectif = PaymentSettlement::effectiveCreditAmount($montant, $statut);
 
             $events->push([
                 'sort_date' => optional($payment->payment_date)?->format('Y-m-d') ?? '0000-00-00',
@@ -119,7 +128,8 @@ class ClientReleveApiController extends Controller
                 'ville_liv' => $ville !== '' ? $ville : null,
                 'qte' => null,
                 'debit' => 0.0,
-                'credit' => round((float) $payment->montant, 2),
+                'credit' => $montant,
+                'credit_effectif' => $creditEffectif,
                 'type_reg' => $payment->reglement,
                 'numero_reg' => $payment->numero,
                 'nom_tire' => $payment->nom_tire,
@@ -141,8 +151,9 @@ class ClientReleveApiController extends Controller
 
         $running = 0.0;
         $rows = $sorted->map(function (array $row) use (&$running) {
-            $running = round($running + $row['debit'] - $row['credit'], 2);
-            unset($row['sort_date'], $row['sort_id'], $row['sort_type']);
+            $creditForSolde = (float) ($row['credit_effectif'] ?? $row['credit'] ?? 0);
+            $running = round($running + $row['debit'] - $creditForSolde, 2);
+            unset($row['sort_date'], $row['sort_id'], $row['sort_type'], $row['credit_effectif']);
             $row['solde'] = $running;
 
             return $row;
@@ -152,7 +163,12 @@ class ClientReleveApiController extends Controller
         $totalDeva = round((float) $payments->where('statut', 'Dévalidé')->sum('montant'), 2);
         $totalRepo = round((float) $payments->where('statut', 'Report')->sum('montant'), 2);
         $totalDebit = round((float) $orders->sum(fn ($o) => (float) ($o->total_ttc ?: $o->subtotal)), 2);
-        $totalCredit = round((float) $payments->sum('montant'), 2);
+        $totalCredit = round((float) $payments->sum(function ($payment) {
+            return PaymentSettlement::effectiveCreditAmount(
+                (float) $payment->montant,
+                $payment->statut,
+            );
+        }), 2);
         $totalEncaisse = round((float) $payments->where('statut', 'Payé')->sum('montant'), 2);
         $totalCoffre = round((float) $payments
             ->filter(function ($p) {

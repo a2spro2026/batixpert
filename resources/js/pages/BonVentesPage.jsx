@@ -610,7 +610,7 @@ export default function BonVentesPage() {
         : meta.next_ref;
 
     return (
-        <div className="space-y-4">
+        <div className="flex flex-col flex-1 min-h-0 gap-4 overflow-hidden">
             <ViewModal row={viewRow} onClose={() => setViewRow(null)} />
 
             <ImportPurchaseModal
@@ -777,7 +777,7 @@ export default function BonVentesPage() {
                 </div>
             )}
 
-            <div className="flex flex-wrap items-center gap-2.5">
+            <div className="flex flex-wrap items-center gap-2.5 shrink-0">
                 <button type="button" onClick={handleNewBon} className="btn-primary">
                     <Plus className="w-4 h-4" /> Nouveau
                 </button>
@@ -811,8 +811,8 @@ export default function BonVentesPage() {
                 </div>
             </div>
 
-            <div className="glass-card overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60">
-                <div className="px-5 py-3.5 bg-gradient-to-r from-amber-500 via-orange-500 to-orange-700 border-b border-white/10 space-y-2">
+            <div className="glass-card overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60 flex flex-col flex-1 min-h-0">
+                <div className="px-5 py-3.5 bg-gradient-to-r from-amber-500 via-orange-500 to-orange-700 border-b border-white/10 space-y-2 shrink-0">
                     <h3 className="text-sm font-bold text-white uppercase tracking-wide">Tableau des Bons de Vente</h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-w-xl">
                         <input
@@ -834,11 +834,11 @@ export default function BonVentesPage() {
                         </select>
                     </div>
                 </div>
-                <div className="overflow-x-auto">
+                <div className="flex-1 min-h-0 overflow-auto">
                     <table className="w-full text-sm min-w-[1100px]">
-                        <thead>
+                        <thead className="sticky top-0 z-10">
                             <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700">
-                                {['Date', 'N° B-V', 'Client', 'Ville', 'Adresse Livraison', 'Qté totale', 'Total', 'Échéance', 'Actions'].map((h) => (
+                                {['Date', 'N° B-V', 'Client', 'Ville', 'Adresse Livraison', 'Qté totale', 'Total', 'Solde', 'Échéance', 'Actions'].map((h) => (
                                     <th key={h} className="px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap text-center">{h}</th>
                                 ))}
                             </tr>
@@ -846,7 +846,7 @@ export default function BonVentesPage() {
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                             {loading ? (
                                 [...Array(3)].map((_, i) => (
-                                    <tr key={i}>{[...Array(9)].map((__, j) => (
+                                    <tr key={i}>{[...Array(10)].map((__, j) => (
                                         <td key={j} className="px-4 py-3 text-center"><div className="h-4 bg-slate-200 dark:bg-slate-700 rounded animate-pulse mx-auto max-w-[80px]" /></td>
                                     ))}</tr>
                                 ))
@@ -867,6 +867,9 @@ export default function BonVentesPage() {
                                             {orderTotalQuantity(row).toLocaleString('fr-FR', { maximumFractionDigits: 3 })}
                                         </td>
                                         <td className="px-4 py-2.5 text-center font-semibold tabular-nums text-brand-navy dark:text-orange-400">{formatMontantDisplay(row.subtotal ?? row.montant)}</td>
+                                        <td className={`px-4 py-2.5 text-center font-semibold tabular-nums ${Number(row.solde) <= 0 ? 'text-emerald-700 dark:text-emerald-300' : 'text-rose-700 dark:text-rose-300'}`}>
+                                            {formatMontantDisplay(row.solde ?? 0)}
+                                        </td>
                                         <td className="px-4 py-2.5 text-center">
                                             <span className="inline-flex px-2 py-0.5 rounded-md text-xs font-semibold bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300">
                                                 {row.echeance || '—'}
@@ -884,7 +887,7 @@ export default function BonVentesPage() {
                                     </tr>
                                 ))
                             ) : (
-                                <tr><td colSpan={9} className="px-4 py-12 text-center text-slate-400">{hasTableFilters ? 'Aucun bon ne correspond aux filtres' : 'Aucun bon de vente enregistré'}</td></tr>
+                                <tr><td colSpan={10} className="px-4 py-12 text-center text-slate-400">{hasTableFilters ? 'Aucun bon ne correspond aux filtres' : 'Aucun bon de vente enregistré'}</td></tr>
                             )}
                         </tbody>
                     </table>

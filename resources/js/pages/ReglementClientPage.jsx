@@ -41,6 +41,8 @@ const emptyFilters = {
     banque: '',
     montant: '',
     mois: '',
+    client_id: '',
+    tresorerie: '',
 };
 
 function Field({ label, children }) {
@@ -205,7 +207,7 @@ export default function ReglementClientPage() {
     const [orders, setOrders] = useState([]);
     const [selected, setSelected] = useState({});
     const [actions, setActions] = useState({});
-    const [meta, setMeta] = useState({ next_ref: 'RC-0001', date_raw: '' });
+    const [meta, setMeta] = useState({ next_ref: 'RC-0001', date_raw: '', tresoreries: [] });
     const [totals, setTotals] = useState({ total_ttc: 0, solde_ttc: 0 });
     const [loading, setLoading] = useState(false);
     const [loadingList, setLoadingList] = useState(false);
@@ -218,7 +220,7 @@ export default function ReglementClientPage() {
 
     const loadMeta = useCallback(() => {
         api.get('/client-payments/meta')
-            .then((r) => setMeta(r.data ?? { next_ref: 'RC-0001', date_raw: '' }))
+            .then((r) => setMeta(r.data ?? { next_ref: 'RC-0001', date_raw: '', tresoreries: [] }))
             .catch(() => {});
     }, []);
 
@@ -595,11 +597,27 @@ export default function ReglementClientPage() {
                 </div>
 
                 <form onSubmit={handleSearch} className="shrink-0 glass-card p-3 shadow-card border border-slate-200/60 dark:border-slate-700/60">
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-[repeat(5,minmax(0,1fr))_auto] gap-2 items-end">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-[repeat(7,minmax(0,1fr))_auto] gap-2 items-end">
                         <Field label="Statut">
                             <select value={filters.statut} onChange={(e) => setFilter('statut', e.target.value)} className={filterClass}>
                                 <option value="">Tous</option>
                                 {STATUT_OPTIONS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+                            </select>
+                        </Field>
+                        <Field label="Nom client">
+                            <select value={filters.client_id} onChange={(e) => setFilter('client_id', e.target.value)} className={filterClass}>
+                                <option value="">Tous les clients</option>
+                                {clients.map((c) => (
+                                    <option key={c.id} value={c.id}>{c.name}</option>
+                                ))}
+                            </select>
+                        </Field>
+                        <Field label="Trésorerie">
+                            <select value={filters.tresorerie} onChange={(e) => setFilter('tresorerie', e.target.value)} className={filterClass}>
+                                <option value="">Toutes</option>
+                                {(meta.tresoreries ?? []).map((t) => (
+                                    <option key={t} value={t}>{t}</option>
+                                ))}
                             </select>
                         </Field>
                         <Field label="N° Régl">

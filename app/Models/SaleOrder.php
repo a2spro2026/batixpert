@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasPaymentBalance;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class SaleOrder extends Model
 {
+    use HasPaymentBalance;
+
     protected $table = 'sales_orders';
 
     protected $fillable = [

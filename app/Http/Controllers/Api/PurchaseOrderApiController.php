@@ -13,7 +13,7 @@ class PurchaseOrderApiController extends Controller
 {
     public function index(Request $request)
     {
-        $query = PurchaseOrder::with(['supplier', 'items'])
+        $query = PurchaseOrder::with(['supplier', 'items', 'paymentAllocations.payment'])
             ->when($request->search, fn ($q, $s) => $q->where('reference', 'like', "%{$s}%")
                 ->orWhere('designation', 'like', "%{$s}%"))
             ->latest('order_date');
@@ -393,7 +393,11 @@ class PurchaseOrderApiController extends Controller
 
     private function formatOrder(PurchaseOrder $order): array
     {
-        $order->loadMissing(['supplier', 'items']);
+        $order->loadMissing(['supplier', 'items', 'paymentAllocations.payment']);
+
+        $montantBon = round((float) $order->total_ttc, 2);
+        $montantPaye = $order->effectiveMontantPaye();
+        $solde = $order->computeSolde();
 
         return [
             'id' => $order->id,
@@ -410,7 +414,8 @@ class PurchaseOrderApiController extends Controller
             'quantity' => (float) $order->quantity,
             'subtotal' => number_format((float) $order->subtotal, 2, '.', ''),
             'montant' => number_format((float) $order->total_ttc, 2, '.', ''),
-            'montant_paye' => number_format((float) ($order->montant_paye ?? 0), 2, '.', ''),
+            'montant_paye' => number_format($montantPaye, 2, '.', ''),
+            'solde' => number_format($solde, 2, '.', ''),
             'reglement' => $order->reglement,
             'echeance' => $order->echeance,
             'city' => $order->city,

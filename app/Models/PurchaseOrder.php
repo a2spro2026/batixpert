@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasPaymentBalance;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PurchaseOrder extends Model
 {
+    use HasPaymentBalance;
+
     protected $fillable = [
         'reference', 'bc_number', 'order_date', 'supplier_id', 'chantier_id',
         'designation', 'article_ref', 'consistance', 'unit', 'unit_price', 'quantity', 'subtotal',

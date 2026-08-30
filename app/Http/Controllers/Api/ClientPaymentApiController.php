@@ -33,6 +33,12 @@ class ClientPaymentApiController extends Controller
             [$year, $month] = explode('-', $request->mois);
             $query->whereYear('payment_date', $year)->whereMonth('payment_date', $month);
         }
+        if ($request->filled('client_id')) {
+            $query->where('client_id', $request->client_id);
+        }
+        if ($request->filled('tresorerie')) {
+            $query->where('tresorerie', mb_strtoupper(trim((string) $request->tresorerie)));
+        }
 
         if ($request->boolean('available_for_import')) {
             $query->whereNull('endosse_supplier_payment_id')
@@ -70,6 +76,16 @@ class ClientPaymentApiController extends Controller
             'date' => now()->format('d/m/Y'),
             'date_raw' => now()->format('Y-m-d'),
             'statuts' => self::STATUTS,
+            'tresoreries' => ClientPayment::query()
+                ->whereNotNull('tresorerie')
+                ->where('tresorerie', '!=', '')
+                ->distinct()
+                ->orderBy('tresorerie')
+                ->pluck('tresorerie')
+                ->map(fn ($t) => mb_strtoupper((string) $t))
+                ->unique()
+                ->values()
+                ->all(),
         ]);
     }
 
@@ -79,12 +95,14 @@ class ClientPaymentApiController extends Controller
             'client_id' => 'required|exists:clients,id',
         ]);
 
-        $orders = SaleOrder::with('client')
+        $orders = SaleOrder::with(['client', 'paymentAllocations.payment'])
             ->where('client_id', $request->client_id)
             ->where('status', '!=', 'annule')
             ->latest('order_date')
             ->get()
-            ->map(fn ($o) => $this->formatOrder($o));
+            ->map(fn ($o) => $this->formatOrder($o))
+            ->filter(fn (array $o) => (float) $o['solde'] > 0.009)
+            ->values();
 
         $totalTtc = round($orders->sum(fn ($o) => (float) $o['montant_bon']), 2);
         $soldeTtc = round($orders->sum(fn ($o) => (float) $o['solde']), 2);
@@ -120,7 +138,7 @@ class ClientPaymentApiController extends Controller
 
         $payment = DB::transaction(function () use ($validated, $request) {
             $orderIds = collect($validated['allocations'])->pluck('sales_order_id')->all();
-            $orders = SaleOrder::with('client')
+            $orders = SaleOrder::with(['client', 'paymentAllocations.payment'])
                 ->whereIn('id', $orderIds)
                 ->where('client_id', $validated['client_id'])
                 ->lockForUpdate()
@@ -138,7 +156,7 @@ class ClientPaymentApiController extends Controller
             foreach ($validated['allocations'] as $row) {
                 $order = $orders->get($row['sales_order_id']);
                 $action = $row['action'] ?? 'Payé';
-                $due = round(max((float) $order->total_ttc - (float) ($order->montant_paye ?? 0), 0), 2);
+                $due = $order->computeSolde();
 
                 $explicit = array_key_exists('amount', $row) && $row['amount'] !== null && $row['amount'] !== ''
                     ? round((float) $row['amount'], 2)
@@ -164,7 +182,7 @@ class ClientPaymentApiController extends Controller
             }
 
             $totalTtc = round($orders->sum(fn ($o) => (float) $o->total_ttc), 2);
-            $soldeAvant = round($orders->sum(fn ($o) => max((float) $o->total_ttc - (float) ($o->montant_paye ?? 0), 0)), 2);
+            $soldeAvant = round($orders->sum(fn ($o) => $o->computeSolde()), 2);
 
             $statut = $validated['statut'] ?? 'Inst';
             if (! empty($validated['date_decaissement']) && $statut === 'Inst') {
@@ -207,7 +225,8 @@ class ClientPaymentApiController extends Controller
                     'action' => $row['action'],
                 ]);
 
-                $newPaid = round((float) ($row['order']->montant_paye ?? 0) + $row['amount'], 2);
+                $row['order']->load(['paymentAllocations.payment']);
+                $newPaid = $row['order']->effectiveMontantPaye();
                 $orderTotal = round((float) $row['order']->total_ttc, 2);
                 $action = $row['action'] ?? 'Inst';
 
@@ -287,8 +306,8 @@ class ClientPaymentApiController extends Controller
             'payment_action' => 'required|in:Inst,Payé,Report,Imp,Dévalidé',
         ]);
 
-        // Recalcule le payé depuis les allocations (source de vérité)
-        $paidFromAlloc = round((float) $sales_order->paymentAllocations()->sum('amount'), 2);
+        // Recalcule le payé depuis les allocations effectives (hors Imp / Dévalidé / Report)
+        $paidFromAlloc = $sales_order->effectiveMontantPaye();
         $total = round((float) $sales_order->total_ttc, 2);
         $action = $validated['payment_action'];
 
@@ -351,9 +370,8 @@ class ClientPaymentApiController extends Controller
     private function formatOrder(SaleOrder $order): array
     {
         $montantBon = round((float) $order->total_ttc, 2);
-        // Source de vérité = somme des allocations de règlements
-        $montantPaye = round((float) $order->paymentAllocations()->sum('amount'), 2);
-        $solde = round($montantBon - $montantPaye, 2);
+        $montantPaye = $order->effectiveMontantPaye();
+        $solde = $order->computeSolde();
         $paymentAction = $order->payment_action ?: 'Inst';
         if (in_array($paymentAction, ['Inst', 'Payé'], true)) {
             $paymentAction = ($montantBon > 0 && $montantPaye + 0.009 >= $montantBon) ? 'Payé' : 'Inst';

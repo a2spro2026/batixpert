@@ -9,6 +9,7 @@ export default function Layout() {
     const { pathname } = useLocation();
     const isDashboard = pathname === '/';
     const isDevisForm = /^\/clients\/devis\/(nouveau|\d+)/.test(pathname);
+    const isBonListPage = /^\/(fournisseurs\/bons-achats|clients\/bons-de-vente)/.test(pathname);
 
     return (
         <div className="min-h-screen h-screen bg-slate-50 dark:bg-slate-950 flex overflow-hidden">
@@ -33,7 +34,7 @@ export default function Layout() {
                         <Outlet />
                     </main>
                 ) : (
-                    <main className="flex-1 flex flex-col min-h-0 overflow-y-auto overflow-x-hidden p-4 lg:p-6">
+                    <main className={`flex-1 flex flex-col min-h-0 p-4 lg:p-6 ${isBonListPage ? 'overflow-hidden' : 'overflow-y-auto overflow-x-hidden'}`}>
                         <Outlet />
                     </main>
                 )}

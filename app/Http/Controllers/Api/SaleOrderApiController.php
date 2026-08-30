@@ -11,7 +11,7 @@ class SaleOrderApiController extends Controller
 {
     public function index(Request $request)
     {
-        $query = SaleOrder::with(['client', 'items'])
+        $query = SaleOrder::with(['client', 'items', 'paymentAllocations.payment'])
             ->when($request->search, fn ($q, $s) => $q->where('reference', 'like', "%{$s}%")
                 ->orWhere('designation', 'like', "%{$s}%"))
             ->latest('order_date');
@@ -227,7 +227,11 @@ class SaleOrderApiController extends Controller
 
     private function formatOrder(SaleOrder $order): array
     {
-        $order->loadMissing(['client', 'items']);
+        $order->loadMissing(['client', 'items', 'paymentAllocations.payment']);
+
+        $montantBon = round((float) $order->total_ttc, 2);
+        $montantPaye = $order->effectiveMontantPaye();
+        $solde = $order->computeSolde();
 
         return [
             'id' => $order->id,
@@ -244,6 +248,8 @@ class SaleOrderApiController extends Controller
             'quantity' => (float) $order->quantity,
             'subtotal' => number_format((float) $order->subtotal, 2, '.', ''),
             'montant' => number_format((float) $order->total_ttc, 2, '.', ''),
+            'montant_paye' => number_format($montantPaye, 2, '.', ''),
+            'solde' => number_format($solde, 2, '.', ''),
             'reglement' => $order->reglement,
             'echeance' => $order->echeance,
             'city' => $order->city,
