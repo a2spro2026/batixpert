@@ -54,6 +54,7 @@ export default function UserAuthorizationsPage() {
     const navigate = useNavigate();
     const [users, setUsers] = useState([]);
     const [selectedId, setSelectedId] = useState(null);
+    const [checkedUserIds, setCheckedUserIds] = useState(new Set());
     const [selectedPerms, setSelectedPerms] = useState(new Set());
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -80,6 +81,33 @@ export default function UserAuthorizationsPage() {
         () => users.find((u) => u.id === selectedId) || null,
         [users, selectedId],
     );
+
+    const checkedUsers = useMemo(
+        () => users.filter((u) => checkedUserIds.has(u.id)),
+        [users, checkedUserIds],
+    );
+
+    const allUsersChecked = users.length > 0 && users.every((u) => checkedUserIds.has(u.id));
+    const someUsersChecked = users.some((u) => checkedUserIds.has(u.id));
+
+    const toggleUserCheck = (userId, event) => {
+        event?.stopPropagation();
+        setCheckedUserIds((prev) => {
+            const next = new Set(prev);
+            if (next.has(userId)) next.delete(userId);
+            else next.add(userId);
+            return next;
+        });
+    };
+
+    const toggleAllUsers = () => {
+        setCheckedUserIds((prev) => {
+            if (users.every((u) => prev.has(u.id))) {
+                return new Set();
+            }
+            return new Set(users.map((u) => u.id));
+        });
+    };
 
     useEffect(() => {
         if (!selectedUser) {
@@ -151,13 +179,30 @@ export default function UserAuthorizationsPage() {
     };
 
     const handleSuspend = async () => {
-        if (!selectedUser) return;
-        if (!window.confirm(`${selectedUser.is_active ? 'Suspendre' : 'Réactiver'} ${selectedUser.name} ?`)) return;
+        const targets = checkedUsers.length > 0 ? checkedUsers : (selectedUser ? [selectedUser] : []);
+        if (!targets.length) return;
+
+        const activeCount = targets.filter((u) => u.is_active).length;
+        const suspendedCount = targets.length - activeCount;
+        const actionLabel = checkedUsers.length > 1
+            ? (activeCount > 0 && suspendedCount > 0
+                ? `Modifier le statut de ${targets.length} utilisateurs`
+                : activeCount > 0
+                    ? `Suspendre ${activeCount} utilisateur(s)`
+                    : `Réactiver ${suspendedCount} utilisateur(s)`)
+            : (targets[0].is_active ? 'Suspendre' : 'Réactiver');
+
+        const names = targets.map((u) => u.name).join(', ');
+        if (!window.confirm(`${actionLabel} ?\n\n${names}`)) return;
+
         setSaving(true);
         setError('');
         try {
-            const r = await api.patch(`/users/${selectedUser.id}/suspend`);
-            setMessage(r.data.message || 'Statut mis à jour.');
+            const results = await Promise.all(
+                targets.map((u) => api.patch(`/users/${u.id}/suspend`)),
+            );
+            setMessage(results[results.length - 1]?.data?.message || 'Statut mis à jour.');
+            setCheckedUserIds(new Set());
             load();
         } catch (err) {
             setError(err.response?.data?.message || 'Action impossible.');
@@ -189,13 +234,30 @@ export default function UserAuthorizationsPage() {
             )}
 
             <div className="shrink-0 glass-card overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60">
-                <div className="px-5 py-3 bg-gradient-to-r from-slate-700 via-slate-800 to-brand-navy border-b border-white/10">
+                <div className="px-5 py-3 bg-gradient-to-r from-slate-700 via-slate-800 to-brand-navy border-b border-white/10 flex items-center justify-between gap-3">
                     <h3 className="text-sm font-bold text-white uppercase tracking-wide">Utilisateurs</h3>
+                    {checkedUsers.length > 0 && (
+                        <span className="text-[10px] font-semibold text-white/80 uppercase tracking-wide">
+                            {checkedUsers.length} sélectionné(s)
+                        </span>
+                    )}
                 </div>
                 <div className="overflow-x-auto">
-                    <table className="w-full text-sm min-w-[720px]">
+                    <table className="w-full text-sm min-w-[780px]">
                         <thead>
                             <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
+                                <th className="px-3 py-2.5 text-center w-10">
+                                    <input
+                                        type="checkbox"
+                                        checked={allUsersChecked}
+                                        ref={(el) => {
+                                            if (el) el.indeterminate = !allUsersChecked && someUsersChecked;
+                                        }}
+                                        onChange={toggleAllUsers}
+                                        className="rounded border-slate-300 text-brand-navy focus:ring-brand-navy"
+                                        title="Tout sélectionner"
+                                    />
+                                </th>
                                 {['ID', 'Nom Complet', 'Statut', 'État'].map((h) => (
                                     <th key={h} className="px-3 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-500 text-center">{h}</th>
                                 ))}
@@ -203,13 +265,21 @@ export default function UserAuthorizationsPage() {
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                             {loading ? (
-                                <tr><td colSpan={4} className="px-4 py-8 text-center text-slate-400">Chargement…</td></tr>
+                                <tr><td colSpan={5} className="px-4 py-8 text-center text-slate-400">Chargement…</td></tr>
                             ) : users.length ? users.map((row) => (
                                 <tr
                                     key={row.id}
                                     onClick={() => setSelectedId(row.id)}
                                     className={`cursor-pointer transition-colors ${selectedId === row.id ? 'bg-amber-50/80 dark:bg-amber-900/20' : 'hover:bg-slate-50 dark:hover:bg-slate-800/40'}`}
                                 >
+                                    <td className="px-3 py-2.5 text-center" onClick={(e) => e.stopPropagation()}>
+                                        <input
+                                            type="checkbox"
+                                            checked={checkedUserIds.has(row.id)}
+                                            onChange={(e) => toggleUserCheck(row.id, e)}
+                                            className="rounded border-slate-300 text-brand-navy focus:ring-brand-navy"
+                                        />
+                                    </td>
                                     <td className="px-3 py-2.5 text-center font-mono text-xs font-semibold">{row.id}</td>
                                     <td className="px-3 py-2.5 text-center font-medium text-slate-800 dark:text-white">{row.name}</td>
                                     <td className="px-3 py-2.5 text-center text-slate-600 dark:text-slate-300">{row.statut_label || row.statut}</td>
@@ -220,7 +290,7 @@ export default function UserAuthorizationsPage() {
                                     </td>
                                 </tr>
                             )) : (
-                                <tr><td colSpan={4} className="px-4 py-8 text-center text-slate-400">Aucun utilisateur</td></tr>
+                                <tr><td colSpan={5} className="px-4 py-8 text-center text-slate-400">Aucun utilisateur</td></tr>
                             )}
                         </tbody>
                     </table>
@@ -269,9 +339,13 @@ export default function UserAuthorizationsPage() {
                             <CheckCircle2 className="w-3.5 h-3.5" />
                             Valider
                         </button>
-                        <button type="button" onClick={handleSuspend} disabled={saving} className="btn-secondary text-xs">
+                        <button type="button" onClick={handleSuspend} disabled={saving || (!checkedUsers.length && !selectedUser)} className="btn-secondary text-xs">
                             <Ban className="w-3.5 h-3.5" />
-                            {selectedUser?.is_active ? 'Suspendre' : 'Réactiver'}
+                            {checkedUsers.length > 1
+                                ? `Suspendre (${checkedUsers.length})`
+                                : checkedUsers.length === 1
+                                    ? (checkedUsers[0].is_active ? 'Suspendre' : 'Réactiver')
+                                    : (selectedUser?.is_active ? 'Suspendre' : 'Réactiver')}
                         </button>
                         <button type="button" onClick={() => navigate('/configuration/utilisateurs')} className="btn-muted text-xs">
                             <X className="w-3.5 h-3.5" />
