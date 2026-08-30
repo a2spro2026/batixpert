@@ -27,6 +27,7 @@ import SupplierBalancePage from './pages/SupplierBalancePage';
 import SupplierRelevePage from './pages/SupplierRelevePage';
 import ClientRelevePage from './pages/ClientRelevePage';
 import UsersPage from './pages/UsersPage';
+import UserAuthorizationsPage from './pages/UserAuthorizationsPage';
 import ChauffeursPage from './pages/ChauffeursPage';
 
 function ProtectedRoute({ children }) {
@@ -107,6 +108,7 @@ function AppRoutes() {
 
                 {/* Configuration */}
                 <Route path="configuration/utilisateurs" element={<UsersPage />} />
+                <Route path="configuration/autorisations" element={<UserAuthorizationsPage />} />
                 <Route path="configuration/chauffeurs" element={<ChauffeursPage />} />
 
                 {/* Redirections anciennes routes */}

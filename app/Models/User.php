@@ -5,6 +5,7 @@ namespace App\Models;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -44,6 +45,11 @@ class User extends Authenticatable
         return $this->belongsTo(Role::class);
     }
 
+    public function permissions(): BelongsToMany
+    {
+        return $this->belongsToMany(Permission::class);
+    }
+
     public function employee(): HasOne
     {
         return $this->hasOne(Employee::class);
@@ -51,6 +57,14 @@ class User extends Authenticatable
 
     public function hasPermission(string $slug): bool
     {
+        if ($this->isAdmin()) {
+            return true;
+        }
+
+        if ($this->permissions()->where('slug', $slug)->exists()) {
+            return true;
+        }
+
         if (! $this->role) {
             return false;
         }

@@ -26,6 +26,7 @@ use App\Http\Controllers\Api\StockMouvementApiController;
 use App\Http\Controllers\Api\TaskApiController;
 use App\Http\Controllers\Api\TransactionApiController;
 use App\Http\Controllers\Api\UserApiController;
+use App\Http\Controllers\Api\UserAuthorizationApiController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/login', [AuthController::class, 'login']);
@@ -99,6 +100,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/tasks', [TaskApiController::class, 'store']);
     Route::put('/tasks/{task}', [TaskApiController::class, 'update']);
 
+    Route::get('user-authorizations', [UserAuthorizationApiController::class, 'index']);
+    Route::get('user-authorizations/menu', [UserAuthorizationApiController::class, 'menu']);
+    Route::put('users/{user}/authorizations', [UserAuthorizationApiController::class, 'update']);
     Route::patch('users/{user}/suspend', [UserApiController::class, 'suspend']);
     Route::apiResource('users', UserApiController::class);
     Route::get('chauffeurs', [ChauffeurApiController::class, 'index']);

@@ -8,6 +8,7 @@ import {
     Landmark,
     Settings,
     CarFront,
+    Shield,
     // Fournisseur
     Contact,
     ClipboardList,
@@ -141,6 +142,7 @@ export const navigation = [
         perm: 'utilisateurs.view',
         children: [
             { to: '/configuration/utilisateurs', label: 'Utilisateur', icon: UserCog },
+            { to: '/configuration/autorisations', label: 'Autorisations', icon: Shield },
             { to: '/configuration/chauffeurs', label: 'Chauffeur', icon: CarFront },
         ],
     },

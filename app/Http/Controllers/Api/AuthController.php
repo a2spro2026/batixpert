@@ -28,7 +28,7 @@ class AuthController extends Controller
 
         $login = trim((string) $request->input('login', $request->email));
 
-        $user = User::with('role.permissions')
+        $user = User::with(['role.permissions', 'permissions'])
             ->where(function ($query) use ($login) {
                 $query->where('email', $login)
                     ->orWhere('email', 'like', $login.'@%')
@@ -73,7 +73,7 @@ class AuthController extends Controller
 
     public function user(Request $request)
     {
-        $user = $request->user()->load('role.permissions');
+        $user = $request->user()->load(['role.permissions', 'permissions']);
         $statut = $user->statut;
         $statutLabel = $statut ? (self::STATUTS[$statut] ?? $statut) : null;
 
@@ -91,7 +91,11 @@ class AuthController extends Controller
             'statut' => $statut ?? $user->statut,
             'statut_label' => $statutLabel ?? (self::STATUTS[$user->statut] ?? $user->statut),
             'role' => $user->role?->only(['id', 'name', 'slug']),
-            'permissions' => $user->role?->permissions->pluck('slug') ?? [],
+            'permissions' => $user->permissions->pluck('slug')
+                ->merge($user->role?->permissions->pluck('slug') ?? collect())
+                ->unique()
+                ->values()
+                ->all(),
             'is_admin' => $user->isAdmin(),
             'title' => $statutLabel
                 ?? (self::STATUTS[$user->statut] ?? null)
