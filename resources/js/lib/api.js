@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { authStorage } from './authStorage';
 
 const api = axios.create({
     baseURL: '/api',
@@ -6,7 +7,7 @@ const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
-    const token = localStorage.getItem('batixpert_token');
+    const token = authStorage.get('batixpert_token');
     if (token) config.headers.Authorization = `Bearer ${token}`;
     return config;
 });
@@ -15,9 +16,7 @@ api.interceptors.response.use(
     (r) => r,
     (error) => {
         if (error.response?.status === 401) {
-            localStorage.removeItem('batixpert_token');
-            localStorage.removeItem('batixpert_user');
-            localStorage.removeItem('batixpert_statut');
+            authStorage.clear();
             if (!window.location.pathname.includes('/login')) {
                 window.location.href = '/app/login';
             }
