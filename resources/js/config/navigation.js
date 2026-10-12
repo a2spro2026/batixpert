@@ -56,10 +56,11 @@ export const navigation = [
         children: [
             { to: '/fournisseurs/fiches', label: 'Fiche Fournisseur', icon: Contact, perm: 'nav.fournisseurs.fiches' },
             { to: '/fournisseurs/bons-achats', label: 'Bon Achats', icon: ClipboardList, perm: 'nav.fournisseurs.bons-achats' },
-            { to: '/chantiers/bons-commande', label: 'Bon de Commande', icon: ClipboardCheck, perm: 'nav.chantiers.bons-commande' },
+            { to: '/chantiers/bons-commande', label: 'Bon de Commande', icon: ClipboardCheck, perm: 'nav.chantiers.bons-commande', disabled: true },
             { to: '/fournisseurs/reglements-achats', label: 'Règlement Achats', icon: Banknote, perm: 'nav.fournisseurs.reglements-achats' },
             { to: '/fournisseurs/balance', label: 'Balance', icon: Scale, perm: 'nav.fournisseurs.balance' },
             { to: '/fournisseurs/releve-compte', label: 'Relevé Compte', icon: ScrollText, perm: 'nav.fournisseurs.releve-compte' },
+            { to: '/fournisseurs/etat-reliquat', label: 'Etat Reliquat', icon: Coins, perm: 'nav.fournisseurs.etat-reliquat' },
         ],
     },
     {

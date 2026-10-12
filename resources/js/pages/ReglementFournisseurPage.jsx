@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
     CheckCircle2, XCircle, Receipt, Scale, Plus, Eye, Pencil, Trash2, Printer,
-    Banknote, Wallet, AlertCircle, Search, X, RefreshCw, Download,
+    Banknote, Wallet, AlertCircle, Search, X, RefreshCw, Download, SlidersHorizontal,
 } from 'lucide-react';
 import api from '../lib/api';
+import { openPrintPreview } from '../lib/printDocument';
+import MobileRecordCard, { MobileCardList } from '../components/MobileRecordCard';
 
 const REGLEMENT_OPTIONS = ['', 'Esp', 'Chq', 'Eff', 'Vir', 'Vers'];
 const BANQUE_OPTIONS = ['', 'Attijariwafa', 'BMCE', 'Banque Populaire', 'CIH', 'SGMB', 'Crédit Agricole', 'CDM', 'Al Barid Bank', 'Autre'];
@@ -42,9 +44,9 @@ const emptyFilters = {
     mois: '',
 };
 
-function Field({ label, children }) {
+function Field({ label, children, className = '' }) {
     return (
-        <div className="min-w-0">
+        <div className={`min-w-0 ${className}`}>
             <label className="field-label field-label-compact">{label}</label>
             {children}
         </div>
@@ -116,12 +118,7 @@ th{background:#f8fafc;font-weight:700}.badge{background:#dbeafe;color:#1d4ed8;pa
 }
 
 function openPrintable(row) {
-    const w = window.open('', '_blank', 'width=900,height=700');
-    if (!w) return;
-    w.document.write(buildPrintHtml(row));
-    w.document.close();
-    w.focus();
-    setTimeout(() => w.print(), 300);
+    openPrintPreview(buildPrintHtml(row), { title: `Règlement fournisseur ${row.reference || ''}`, filename: `reglement-fournisseur-${row.reference || row.id}` });
 }
 
 function ViewModal({ row, onClose }) {
@@ -315,6 +312,7 @@ export default function ReglementFournisseurPage() {
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
     const [viewRow, setViewRow] = useState(null);
+    const [showFilters, setShowFilters] = useState(false);
     const [importOpen, setImportOpen] = useState(false);
     const [importRows, setImportRows] = useState([]);
     const [importSelected, setImportSelected] = useState({});
@@ -698,7 +696,7 @@ export default function ReglementFournisseurPage() {
     /* ───────────── LIST VIEW ───────────── */
     if (view === 'list') {
         return (
-            <div className="flex flex-col gap-3 h-[calc(100dvh-11rem)] min-h-[360px]">
+            <div className="flex flex-col gap-3 lg:h-[calc(100dvh-11rem)] lg:min-h-[360px]">
                 {error && (
                     <div className="shrink-0 p-3 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm border border-red-100 dark:border-red-800">{error}</div>
                 )}
@@ -708,45 +706,49 @@ export default function ReglementFournisseurPage() {
                         <Plus className="w-4 h-4" />
                         Nouveau Règlement
                     </button>
+                    <button type="button" onClick={() => setShowFilters((v) => !v)} className="btn-secondary lg:hidden">
+                        <SlidersHorizontal className="w-4 h-4" />
+                        Filtres
+                    </button>
 
-                    <div className="ml-auto flex flex-wrap items-center gap-3">
-                        <div className="relative overflow-hidden min-w-[150px] rounded-2xl bg-gradient-to-br from-blue-500 via-blue-600 to-blue-800 shadow-lg shadow-blue-500/25 border border-white/10">
+                    <div className="w-full sm:w-auto sm:ml-auto grid grid-cols-3 gap-2 sm:flex sm:flex-wrap sm:items-center sm:gap-3">
+                        <div className="relative overflow-hidden min-w-0 sm:min-w-[150px] rounded-xl sm:rounded-2xl bg-gradient-to-br from-blue-500 via-blue-600 to-blue-800 shadow-lg shadow-blue-500/25 border border-white/10">
                             <div className="absolute -top-6 -right-6 w-20 h-20 rounded-full bg-white/10 blur-xl pointer-events-none" />
-                            <div className="relative flex items-center gap-3 px-4 py-3">
-                                <div className="p-2 rounded-xl bg-white/20 backdrop-blur-sm text-white shrink-0">
+                            <div className="relative flex items-center gap-3 px-2.5 py-2 sm:px-4 sm:py-3">
+                                <div className="hidden sm:block p-2 rounded-xl bg-white/20 backdrop-blur-sm text-white shrink-0">
                                     <Banknote className="w-4 h-4" strokeWidth={2.2} />
                                 </div>
                                 <div className="text-right min-w-0 flex-1">
-                                    <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/80">Total Règlement</p>
-                                    <p className="text-lg font-bold tabular-nums leading-tight text-white tracking-tight">
+                                    <p className="text-[8px] sm:text-[10px] font-bold uppercase tracking-wider sm:tracking-[0.14em] text-white/80">Total Règlement</p>
+                                    <p className="text-xs sm:text-lg font-bold tabular-nums leading-tight truncate text-white tracking-tight">
                                         {formatMontant(summary.total_reglement)}
                                     </p>
                                 </div>
                             </div>
                         </div>
-                        <div className="relative overflow-hidden min-w-[150px] rounded-2xl bg-gradient-to-br from-emerald-500 via-green-600 to-teal-700 shadow-lg shadow-emerald-500/25 border border-white/10">
+                        <div className="relative overflow-hidden min-w-0 sm:min-w-[150px] rounded-xl sm:rounded-2xl bg-gradient-to-br from-emerald-500 via-green-600 to-teal-700 shadow-lg shadow-emerald-500/25 border border-white/10">
                             <div className="absolute -top-6 -right-6 w-20 h-20 rounded-full bg-white/10 blur-xl pointer-events-none" />
-                            <div className="relative flex items-center gap-3 px-4 py-3">
-                                <div className="p-2 rounded-xl bg-white/20 backdrop-blur-sm text-white shrink-0">
+                            <div className="relative flex items-center gap-3 px-2.5 py-2 sm:px-4 sm:py-3">
+                                <div className="hidden sm:block p-2 rounded-xl bg-white/20 backdrop-blur-sm text-white shrink-0">
                                     <Wallet className="w-4 h-4" strokeWidth={2.2} />
                                 </div>
                                 <div className="text-right min-w-0 flex-1">
-                                    <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/80">Total Décaissé</p>
-                                    <p className="text-lg font-bold tabular-nums leading-tight text-white tracking-tight">
+                                    <p className="text-[8px] sm:text-[10px] font-bold uppercase tracking-wider sm:tracking-[0.14em] text-white/80">Total Décaissé</p>
+                                    <p className="text-xs sm:text-lg font-bold tabular-nums leading-tight truncate text-white tracking-tight">
                                         {formatMontant(summary.total_decaisse)}
                                     </p>
                                 </div>
                             </div>
                         </div>
-                        <div className="relative overflow-hidden min-w-[150px] rounded-2xl bg-gradient-to-br from-red-500 via-rose-600 to-red-800 shadow-lg shadow-red-500/25 border border-white/10">
+                        <div className="relative overflow-hidden min-w-0 sm:min-w-[150px] rounded-xl sm:rounded-2xl bg-gradient-to-br from-red-500 via-rose-600 to-red-800 shadow-lg shadow-red-500/25 border border-white/10">
                             <div className="absolute -top-6 -right-6 w-20 h-20 rounded-full bg-white/10 blur-xl pointer-events-none" />
-                            <div className="relative flex items-center gap-3 px-4 py-3">
-                                <div className="p-2 rounded-xl bg-white/20 backdrop-blur-sm text-white shrink-0">
+                            <div className="relative flex items-center gap-3 px-2.5 py-2 sm:px-4 sm:py-3">
+                                <div className="hidden sm:block p-2 rounded-xl bg-white/20 backdrop-blur-sm text-white shrink-0">
                                     <AlertCircle className="w-4 h-4" strokeWidth={2.2} />
                                 </div>
                                 <div className="text-right min-w-0 flex-1">
-                                    <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/80">Total Impayé</p>
-                                    <p className="text-lg font-bold tabular-nums leading-tight text-white tracking-tight">
+                                    <p className="text-[8px] sm:text-[10px] font-bold uppercase tracking-wider sm:tracking-[0.14em] text-white/80">Total Impayé</p>
+                                    <p className="text-xs sm:text-lg font-bold tabular-nums leading-tight truncate text-white tracking-tight">
                                         {formatMontant(summary.total_impaye)}
                                     </p>
                                 </div>
@@ -755,7 +757,7 @@ export default function ReglementFournisseurPage() {
                     </div>
                 </div>
 
-                <form onSubmit={handleSearch} className="shrink-0 glass-card p-3 shadow-card border border-slate-200/60 dark:border-slate-700/60">
+                <form onSubmit={handleSearch} className={`shrink-0 glass-card p-3 shadow-card border border-slate-200/60 dark:border-slate-700/60 ${showFilters ? '' : 'hidden lg:block'}`}>
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-[repeat(5,minmax(0,1fr))_auto] gap-2 items-end">
                         <Field label="Statut">
                             <select value={filters.statut} onChange={(e) => setFilter('statut', e.target.value)} className={filterClass}>
@@ -802,11 +804,52 @@ export default function ReglementFournisseurPage() {
                     </div>
                 </form>
 
-                <div className="flex-1 min-h-0 glass-card flex flex-col overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60">
-                    <div className="shrink-0 px-5 py-3.5 bg-gradient-to-r from-blue-600 via-blue-700 to-slate-800 border-b border-white/10">
-                        <h3 className="text-sm font-bold text-white uppercase tracking-wide">Tableau de consultation</h3>
+                <div className="lg:flex-1 lg:min-h-0 glass-card flex flex-col overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60">
+                    <div className="shrink-0 px-4 sm:px-5 py-3 sm:py-3.5 bg-gradient-to-r from-blue-600 via-blue-700 to-slate-800 border-b border-white/10">
+                        <h3 className="text-sm font-bold text-white uppercase tracking-wide">
+                            Tableau de consultation
+                            <span className="lg:hidden font-semibold text-white/70"> ({payments.length})</span>
+                        </h3>
                     </div>
-                    <div className="flex-1 min-h-0 overflow-auto">
+                    <div className="lg:hidden">
+                        <MobileCardList loading={loadingList} empty="Aucun règlement enregistré">
+                            {payments.map((row) => (
+                                <MobileRecordCard
+                                    key={row.id}
+                                    title={row.reference}
+                                    subtitle={row.fournisseur || '—'}
+                                    badge={<span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">{row.payment_date}</span>}
+                                    onOpen={() => setViewRow(row)}
+                                    fields={[
+                                        { label: 'Montant', value: formatMontant(row.montant), className: 'font-bold text-brand-navy dark:text-blue-300' },
+                                        { label: 'Type', value: row.reglement || '—' },
+                                        { label: 'N° · Bnq', value: [row.numero, row.banque].filter(Boolean).join(' · ') || '—' },
+                                        { label: 'Date décaiss', value: row.date_decaissement || '—' },
+                                        { label: 'Nom de tiré', value: row.nom_tire || '—', full: true },
+                                    ]}
+                                    footer={(
+                                        <label className="flex items-center justify-between gap-3">
+                                            <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Statut</span>
+                                            <select
+                                                value={row.statut || 'Inst'}
+                                                onChange={(e) => handleStatutChange(row, e.target.value)}
+                                                className={`flex-1 max-w-[160px] rounded-md border px-2 py-1.5 text-xs font-bold outline-none ${statutClass(row.statut || 'Inst')}`}
+                                            >
+                                                {STATUT_OPTIONS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+                                            </select>
+                                        </label>
+                                    )}
+                                    actions={[
+                                        { label: 'Voir', icon: Eye, color: 'blue', onClick: () => setViewRow(row) },
+                                        { label: 'Imprimer', icon: Printer, color: 'slate', onClick: () => openPrintable(row) },
+                                        { label: 'Modifier', icon: Pencil, color: 'amber', onClick: () => openEdit(row) },
+                                        { label: 'Supprimer', icon: Trash2, color: 'red', onClick: () => handleDelete(row) },
+                                    ]}
+                                />
+                            ))}
+                        </MobileCardList>
+                    </div>
+                    <div className="hidden lg:block lg:flex-1 lg:min-h-0 overflow-auto">
                         <table className="w-full text-sm min-w-[1100px]">
                             <thead className="sticky top-0 z-10">
                                 <tr className="bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 shadow-sm">
@@ -904,30 +947,30 @@ export default function ReglementFournisseurPage() {
                         {editingId ? `Modifier ${meta.next_ref}` : 'Nouveau Règlement'}
                     </span>
 
-                    <div className="ml-auto flex flex-wrap items-center gap-3">
-                        <div className="relative overflow-hidden min-w-[150px] rounded-2xl bg-gradient-to-br from-red-500 via-rose-600 to-red-800 shadow-lg shadow-red-500/25 border border-white/10">
+                    <div className="w-full sm:w-auto sm:ml-auto grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:gap-3">
+                        <div className="relative overflow-hidden min-w-0 sm:min-w-[150px] rounded-xl sm:rounded-2xl bg-gradient-to-br from-red-500 via-rose-600 to-red-800 shadow-lg shadow-red-500/25 border border-white/10">
                             <div className="absolute -top-6 -right-6 w-20 h-20 rounded-full bg-white/10 blur-xl pointer-events-none" />
-                            <div className="relative flex items-center gap-3 px-4 py-3">
-                                <div className="p-2 rounded-xl bg-white/20 backdrop-blur-sm text-white shrink-0">
+                            <div className="relative flex items-center gap-3 px-2.5 py-2 sm:px-4 sm:py-3">
+                                <div className="hidden sm:block p-2 rounded-xl bg-white/20 backdrop-blur-sm text-white shrink-0">
                                     <Receipt className="w-4 h-4" strokeWidth={2.2} />
                                 </div>
                                 <div className="text-right min-w-0 flex-1">
-                                    <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/80">Total TTC</p>
-                                    <p className="text-lg font-bold tabular-nums leading-tight text-white tracking-tight">
+                                    <p className="text-[8px] sm:text-[10px] font-bold uppercase tracking-wider sm:tracking-[0.14em] text-white/80">Total TTC</p>
+                                    <p className="text-xs sm:text-lg font-bold tabular-nums leading-tight truncate text-white tracking-tight">
                                         {formatMontant(selectedTotals.total_ttc)}
                                     </p>
                                 </div>
                             </div>
                         </div>
-                        <div className="relative overflow-hidden min-w-[150px] rounded-2xl bg-gradient-to-br from-amber-400 via-yellow-500 to-amber-600 shadow-lg shadow-amber-500/30 border border-white/10">
+                        <div className="relative overflow-hidden min-w-0 sm:min-w-[150px] rounded-xl sm:rounded-2xl bg-gradient-to-br from-amber-400 via-yellow-500 to-amber-600 shadow-lg shadow-amber-500/30 border border-white/10">
                             <div className="absolute -top-6 -right-6 w-20 h-20 rounded-full bg-white/15 blur-xl pointer-events-none" />
-                            <div className="relative flex items-center gap-3 px-4 py-3">
-                                <div className="p-2 rounded-xl bg-white/25 backdrop-blur-sm text-amber-950 shrink-0">
+                            <div className="relative flex items-center gap-3 px-2.5 py-2 sm:px-4 sm:py-3">
+                                <div className="hidden sm:block p-2 rounded-xl bg-white/25 backdrop-blur-sm text-amber-950 shrink-0">
                                     <Scale className="w-4 h-4" strokeWidth={2.2} />
                                 </div>
                                 <div className="text-right min-w-0 flex-1">
-                                    <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-amber-950/70">Solde TTC</p>
-                                    <p className="text-lg font-bold tabular-nums leading-tight text-amber-950 tracking-tight">
+                                    <p className="text-[8px] sm:text-[10px] font-bold uppercase tracking-wider sm:tracking-[0.14em] text-amber-950/70">Solde TTC</p>
+                                    <p className="text-xs sm:text-lg font-bold tabular-nums leading-tight truncate text-amber-950 tracking-tight">
                                         {formatMontant(selectedTotals.solde_ttc)}
                                     </p>
                                 </div>
@@ -936,15 +979,15 @@ export default function ReglementFournisseurPage() {
                     </div>
                 </div>
 
-                <div className="glass-card p-2.5 shadow-card border border-slate-200/60 dark:border-slate-700/60 overflow-x-auto">
-                    <div className="grid grid-cols-[100px_88px_minmax(140px,1.3fr)_72px_90px_minmax(110px,1fr)_minmax(110px,1fr)_95px_100px_minmax(120px,1fr)] gap-1.5 items-end min-w-[1280px]">
+                <div className="glass-card p-2.5 shadow-card border border-slate-200/60 dark:border-slate-700/60 lg:overflow-x-auto">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-[100px_88px_minmax(140px,1.3fr)_72px_90px_minmax(110px,1fr)_minmax(110px,1fr)_95px_100px_minmax(120px,1fr)] gap-x-2 gap-y-2.5 lg:gap-1.5 items-end lg:min-w-[1280px]">
                         <Field label="Date">
                             <input type="date" required value={form.payment_date} onChange={(e) => set('payment_date', e.target.value)} className={inputClass} />
                         </Field>
                         <Field label="Réf Régl">
                             <input type="text" readOnly value={meta.next_ref || 'RF-0001'} className={readOnlyClass} />
                         </Field>
-                        <Field label="Nom Fournisseur">
+                        <Field label="Nom Fournisseur" className="col-span-2 sm:col-span-1">
                             <select required value={form.supplier_id} onChange={(e) => set('supplier_id', e.target.value)} className={inputClass} disabled={!!editingId}>
                                 <option value="">—</option>
                                 {suppliers.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
@@ -1002,7 +1045,7 @@ export default function ReglementFournisseurPage() {
                         <Field label="Date Décaiss">
                             <input type="date" value={form.date_decaissement} onChange={(e) => set('date_decaissement', e.target.value)} className={inputClass} />
                         </Field>
-                        <Field label="Remarque">
+                        <Field label="Remarque" className="col-span-2 sm:col-span-1">
                             <input type="text" value={form.remarque} onChange={(e) => set('remarque', e.target.value)} placeholder="Remarque" className={inputClass} />
                         </Field>
                     </div>
@@ -1014,7 +1057,69 @@ export default function ReglementFournisseurPage() {
                     <div className="px-5 py-3.5 bg-gradient-to-r from-amber-500 via-orange-500 to-orange-700 border-b border-white/10">
                         <h3 className="text-sm font-bold text-white uppercase tracking-wide">Commande à Payer :</h3>
                     </div>
-                    <div className="overflow-x-auto">
+                    <div className="lg:hidden">
+                        {loading ? (
+                            <MobileCardList loading skeletonCount={3} />
+                        ) : !form.supplier_id ? (
+                            <p className="px-4 py-10 text-center text-sm text-slate-400">Sélectionnez un fournisseur</p>
+                        ) : !orders.length ? (
+                            <p className="px-4 py-10 text-center text-sm text-slate-400">Aucune commande pour ce fournisseur</p>
+                        ) : (
+                            <div className="p-3 space-y-2.5">
+                                <label className="flex items-center justify-between rounded-lg bg-slate-50 dark:bg-slate-800/60 px-3 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300">
+                                    Tout sélectionner
+                                    <input
+                                        type="checkbox"
+                                        checked={orders.length > 0 && selectedIds.length === orders.length}
+                                        onChange={toggleSelectAll}
+                                        className="w-5 h-5 rounded border-slate-300 text-brand-navy focus:ring-brand-navy"
+                                    />
+                                </label>
+                                {orders.map((row) => {
+                                    const shown = displayRow(row);
+                                    return (
+                                        <MobileRecordCard
+                                            key={row.id}
+                                            className={selected[row.id] ? 'ring-2 ring-amber-400 border-amber-300' : ''}
+                                            title={row.reference}
+                                            subtitle={row.client_livre || '—'}
+                                            badge={(
+                                                <span
+                                                    role="checkbox"
+                                                    aria-checked={!!selected[row.id]}
+                                                    className={`flex items-center justify-center w-6 h-6 rounded-md border-2 ${selected[row.id] ? 'bg-brand-navy border-brand-navy text-white' : 'border-slate-300 dark:border-slate-600'}`}
+                                                >
+                                                    {selected[row.id] && <CheckCircle2 className="w-4 h-4" strokeWidth={2.5} />}
+                                                </span>
+                                            )}
+                                            onOpen={() => toggleSelect(row.id)}
+                                            fields={[
+                                                { label: 'Date', value: row.order_date },
+                                                { label: 'Montant bon', value: formatMontant(row.montant_bon), className: 'font-bold text-brand-navy dark:text-orange-400' },
+                                                { label: 'Payé', value: formatMontant(shown.montant_paye), className: 'font-semibold text-emerald-600 dark:text-emerald-400' },
+                                                { label: 'Solde', value: formatMontant(shown.solde), className: Number(shown.solde) !== 0 ? 'font-semibold text-red-600 dark:text-red-400' : '' },
+                                            ]}
+                                            footer={(
+                                                <div className="flex flex-wrap gap-1">
+                                                    {ACTION_OPTIONS.map((opt) => (
+                                                        <button
+                                                            key={opt.value}
+                                                            type="button"
+                                                            onClick={() => setAction(row.id, opt.value)}
+                                                            className={(actions[row.id] || row.payment_action) === opt.value ? opt.activeClass : 'btn-action-idle'}
+                                                        >
+                                                            {opt.label}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        />
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+                    <div className="hidden lg:block overflow-x-auto">
                         <table className="w-full text-sm min-w-[1100px]">
                             <thead>
                                 <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700">

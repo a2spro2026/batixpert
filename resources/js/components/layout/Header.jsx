@@ -1,4 +1,4 @@
-import { Bell, Menu, Moon, Sun } from 'lucide-react';
+import { Bell, Moon, PanelLeftClose, PanelLeftOpen, Sun } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLocation } from 'react-router-dom';
@@ -6,7 +6,7 @@ import { NavbarBrand } from '../Logo';
 import UserAvatar from '../UserAvatar';
 import { getPageTitle } from '../../lib/pageMeta';
 
-export default function Header({ onMenuClick }) {
+export default function Header({ sidebarOpen, onToggleSidebar }) {
     const { dark, toggle } = useTheme();
     const { user } = useAuth();
     const { pathname } = useLocation();
@@ -19,11 +19,17 @@ export default function Header({ onMenuClick }) {
                 <div className="flex items-center gap-2 sm:gap-3 min-w-0">
                     <button
                         type="button"
-                        onClick={onMenuClick}
-                        className="lg:hidden p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0"
-                        aria-label="Ouvrir le menu"
+                        onClick={onToggleSidebar}
+                        className={`p-2 rounded-xl transition-colors shrink-0 ${
+                            sidebarOpen
+                                ? 'bg-brand-navy/10 text-brand-navy dark:bg-white/10 dark:text-white'
+                                : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                        }`}
+                        aria-label={sidebarOpen ? 'Masquer le panneau latéral' : 'Afficher le panneau latéral'}
+                        aria-expanded={sidebarOpen}
+                        title={sidebarOpen ? 'Masquer le panneau latéral' : 'Afficher le panneau latéral'}
                     >
-                        <Menu className="w-5 h-5 text-slate-700 dark:text-slate-200" />
+                        {sidebarOpen ? <PanelLeftClose className="w-5 h-5" /> : <PanelLeftOpen className="w-5 h-5" />}
                     </button>
                     <NavbarBrand pageTitle={pageTitle} />
                 </div>
@@ -42,14 +48,14 @@ export default function Header({ onMenuClick }) {
                     </button>
                     <button
                         type="button"
-                        className="relative p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                        className="relative hidden sm:block p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                         aria-label="Notifications"
                     >
                         <Bell className="w-5 h-5 text-slate-600 dark:text-slate-300" />
                         <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
                     </button>
                     {user && (
-                        <div className="flex items-center gap-2.5 ml-1 pl-3 border-l border-slate-200 dark:border-slate-700">
+                        <div className="flex items-center gap-2.5 ml-1 pl-2 sm:pl-3 border-l border-slate-200 dark:border-slate-700">
                             <div className="hidden sm:block text-right leading-tight">
                                 <p className="text-sm font-bold text-slate-800 dark:text-white whitespace-nowrap">
                                     {user.name || 'MR AHMED'}

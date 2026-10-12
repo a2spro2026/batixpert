@@ -23,6 +23,7 @@ class AuthorizationMenu
                     ['label' => 'Règlement Achats', 'perm' => 'nav.fournisseurs.reglements-achats'],
                     ['label' => 'Balance', 'perm' => 'nav.fournisseurs.balance'],
                     ['label' => 'Relevé Compte', 'perm' => 'nav.fournisseurs.releve-compte'],
+                    ['label' => 'Etat Reliquat', 'perm' => 'nav.fournisseurs.etat-reliquat'],
                 ],
             ],
             [

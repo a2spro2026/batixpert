@@ -1,4 +1,5 @@
 import { formatMontant } from './bonExecutionUtils';
+import { openPrintPreview } from '../../lib/printDocument';
 
 const REGLEMENT_LABELS = {
     Esp: 'Espèces',
@@ -82,12 +83,7 @@ ${allocationsRows ? `
 }
 
 export function openPaymentPrintable(payment) {
-    const win = window.open('', '_blank', 'width=800,height=600');
-    if (!win) return;
-    win.document.write(buildPaymentHtml(payment));
-    win.document.close();
-    win.focus();
-    setTimeout(() => win.print(), 300);
+    openPrintPreview(buildPaymentHtml(payment), { title: `Règlement ${payment.reference || ''}`, filename: `reglement-${payment.reference || payment.id}` });
 }
 
 export { formatMontant };

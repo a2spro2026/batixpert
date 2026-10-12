@@ -66,7 +66,7 @@ export function SidebarBrand({ pageTitle }) {
 
 export function NavbarBrand({ pageTitle }) {
     return (
-        <div className="navbar-brand group flex items-center gap-2.5 sm:gap-3 shrink-0 min-w-0">
+        <div className="navbar-brand group flex items-center gap-2.5 sm:gap-3 min-w-0">
             <NavLink to="/">
                 <motion.div
                     whileHover={{ scale: 1.05 }}
@@ -97,7 +97,7 @@ export function NavbarBrand({ pageTitle }) {
             </div>
 
             {pageTitle && (
-                <div className="sm:hidden text-sm font-semibold text-slate-700 dark:text-slate-200 truncate max-w-[140px]">
+                <div className="sm:hidden min-w-0 text-sm font-semibold leading-tight text-slate-700 dark:text-slate-200 line-clamp-2">
                     {pageTitle}
                 </div>
             )}

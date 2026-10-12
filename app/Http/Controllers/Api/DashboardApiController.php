@@ -18,6 +18,7 @@ use App\Models\SupplierInvoice;
 use App\Models\SupplierPayment;
 use App\Models\Task;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class DashboardApiController extends Controller
@@ -254,6 +255,93 @@ class DashboardApiController extends Controller
                 'derniers_bons_ventes' => $derniersBonsVentes->values(),
                 'derniers_bons_charge' => $derniersBonsCharge->values(),
                 'regl_a_decaisser' => $reglADecaisser->values(),
+            ],
+        ]);
+    }
+
+    /**
+     * Achats / ventes / reliquat (achats − ventes) grouped by day, month or year.
+     * period=jour&month=YYYY-MM | period=mois&year=YYYY | period=annee
+     */
+    public function chart(Request $request)
+    {
+        $period = in_array($request->input('period'), ['jour', 'mois', 'annee'], true)
+            ? $request->input('period')
+            : 'mois';
+
+        $today = Carbon::today();
+        $month = preg_match('/^\d{4}-\d{2}$/', (string) $request->input('month'))
+            ? Carbon::createFromFormat('Y-m-d', $request->input('month').'-01')->startOfDay()
+            : $today->copy()->startOfMonth();
+        $year = preg_match('/^\d{4}$/', (string) $request->input('year'))
+            ? (int) $request->input('year')
+            : $today->year;
+
+        [$bucketSql, $buckets, $from, $to] = match ($period) {
+            'jour' => [
+                'DAY(order_date)',
+                range(1, $month->daysInMonth),
+                $month->copy(),
+                $month->copy()->endOfMonth(),
+            ],
+            'mois' => [
+                'MONTH(order_date)',
+                range(1, 12),
+                Carbon::create($year, 1, 1)->startOfDay(),
+                Carbon::create($year, 12, 31)->endOfDay(),
+            ],
+            'annee' => ['YEAR(order_date)', null, null, null],
+        };
+
+        $sumBy = function (string $modelClass) use ($bucketSql, $from, $to) {
+            return $modelClass::query()
+                ->where('status', '!=', 'annule')
+                ->whereNotNull('order_date')
+                ->when($from, fn ($q) => $q->whereBetween('order_date', [$from->toDateString(), $to->toDateString()]))
+                ->selectRaw("{$bucketSql} as bucket, SUM(total_ttc) as total")
+                ->groupBy('bucket')
+                ->pluck('total', 'bucket')
+                ->map(fn ($v) => round((float) $v, 2));
+        };
+
+        $achats = $sumBy(PurchaseOrder::class);
+        $ventes = $sumBy(SaleOrder::class);
+
+        if ($buckets === null) {
+            $years = $achats->keys()->merge($ventes->keys())->map(fn ($y) => (int) $y)->unique()->sort()->values();
+            $first = min($years->first() ?? $today->year, $today->year - 2);
+            $last = max($years->last() ?? $today->year, $today->year);
+            $buckets = range($first, $last);
+        }
+
+        $monthNames = ['Janv.', 'Févr.', 'Mars', 'Avr.', 'Mai', 'Juin', 'Juil.', 'Août', 'Sept.', 'Oct.', 'Nov.', 'Déc.'];
+
+        $points = collect($buckets)->map(function ($b) use ($period, $achats, $ventes, $monthNames, $month) {
+            $a = (float) ($achats[$b] ?? 0);
+            $v = (float) ($ventes[$b] ?? 0);
+
+            return [
+                'key' => $b,
+                'label' => match ($period) {
+                    'jour' => str_pad((string) $b, 2, '0', STR_PAD_LEFT).'/'.$month->format('m'),
+                    'mois' => $monthNames[$b - 1],
+                    'annee' => (string) $b,
+                },
+                'achats' => round($a, 2),
+                'ventes' => round($v, 2),
+                'reliquat' => round($a - $v, 2),
+            ];
+        })->values();
+
+        return response()->json([
+            'period' => $period,
+            'month' => $month->format('Y-m'),
+            'year' => $year,
+            'points' => $points,
+            'totals' => [
+                'achats' => round($points->sum('achats'), 2),
+                'ventes' => round($points->sum('ventes'), 2),
+                'reliquat' => round($points->sum('reliquat'), 2),
             ],
         ]);
     }

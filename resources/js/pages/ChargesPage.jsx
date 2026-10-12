@@ -3,6 +3,7 @@ import {
     Plus, Eye, Pencil, Trash2, Printer, FileText, X, RefreshCw, Wallet, Scale,
 } from 'lucide-react';
 import api from '../lib/api';
+import { openPrintPreview } from '../lib/printDocument';
 
 const TYPE_OPTIONS = ['', 'Esp', 'Chq', 'Eff', 'Vir', 'Vers'];
 const BANQUE_OPTIONS = [
@@ -97,12 +98,7 @@ th{background:#f8fafc;font-weight:700}.badge{background:#dbeafe;color:#1d4ed8;pa
 }
 
 function openPrintable(row) {
-    const w = window.open('', '_blank', 'width=900,height=700');
-    if (!w) return;
-    w.document.write(buildPrintHtml(row));
-    w.document.close();
-    w.focus();
-    setTimeout(() => w.print(), 300);
+    openPrintPreview(buildPrintHtml(row), { title: `Charge ${row.reference || ''}`, filename: `charge-${row.reference || row.id}` });
 }
 
 function ViewModal({ row, onClose }) {

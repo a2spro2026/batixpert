@@ -37,6 +37,24 @@ function NavIcon({ icon: Icon, active, size = 'md' }) {
 }
 
 function NavChildItem({ child, onClose, index }) {
+    if (child.disabled) {
+        return (
+            <motion.div
+                initial={{ opacity: 0, x: -8 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: index * 0.04, duration: 0.25 }}
+                className="opacity-40 pointer-events-none select-none"
+                title="Sous-menu indisponible"
+                aria-disabled="true"
+            >
+                <div className="sidebar-child-item flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] font-medium text-blue-200/60">
+                    <child.icon className="sidebar-child-icon w-4 h-4 shrink-0 opacity-70" strokeWidth={1.75} />
+                    <span className="truncate">{child.label}</span>
+                </div>
+            </motion.div>
+        );
+    }
+
     return (
         <motion.div
             initial={{ opacity: 0, x: -8 }}
@@ -254,8 +272,8 @@ export default function Sidebar({ mobile, onClose }) {
     return (
         <aside
             className={`sidebar-panel ${
-                mobile ? 'fixed inset-y-0 left-0 z-50 w-72' : 'hidden lg:flex lg:w-72 lg:sticky lg:top-0'
-            } flex-col h-screen text-white shrink-0`}
+                mobile ? 'fixed inset-y-0 left-0 z-[60] flex w-72 max-w-[85vw] bg-slate-900 lg:hidden' : 'hidden lg:flex lg:w-72 lg:sticky lg:top-0'
+            } flex-col h-[100dvh] text-white shrink-0`}
         >
             {/* Décor fond */}
             <div className="absolute inset-0 pointer-events-none overflow-hidden">

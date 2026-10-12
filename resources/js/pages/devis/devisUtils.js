@@ -1,3 +1,5 @@
+import { openPrintPreview } from '../../lib/printDocument';
+
 export const CONSISTANCE_OPTIONS = ['', 'F', 'M', 'F+M'];
 export const UNIT_OPTIONS = ['', 'JEU', 'KG', 'KM', 'KM-UNIF', 'M', 'M²', 'M³', 'ML', 'T', 'U'];
 export const TYPE_OPTIONS = ['', 'Public', 'Privé'];
@@ -413,12 +415,7 @@ body {
 }
 
 export function openPrintable(row) {
-    const win = window.open('', '_blank', 'width=800,height=600');
-    if (!win) return;
-    win.document.write(buildDevisHtml(row));
-    win.document.close();
-    win.focus();
-    setTimeout(() => win.print(), 300);
+    openPrintPreview(buildDevisHtml(row), { title: `Devis ${row.reference || ''}`, filename: `devis-${row.reference || row.id}` });
 }
 
 export function mapRowToLines(row) {

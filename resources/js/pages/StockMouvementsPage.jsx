@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, Fragment } from 'react';
 import { FileText, Printer, RefreshCw } from 'lucide-react';
 import api from '../lib/api';
+import { openPrintPreview } from '../lib/printDocument';
 
 function formatQty(value) {
     const n = Number(value) || 0;
@@ -59,12 +60,7 @@ ${monthCells}
 }
 
 function openPrintable(row, year, months) {
-    const w = window.open('', '_blank', 'width=1200,height=700');
-    if (!w) return;
-    w.document.write(buildPrintHtml(row, year, months));
-    w.document.close();
-    w.focus();
-    setTimeout(() => w.print(), 300);
+    openPrintPreview(buildPrintHtml(row, year, months), { title: 'Mouvements de stock', filename: `mouvements-stock-${year || ''}`, orientation: 'landscape', width: 1200 });
 }
 
 function ActionBtn({ title, icon: Icon, color = 'slate', onClick }) {

@@ -1,4 +1,5 @@
 import { formatDelayDisplay, formatMontant } from '../devis/devisUtils';
+import { openPrintPreview } from '../../lib/printDocument';
 
 export { formatDelayDisplay, formatMontant };
 
@@ -197,10 +198,5 @@ body {
 }
 
 export function openPrintable(row) {
-    const win = window.open('', '_blank', 'width=800,height=600');
-    if (!win) return;
-    win.document.write(buildBonExecutionHtml(row));
-    win.document.close();
-    win.focus();
-    setTimeout(() => win.print(), 300);
+    openPrintPreview(buildBonExecutionHtml(row), { title: `Bon d'exécution ${row.reference || ''}`, filename: `bon-execution-${row.reference || row.id}` });
 }

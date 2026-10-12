@@ -25,6 +25,7 @@ import ChargesPage from './pages/ChargesPage';
 import FactureAchatsPage from './pages/FactureAchatsPage';
 import SupplierBalancePage from './pages/SupplierBalancePage';
 import SupplierRelevePage from './pages/SupplierRelevePage';
+import SupplierReliquatPage from './pages/SupplierReliquatPage';
 import ClientRelevePage from './pages/ClientRelevePage';
 import UsersPage from './pages/UsersPage';
 import UserAuthorizationsPage from './pages/UserAuthorizationsPage';
@@ -61,6 +62,7 @@ function AppRoutes() {
                 <Route path="fournisseurs/bons-achats" element={<BonAchatsPage />} />
                 <Route path="fournisseurs/balance" element={<SupplierBalancePage />} />
                 <Route path="fournisseurs/releve-compte" element={<SupplierRelevePage />} />
+                <Route path="fournisseurs/etat-reliquat" element={<SupplierReliquatPage />} />
 
                 {/* Client */}
                 <Route path="clients/fiches" element={<FicheClientPage />} />

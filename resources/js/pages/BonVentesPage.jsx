@@ -2,7 +2,9 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CheckCircle2, Plus, PlusCircle, XCircle, Eye, Pencil, Trash2, Printer, FileText, X, Package, Wallet, Download } from 'lucide-react';
 import api from '../lib/api';
+import { openPrintPreview } from '../lib/printDocument';
 import { useChauffeurs } from '../hooks/useChauffeurs';
+import MobileRecordCard, { MobileCardList } from '../components/MobileRecordCard';
 
 const UNIT_OPTIONS = ['', 'Kg', 'U', 'Sac', 'ML', 'M²', 'M³', 'Tn', 'M'];
 const REGLEMENT_OPTIONS = ['', 'Esp', 'Chq', 'Eff', 'Vir', 'Vers'];
@@ -58,6 +60,9 @@ const readOnlyClass =
     'w-full rounded-md border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 px-1.5 py-1 text-[11px] text-center cursor-not-allowed';
 const tableInput =
     'w-full rounded-md border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-1.5 py-1 text-[11px] text-center outline-none focus:ring-1 focus:ring-brand-navy/30 focus:border-brand-navy';
+const lineInputMobile = tableInput.replace('py-1 text-[11px]', 'py-2 text-[13px]');
+const lineDescMobile = lineInputMobile.replace('text-center', 'text-left');
+const lineReadOnlyMobile = readOnlyClass.replace('py-1 text-[11px]', 'py-2 text-[13px]');
 
 function formatMontant(value) {
     return (Number(value) || 0).toFixed(2);
@@ -119,12 +124,7 @@ th{background:#f8fafc;font-weight:700}.badge{background:#fff7ed;color:#ea580c;pa
 }
 
 function openPrintable(row) {
-    const win = window.open('', '_blank', 'width=900,height=700');
-    if (!win) return;
-    win.document.write(buildBonHtml(row));
-    win.document.close();
-    win.focus();
-    setTimeout(() => win.print(), 300);
+    openPrintPreview(buildBonHtml(row), { title: `Bon de vente ${row.reference || ''}`, filename: `bon-vente-${row.reference || row.id}` });
 }
 
 function ActionBtn({ title, onClick, icon: Icon, color = 'slate' }) {
@@ -610,7 +610,7 @@ export default function BonVentesPage() {
         : meta.next_ref;
 
     return (
-        <div className="flex flex-col flex-1 min-h-0 gap-4 overflow-hidden">
+        <div className="flex flex-col gap-3 sm:gap-4 lg:flex-1 lg:min-h-0 lg:overflow-hidden">
             <ViewModal row={viewRow} onClose={() => setViewRow(null)} />
 
             <ImportPurchaseModal
@@ -710,7 +710,46 @@ export default function BonVentesPage() {
                                     <h4 className="text-xs font-bold text-white uppercase tracking-wide">Tableau de saisie</h4>
                                     <span className="text-[10px] text-blue-200 font-semibold tabular-nums">Total : {totalBon}</span>
                                 </div>
-                                <div className="overflow-x-auto">
+                                <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800">
+                                    {lines.map((line, idx) => (
+                                        <div key={line.key} className="p-2.5 space-y-2">
+                                            <div className="flex items-center gap-2">
+                                                <span className="w-5 text-[11px] font-bold text-slate-400 tabular-nums">{idx + 1}</span>
+                                                <select value={line.product_id} onChange={(e) => handleSelectProduct(line.key, e.target.value)} className={lineInputMobile} title="Liste des références">
+                                                    <option value="">— Réf —</option>
+                                                    {products.map((p) => (
+                                                        <option key={p.id} value={p.id}>{p.article_id || p.reference || p.name}</option>
+                                                    ))}
+                                                </select>
+                                                <button type="button" title="Supprimer la ligne" onClick={() => removeLine(line.key)} className="shrink-0 p-2 rounded-md text-red-500 bg-red-50 dark:bg-red-900/20">
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                            <input type="text" value={line.description} onChange={(e) => updateLine(line.key, { description: e.target.value })} placeholder="Désignation" className={lineDescMobile} />
+                                            <div className="grid grid-cols-[64px_1fr_1fr_1fr] gap-1.5">
+                                                <label className="min-w-0">
+                                                    <span className="block mb-0.5 text-[9px] font-bold uppercase text-slate-400 text-center">U</span>
+                                                    <select value={line.unit} onChange={(e) => updateLine(line.key, { unit: e.target.value })} className={lineInputMobile}>
+                                                        {UNIT_OPTIONS.map((v) => <option key={v || 'u'} value={v}>{v || '—'}</option>)}
+                                                    </select>
+                                                </label>
+                                                <label className="min-w-0">
+                                                    <span className="block mb-0.5 text-[9px] font-bold uppercase text-slate-400 text-center">Qté</span>
+                                                    <input type="number" inputMode="decimal" step="0.001" min="0" value={line.quantity} onChange={(e) => updateLine(line.key, { quantity: e.target.value })} className={lineInputMobile} />
+                                                </label>
+                                                <label className="min-w-0">
+                                                    <span className="block mb-0.5 text-[9px] font-bold uppercase text-slate-400 text-center">P/U</span>
+                                                    <input type="number" inputMode="decimal" step="0.01" min="0" value={line.unit_price} onChange={(e) => updateLine(line.key, { unit_price: e.target.value })} placeholder="0.00" className={lineInputMobile} />
+                                                </label>
+                                                <label className="min-w-0">
+                                                    <span className="block mb-0.5 text-[9px] font-bold uppercase text-slate-400 text-center">S/Total</span>
+                                                    <input type="text" readOnly value={lineSubtotal(line)} className={lineReadOnlyMobile} />
+                                                </label>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="hidden md:block overflow-x-auto">
                                     <table className="w-full text-sm min-w-[860px]">
                                         <thead>
                                             <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700">
@@ -785,25 +824,25 @@ export default function BonVentesPage() {
                     <XCircle className="w-4 h-4" /> Fermer
                 </button>
 
-                <div className="ml-auto flex flex-wrap items-center gap-2.5">
-                    <div className="flex items-center gap-3 px-4 py-2 rounded-xl border shadow-sm bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/40 dark:to-teal-950/40 border-emerald-200 dark:border-emerald-800">
-                        <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300">
+                <div className="w-full sm:w-auto sm:ml-auto grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:gap-2.5">
+                    <div className="min-w-0 flex items-center gap-3 px-2.5 sm:px-4 py-2 rounded-xl border shadow-sm bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/40 dark:to-teal-950/40 border-emerald-200 dark:border-emerald-800">
+                        <div className="hidden sm:block p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300">
                             <Package className="w-4 h-4" />
                         </div>
-                        <div className="text-right">
-                            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Total Qté</p>
-                            <p className="text-base font-bold tabular-nums leading-tight text-emerald-700 dark:text-emerald-300">
+                        <div className="text-right min-w-0 flex-1 sm:flex-none">
+                            <p className="text-[8px] sm:text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Total Qté</p>
+                            <p className="text-xs sm:text-base font-bold tabular-nums leading-tight truncate text-emerald-700 dark:text-emerald-300">
                                 {totalQteBons.toLocaleString('fr-FR', { maximumFractionDigits: 3 })}
                             </p>
                         </div>
                     </div>
-                    <div className="flex items-center gap-3 px-4 py-2 rounded-xl border shadow-sm bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/40 dark:to-orange-950/40 border-amber-200 dark:border-amber-800">
-                        <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300">
+                    <div className="min-w-0 flex items-center gap-3 px-2.5 sm:px-4 py-2 rounded-xl border shadow-sm bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/40 dark:to-orange-950/40 border-amber-200 dark:border-amber-800">
+                        <div className="hidden sm:block p-2 rounded-lg bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300">
                             <Wallet className="w-4 h-4" />
                         </div>
-                        <div className="text-right">
-                            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Total Montant</p>
-                            <p className="text-base font-bold tabular-nums leading-tight text-brand-navy dark:text-orange-300">
+                        <div className="text-right min-w-0 flex-1 sm:flex-none">
+                            <p className="text-[8px] sm:text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Total Montant</p>
+                            <p className="text-xs sm:text-base font-bold tabular-nums leading-tight truncate text-brand-navy dark:text-orange-300">
                                 {formatMontantDisplay(totalMontantBons)}
                             </p>
                         </div>
@@ -811,9 +850,12 @@ export default function BonVentesPage() {
                 </div>
             </div>
 
-            <div className="glass-card overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60 flex flex-col flex-1 min-h-0">
-                <div className="px-5 py-3.5 bg-gradient-to-r from-amber-500 via-orange-500 to-orange-700 border-b border-white/10 space-y-2 shrink-0">
-                    <h3 className="text-sm font-bold text-white uppercase tracking-wide">Tableau des Bons de Vente</h3>
+            <div className="glass-card overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60 flex flex-col lg:flex-1 lg:min-h-0">
+                <div className="px-3 sm:px-5 py-3 sm:py-3.5 bg-gradient-to-r from-amber-500 via-orange-500 to-orange-700 border-b border-white/10 space-y-2 shrink-0">
+                    <h3 className="text-sm font-bold text-white uppercase tracking-wide">
+                        Tableau des Bons de Vente
+                        <span className="lg:hidden ml-1.5 text-white/80 font-semibold">({filteredRows.length})</span>
+                    </h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-w-xl">
                         <input
                             type="month"
@@ -834,7 +876,40 @@ export default function BonVentesPage() {
                         </select>
                     </div>
                 </div>
-                <div className="flex-1 min-h-0 overflow-auto">
+                <div className="lg:hidden">
+                    <MobileCardList
+                        loading={loading}
+                        empty={hasTableFilters ? 'Aucun bon ne correspond aux filtres' : 'Aucun bon de vente enregistré'}
+                    >
+                        {filteredRows.map((row) => (
+                            <MobileRecordCard
+                                key={row.id}
+                                title={row.reference}
+                                subtitle={row.client || '—'}
+                                badge={<span className="text-xs font-medium text-slate-500">{row.order_date}</span>}
+                                onOpen={() => setViewRow(row)}
+                                fields={[
+                                    { label: 'Ville · Adresse', value: [row.city, row.address].filter(Boolean).join(' · ') || '—', full: true },
+                                    { label: 'Total', value: formatMontantDisplay(row.subtotal ?? row.montant), className: 'font-bold text-brand-navy dark:text-orange-400' },
+                                    {
+                                        label: 'Solde',
+                                        value: formatMontantDisplay(row.solde ?? 0),
+                                        className: `font-bold ${Number(row.solde) <= 0 ? 'text-emerald-700 dark:text-emerald-300' : 'text-rose-700 dark:text-rose-300'}`,
+                                    },
+                                    { label: 'Qté', value: orderTotalQuantity(row).toLocaleString('fr-FR', { maximumFractionDigits: 3 }) },
+                                    { label: 'Échéance', value: row.echeance || '—' },
+                                ]}
+                                actions={[
+                                    { label: 'Voir', icon: Eye, color: 'blue', onClick: () => setViewRow(row) },
+                                    { label: 'Modifier', icon: Pencil, color: 'amber', onClick: () => fillForm(row) },
+                                    { label: 'Imprimer', icon: Printer, color: 'slate', onClick: () => openPrintable(row) },
+                                    { label: 'Supprimer', icon: Trash2, color: 'red', onClick: () => handleDelete(row) },
+                                ]}
+                            />
+                        ))}
+                    </MobileCardList>
+                </div>
+                <div className="hidden lg:block lg:flex-1 lg:min-h-0 overflow-auto">
                     <table className="w-full text-sm min-w-[1100px]">
                         <thead className="sticky top-0 z-10">
                             <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700">

@@ -3,6 +3,7 @@ import {
     Plus, Eye, EyeOff, Pencil, Trash2, Printer, FileText, X, RefreshCw, Receipt, Upload, Image, Package,
 } from 'lucide-react';
 import api from '../lib/api';
+import { openPrintPreview } from '../lib/printDocument';
 
 const DEPOT_OPTIONS = [
     { value: 'depot_a', label: 'Ste A. BOUYAHYA' },
@@ -107,12 +108,7 @@ th{background:#f8fafc;font-weight:700}.badge{background:#dbeafe;color:#1d4ed8;pa
 }
 
 function openPrintable(row) {
-    const w = window.open('', '_blank', 'width=900,height=700');
-    if (!w) return;
-    w.document.write(buildPrintHtml(row));
-    w.document.close();
-    w.focus();
-    setTimeout(() => w.print(), 300);
+    openPrintPreview(buildPrintHtml(row), { title: `Facture d'achat ${row.reference || ''}`, filename: `facture-achat-${row.reference || row.id}` });
 }
 
 function ViewModal({ row, onClose }) {

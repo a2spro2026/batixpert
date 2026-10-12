@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Save, RotateCcw, Eye, Pencil, Trash2, Printer, FileText, X, RefreshCw } from 'lucide-react';
 import api from '../lib/api';
+import { openPrintPreview } from '../lib/printDocument';
 
 const UNIT_OPTIONS = ['', 'Kg', 'U', 'Sac', 'ML', 'M²', 'M³', 'Tn', 'M'];
 const STATUT_OPTIONS = [
@@ -99,12 +100,7 @@ th{background:#f8fafc;font-weight:700;width:160px}
 }
 
 function openPrintable(row) {
-    const win = window.open('', '_blank', 'width=800,height=600');
-    if (!win) return;
-    win.document.write(buildFicheHtml(row));
-    win.document.close();
-    win.focus();
-    setTimeout(() => win.print(), 300);
+    openPrintPreview(buildFicheHtml(row), { title: `Fiche produit ${row.name || ''}`, filename: `fiche-produit-${row.reference || row.name || row.id}` });
 }
 
 function ActionBtn({ title, onClick, icon: Icon, color = 'slate' }) {

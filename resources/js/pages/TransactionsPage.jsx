@@ -4,6 +4,7 @@ import {
     ArrowDownCircle, Scale, Wallet, User, Building2,
 } from 'lucide-react';
 import api from '../lib/api';
+import { openPrintPreview } from '../lib/printDocument';
 
 const COFFRE_OPTIONS = ['', 'Caisse', 'Cmpt Pers', 'Cmpt Ste'];
 const STATUT_OPTIONS = ['', 'Sortie', 'Entrée'];
@@ -163,12 +164,7 @@ th{background:#f8fafc;width:140px;font-weight:700}</style></head><body>
 }
 
 function openPrintable(row) {
-    const win = window.open('', '_blank', 'width=700,height=500');
-    if (!win) return;
-    win.document.write(buildPrintHtml(row));
-    win.document.close();
-    win.focus();
-    setTimeout(() => win.print(), 300);
+    openPrintPreview(buildPrintHtml(row), { title: `Transaction ${row.reference || ''}`, filename: `transaction-${row.reference || row.id}` });
 }
 
 function buildPrintListHtml(rows, summary, filters) {
@@ -229,12 +225,7 @@ tbody tr:nth-child(even) { background: #f8fafc; }
 }
 
 function openPrintList(rows, summary, filters) {
-    const win = window.open('', '_blank', 'width=900,height=700');
-    if (!win) return;
-    win.document.write(buildPrintListHtml(rows, summary, filters));
-    win.document.close();
-    win.focus();
-    setTimeout(() => win.print(), 300);
+    openPrintPreview(buildPrintListHtml(rows, summary, filters), { title: 'Liste des transactions', filename: 'transactions' });
 }
 
 function ViewModal({ row, onClose }) {

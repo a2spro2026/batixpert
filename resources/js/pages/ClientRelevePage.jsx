@@ -5,6 +5,7 @@ import {
     ArrowDownCircle, ArrowUpCircle, BadgeCheck, Vault, Scale, Package,
 } from 'lucide-react';
 import api from '../lib/api';
+import { downloadPdf, openPrintPreview } from '../lib/printDocument';
 
 const emptyFilters = {
     mois: '',
@@ -144,13 +145,14 @@ th{background:#f1f5f9;font-size:9px;text-transform:uppercase}
 </body></html>`;
 }
 
+const RELEVE_PRINT_OPTIONS = { title: 'Relevé de compte client', filename: 'releve-compte-client', orientation: 'landscape', width: 1400 };
+
 function openPrintable(rows, summary, filtersLabel) {
-    const w = window.open('', '_blank', 'width=1400,height=800');
-    if (!w) return;
-    w.document.write(buildPrintHtml(rows, summary, filtersLabel));
-    w.document.close();
-    w.focus();
-    setTimeout(() => w.print(), 300);
+    openPrintPreview(buildPrintHtml(rows, summary, filtersLabel), RELEVE_PRINT_OPTIONS);
+}
+
+function exportPdf(rows, summary, filtersLabel) {
+    return downloadPdf(buildPrintHtml(rows, summary, filtersLabel), { ...RELEVE_PRINT_OPTIONS, share: true });
 }
 
 export default function ClientRelevePage() {
@@ -166,6 +168,7 @@ export default function ClientRelevePage() {
     });
     const [tresoreries, setTresoreries] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [pdfBusy, setPdfBusy] = useState(false);
 
     const setFilter = (key, value) => setFilters((f) => ({ ...f, [key]: value }));
 
@@ -238,8 +241,18 @@ export default function ClientRelevePage() {
                         <p className="text-sm text-slate-500 dark:text-slate-400">Ventes et règlements consolidés</p>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
-                        <button type="button" onClick={() => openPrintable(rows, summary, filtersLabel)} className="btn-primary text-xs">
-                            <FileText className="w-3.5 h-3.5" /> Envoyer PDF
+                        <button
+                            type="button"
+                            disabled={pdfBusy || loading}
+                            onClick={() => {
+                                setPdfBusy(true);
+                                exportPdf(rows, summary, filtersLabel)
+                                    .catch(() => window.alert('Impossible de générer le PDF.'))
+                                    .finally(() => setPdfBusy(false));
+                            }}
+                            className="btn-primary text-xs"
+                        >
+                            <FileText className="w-3.5 h-3.5" /> {pdfBusy ? 'PDF…' : 'Envoyer PDF'}
                         </button>
                         <button type="button" onClick={() => openPrintable(rows, summary, filtersLabel)} className="btn-secondary text-xs">
                             <Printer className="w-3.5 h-3.5" /> Imprimer

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Save, RotateCcw, Eye, Pencil, Trash2, Printer, FileText, X, RefreshCw, Wallet } from 'lucide-react';
 import api from '../lib/api';
+import { downloadPdf, openPrintPreview } from '../lib/printDocument';
 
 const REGLEMENT_OPTIONS = [
     { value: '', label: '—' },
@@ -94,16 +95,12 @@ th{background:#f8fafc;width:180px;font-weight:700}
 }
 
 function openPrintable(row, asPdf = false) {
-    const win = window.open('', '_blank', 'width=800,height=600');
-    if (!win) return;
-    win.document.write(buildFicheHtml(row));
-    win.document.close();
-    win.focus();
+    const options = { title: `Fiche fournisseur ${row.name || ''}`, filename: `fiche-fournisseur-${row.name || row.id}` };
     if (asPdf) {
-        setTimeout(() => win.print(), 300);
-    } else {
-        setTimeout(() => win.print(), 300);
+        downloadPdf(buildFicheHtml(row), options).catch(() => window.alert('Impossible de générer le PDF.'));
+        return;
     }
+    openPrintPreview(buildFicheHtml(row), options);
 }
 
 function ActionBtn({ title, onClick, icon: Icon, color = 'slate' }) {

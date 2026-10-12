@@ -22,6 +22,8 @@
         "@vitejs/plugin-react": "^4.7.0",
         "chart.js": "^4.5.1",
         "framer-motion": "^12.42.2",
+        "html2canvas": "^1.4.1",
+        "jspdf": "^4.2.1",
         "lucide-react": "^1.23.0",
         "react": "^19.2.7",
         "react-chartjs-2": "^5.3.1",
