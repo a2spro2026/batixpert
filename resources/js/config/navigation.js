@@ -17,6 +17,7 @@ import {
     ScrollText,
     // Client
     ContactRound,
+    PhoneCall,
     FileCheck,
     FileSignature,
     CircleDollarSign,
@@ -74,6 +75,7 @@ export const navigation = [
             { to: '/clients/reglements-vente', label: 'Règlement Client', icon: CircleDollarSign, perm: 'nav.clients.reglements-vente' },
             { to: '/clients/balance', label: 'Balance', icon: Scale, perm: 'nav.clients.balance' },
             { to: '/clients/releve-compte', label: 'Relevé Compte', icon: ScrollText, perm: 'nav.clients.releve-compte' },
+            { to: '/clients/relance', label: 'Relance', icon: PhoneCall, perm: 'nav.clients.relance' },
         ],
     },
     {

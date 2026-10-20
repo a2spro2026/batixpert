@@ -36,6 +36,7 @@ class AuthorizationMenu
                     ['label' => 'Règlement Client', 'perm' => 'nav.clients.reglements-vente'],
                     ['label' => 'Balance', 'perm' => 'nav.clients.balance'],
                     ['label' => 'Relevé Compte', 'perm' => 'nav.clients.releve-compte'],
+                    ['label' => 'Relance', 'perm' => 'nav.clients.relance'],
                 ],
             ],
             [

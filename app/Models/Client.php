@@ -33,4 +33,9 @@ class Client extends Model
     {
         return $this->hasMany(ClientInvoice::class);
     }
+
+    public function relances(): HasMany
+    {
+        return $this->hasMany(ClientRelance::class);
+    }
 }

@@ -27,6 +27,7 @@ import SupplierBalancePage from './pages/SupplierBalancePage';
 import SupplierRelevePage from './pages/SupplierRelevePage';
 import SupplierReliquatPage from './pages/SupplierReliquatPage';
 import ClientRelevePage from './pages/ClientRelevePage';
+import ClientRelancePage from './pages/ClientRelancePage';
 import UsersPage from './pages/UsersPage';
 import UserAuthorizationsPage from './pages/UserAuthorizationsPage';
 import ChauffeursPage from './pages/ChauffeursPage';
@@ -77,6 +78,7 @@ function AppRoutes() {
                 <Route path="clients/reglements-factures" element={<ReglementFactureVentePage />} />
                 <Route path="clients/balance" element={<ClientBalancePage />} />
                 <Route path="clients/releve-compte" element={<ClientRelevePage />} />
+                <Route path="clients/relance" element={<ClientRelancePage />} />
 
                 {/* Facturation */}
                 <Route path="facturation/depot-a" element={<FactureAchatsPage depotFilter="depot_a" pageTitle="Ste A. BOUYAHYA" />} />

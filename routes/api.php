@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\ChauffeurApiController;
 use App\Http\Controllers\Api\ClientOrderApiController;
 use App\Http\Controllers\Api\ClientPaymentApiController;
 use App\Http\Controllers\Api\ClientReleveApiController;
+use App\Http\Controllers\Api\ClientRelanceApiController;
 use App\Http\Controllers\Api\ClientApiController;
 use App\Http\Controllers\Api\DashboardApiController;
 use App\Http\Controllers\Api\DocumentApiController;
@@ -65,6 +66,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('supplier-releve', [SupplierReleveApiController::class, 'index']);
     Route::get('supplier-reliquats', [SupplierReliquatApiController::class, 'index']);
     Route::get('client-releve', [ClientReleveApiController::class, 'index']);
+    Route::get('client-relances/meta', [ClientRelanceApiController::class, 'meta']);
+    Route::apiResource('client-relances', ClientRelanceApiController::class)
+        ->parameters(['client-relances' => 'clientRelance'])
+        ->only(['index', 'store', 'update', 'destroy']);
     Route::apiResource('purchase-orders', PurchaseOrderApiController::class);
     Route::post('purchase-orders/{purchase_order}/validate', [PurchaseOrderApiController::class, 'validateOrder']);
     Route::apiResource('sales-orders', SaleOrderApiController::class);
