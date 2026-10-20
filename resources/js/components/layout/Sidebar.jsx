@@ -8,6 +8,8 @@ import { SidebarBrand } from '../Logo';
 import { getPageTitle } from '../../lib/pageMeta';
 import { useNavigate } from 'react-router-dom';
 
+const DEFAULT_OPEN_SECTIONS = new Set(['fournisseurs', 'clients']);
+
 const sectionColors = {
     fournisseurs: 'from-amber-500/20 to-orange-600/10',
     clients: 'from-blue-500/20 to-cyan-600/10',
@@ -138,7 +140,7 @@ function NavGroup({ group, onClose, index, can }) {
     const isChildActive = !group.disabled && visibleChildren.some(
         (c) => location.pathname === c.to || location.pathname.startsWith(c.to + '/')
     );
-    const [open, setOpen] = useState(isChildActive);
+    const [open, setOpen] = useState(() => isChildActive || DEFAULT_OPEN_SECTIONS.has(group.id));
     const accent = sectionColors[group.id] || 'from-white/10 to-white/5';
 
     if (group.disabled) {
