@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-    PhoneCall, Plus, Search, RefreshCw, Pencil, Trash2, History, X,
-    CalendarClock, AlarmClock, CalendarCheck, ListFilter, Phone,
+    PhoneCall, Plus, Search, RefreshCw, Trash2, History, X,
+    Check, CalendarClock,
 } from 'lucide-react';
 import api from '../lib/api';
 import MobileRecordCard, { MobileCardList } from '../components/MobileRecordCard';
@@ -12,7 +12,6 @@ function todayISO() {
 }
 
 const emptyFilters = { etat: '', date_from: '', date_to: '', client: '' };
-const emptyForm = () => ({ date_appel: todayISO(), client_name: '', remarque: '', date_rappel: '' });
 
 const QUICK_NOTES = ['Sans réponse', 'Occupé', 'À rappeler', 'Promesse de paiement', 'Rendez-vous pris'];
 
@@ -23,7 +22,16 @@ const ETATS = {
     sans_rappel: { label: 'Historique', classes: 'bg-slate-100 text-slate-600 ring-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700' },
 };
 
+function computeEtat(dateRappel) {
+    if (!dateRappel) return 'sans_rappel';
+    const today = todayISO();
+    if (dateRappel < today) return 'en_retard';
+    if (dateRappel === today) return 'aujourd_hui';
+    return 'a_venir';
+}
+
 const inputClass = 'w-full rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-2.5 py-2 text-xs outline-none focus:ring-2 focus:ring-brand-navy/30 focus:border-brand-navy';
+const cellInputClass = 'w-full rounded-md border border-transparent bg-transparent text-xs text-slate-800 dark:text-slate-100 px-1.5 py-1.5 outline-none hover:border-slate-300 dark:hover:border-slate-600 focus:border-brand-orange focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-brand-orange/25 transition-colors';
 
 function formatMontant(value) {
     return (Number(value) || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -36,6 +44,22 @@ function Field({ label, children, className = '' }) {
             {children}
         </div>
     );
+}
+
+function EtatBadge({ etat }) {
+    const e = ETATS[etat] || ETATS.sans_rappel;
+    return (
+        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide ring-1 whitespace-nowrap ${e.classes}`}>
+            {e.label}
+        </span>
+    );
+}
+
+function SoldeCell({ value }) {
+    if (value === null || value === undefined || Number(value) <= 0) {
+        return <span className="tabular-nums text-slate-400">—</span>;
+    }
+    return <span className="tabular-nums font-bold text-red-600 dark:text-red-400">{formatMontant(value)}</span>;
 }
 
 function ClientAutocomplete({ clients, value, onChangeText, onSelect, placeholder = 'Nom du client ou ville…' }) {
@@ -91,56 +115,31 @@ function ClientAutocomplete({ clients, value, onChangeText, onSelect, placeholde
     );
 }
 
-function EtatBadge({ etat }) {
-    const e = ETATS[etat] || ETATS.sans_rappel;
+function ClientSelect({ clients, value, onChange, extraName }) {
+    const hasValue = value && clients.some((c) => c.name === value);
     return (
-        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide ring-1 whitespace-nowrap ${e.classes}`}>
-            {e.label}
-        </span>
-    );
-}
-
-function SoldeCell({ value }) {
-    if (value === null || value === undefined || Number(value) <= 0) {
-        return <span className="tabular-nums text-slate-400">—</span>;
-    }
-    return <span className="tabular-nums font-bold text-red-600 dark:text-red-400">{formatMontant(value)}</span>;
-}
-
-function SummaryCard({ label, value, gradient, icon: Icon, active, onClick }) {
-    return (
-        <button
-            type="button"
-            onClick={onClick}
-            className={`group relative overflow-hidden rounded-xl bg-gradient-to-br ${gradient} p-4 shadow-lg text-white text-left transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl ${active ? 'ring-2 ring-white ring-offset-2 ring-offset-slate-100 dark:ring-offset-slate-900' : ''}`}
-        >
-            <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-white/10 pointer-events-none" />
-            <div className="relative flex items-start justify-between gap-3">
-                <div>
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-white/85">{label}</p>
-                    <p className="mt-1.5 text-xl sm:text-2xl font-bold tabular-nums leading-tight">{value}</p>
-                </div>
-                <div className="p-2.5 rounded-xl bg-white/15 ring-1 ring-white/20 shrink-0">
-                    <Icon className="w-5 h-5" strokeWidth={2} />
-                </div>
-            </div>
-        </button>
+        <select value={value} onChange={(e) => onChange(e.target.value)} className={`${cellInputClass} cursor-pointer`}>
+            <option value="">— Choisir —</option>
+            {extraName && !hasValue && <option value={extraName}>{extraName}</option>}
+            {clients.map((c) => (
+                <option key={c.client_id} value={c.name}>{c.name}{c.city ? ` (${c.city})` : ''}</option>
+            ))}
+        </select>
     );
 }
 
 export default function ClientRelancePage() {
     const [rows, setRows] = useState([]);
-    const [meta, setMeta] = useState({ total: 0, en_retard: 0, aujourd_hui: 0, a_venir: 0, sans_rappel: 0 });
     const [clients, setClients] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filters, setFilters] = useState(emptyFilters);
     const [applied, setApplied] = useState(emptyFilters);
     const [clientText, setClientText] = useState('');
-    const [formOpen, setFormOpen] = useState(false);
-    const [editing, setEditing] = useState(null);
-    const [form, setForm] = useState(emptyForm);
-    const [saving, setSaving] = useState(false);
-    const [formError, setFormError] = useState('');
+    const [edits, setEdits] = useState({});
+    const [savingId, setSavingId] = useState(null);
+    const [error, setError] = useState('');
+    const [newRow, setNewRow] = useState({ date_appel: todayISO(), client_name: '', remarque: '', date_rappel: '' });
+    const [adding, setAdding] = useState(false);
 
     const load = useCallback(() => {
         setLoading(true);
@@ -151,10 +150,7 @@ export default function ClientRelancePage() {
         if (applied.client) params.client = applied.client;
 
         api.get('/client-relances', { params })
-            .then((res) => {
-                setRows(res.data.data ?? []);
-                setMeta(res.data.meta ?? { total: 0, en_retard: 0, aujourd_hui: 0, a_venir: 0, sans_rappel: 0 });
-            })
+            .then((res) => setRows(res.data.data ?? []))
             .catch(() => setRows([]))
             .finally(() => setLoading(false));
     }, [applied]);
@@ -167,89 +163,18 @@ export default function ClientRelancePage() {
             .catch(() => setClients([]));
     }, []);
 
-    const matchedClient = useMemo(() => {
-        const key = form.client_name.trim().toLowerCase();
-        if (!key) return null;
-        return clients.find((c) => c.name.trim().toLowerCase() === key) || null;
-    }, [form.client_name, clients]);
+    const soldeFor = useCallback((name, fallback) => {
+        if (!name) return fallback;
+        const found = clients.find((c) => c.name.trim().toLowerCase() === name.trim().toLowerCase());
+        return found ? found.solde : fallback;
+    }, [clients]);
+
+    const clientIdFor = useCallback((name) => {
+        const found = clients.find((c) => c.name.trim().toLowerCase() === (name || '').trim().toLowerCase());
+        return found?.client_id ?? null;
+    }, [clients]);
 
     const setFilter = (key, value) => setFilters((f) => ({ ...f, [key]: value }));
-    const setField = (key, value) => setForm((f) => ({ ...f, [key]: value }));
-
-    const openCreate = () => {
-        setEditing(null);
-        setForm(emptyForm());
-        setFormError('');
-        setFormOpen(true);
-    };
-
-    const openEdit = (row) => {
-        setEditing(row);
-        setForm({
-            date_appel: row.date_appel_raw || todayISO(),
-            client_name: row.client_name || '',
-            remarque: row.remarque || '',
-            date_rappel: row.date_rappel_raw || '',
-        });
-        setFormError('');
-        setFormOpen(true);
-    };
-
-    const addQuickNote = (note) => {
-        setForm((f) => {
-            const current = (f.remarque || '').trim();
-            if (!current) return { ...f, remarque: note };
-            if (current.toLowerCase().includes(note.toLowerCase())) return f;
-            return { ...f, remarque: `${current} — ${note}` };
-        });
-    };
-
-    const handleSave = async (e) => {
-        e.preventDefault();
-        if (!form.client_name.trim()) {
-            setFormError('Choisissez un client dans la liste (Fiche Client).');
-            return;
-        }
-        setSaving(true);
-        setFormError('');
-        const payload = {
-            client_id: matchedClient?.client_id ?? null,
-            client_name: form.client_name.trim(),
-            date_appel: form.date_appel,
-            remarque: form.remarque.trim() || null,
-            date_rappel: form.date_rappel || null,
-        };
-        try {
-            if (editing) {
-                await api.put(`/client-relances/${editing.id}`, payload);
-            } else {
-                await api.post('/client-relances', payload);
-            }
-            setFormOpen(false);
-            setEditing(null);
-            load();
-        } catch (err) {
-            const first = err.response?.data?.errors ? Object.values(err.response.data.errors)[0]?.[0] : null;
-            setFormError(first || "Impossible d'enregistrer cette relance.");
-        } finally {
-            setSaving(false);
-        }
-    };
-
-    const handleDelete = async (row) => {
-        if (!window.confirm(`Supprimer la relance du ${row.date_appel || ''} pour « ${row.client_name} » ?`)) return;
-        try {
-            await api.delete(`/client-relances/${row.id}`);
-            load();
-        } catch {}
-    };
-
-    const showHistory = (row) => {
-        const next = { ...emptyFilters, client: row.client_name };
-        setFilters(next);
-        setApplied(next);
-        setClientText(row.client_name);
-    };
 
     const resetAll = () => {
         setFilters(emptyFilters);
@@ -269,44 +194,184 @@ export default function ClientRelancePage() {
         setApplied(next);
     };
 
-    const filterByEtat = (etat) => {
-        const next = { ...applied, etat: applied.etat === etat ? '' : etat };
+    const showHistory = (name) => {
+        const next = { ...emptyFilters, client: name };
         setFilters(next);
         setApplied(next);
+        setClientText(name);
+    };
+
+    // --- Édition directe dans le tableau ---
+    const rowValue = (row, field) => edits[row.id]?.[field] ?? row[`${field}_raw`] ?? row[field] ?? '';
+
+    const isDirty = (row) => {
+        const e = edits[row.id];
+        if (!e) return false;
+        return ['date_appel', 'client_name', 'remarque', 'date_rappel'].some(
+            (f) => (e[f] ?? '') !== (row[`${f}_raw`] ?? row[f] ?? ''),
+        );
+    };
+
+    const setEdit = (row, field, value) => {
+        setEdits((prev) => ({
+            ...prev,
+            [row.id]: {
+                date_appel: rowValue(row, 'date_appel'),
+                client_name: rowValue(row, 'client_name'),
+                remarque: rowValue(row, 'remarque'),
+                date_rappel: rowValue(row, 'date_rappel'),
+                ...prev[row.id],
+                [field]: value,
+            },
+        }));
+    };
+
+    const cancelEdit = (id) => setEdits((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+    });
+
+    const saveRow = async (row) => {
+        const e = edits[row.id];
+        if (!e) return;
+        if (!e.client_name?.trim() || !e.date_appel) {
+            setError('Le client et la date d\u2019appel sont obligatoires.');
+            return;
+        }
+        setSavingId(row.id);
+        setError('');
+        try {
+            await api.put(`/client-relances/${row.id}`, {
+                client_id: clientIdFor(e.client_name),
+                client_name: e.client_name.trim(),
+                date_appel: e.date_appel,
+                remarque: e.remarque?.trim() || null,
+                date_rappel: e.date_rappel || null,
+            });
+            cancelEdit(row.id);
+            load();
+        } catch (err) {
+            const first = err.response?.data?.errors ? Object.values(err.response.data.errors)[0]?.[0] : null;
+            setError(first || 'Impossible d\u2019enregistrer cette ligne.');
+        } finally {
+            setSavingId(null);
+        }
+    };
+
+    const handleDelete = async (row) => {
+        if (!window.confirm(`Supprimer la relance du ${row.date_appel || ''} pour « ${row.client_name} » ?`)) return;
+        try {
+            await api.delete(`/client-relances/${row.id}`);
+            cancelEdit(row.id);
+            load();
+        } catch {}
+    };
+
+    // --- Nouvelle ligne ---
+    const setNew = (field, value) => setNewRow((r) => ({ ...r, [field]: value }));
+
+    const addQuickNote = (note) => {
+        setNewRow((r) => {
+            const current = (r.remarque || '').trim();
+            if (!current) return { ...r, remarque: note };
+            if (current.toLowerCase().includes(note.toLowerCase())) return r;
+            return { ...r, remarque: `${current} — ${note}` };
+        });
+    };
+
+    const handleAdd = async () => {
+        if (!newRow.client_name.trim()) {
+            setError('Choisissez un client dans la première ligne du tableau.');
+            return;
+        }
+        if (!newRow.date_appel) {
+            setError('La date d\u2019appel est obligatoire.');
+            return;
+        }
+        setAdding(true);
+        setError('');
+        try {
+            await api.post('/client-relances', {
+                client_id: clientIdFor(newRow.client_name),
+                client_name: newRow.client_name.trim(),
+                date_appel: newRow.date_appel,
+                remarque: newRow.remarque.trim() || null,
+                date_rappel: newRow.date_rappel || null,
+            });
+            setNewRow({ date_appel: todayISO(), client_name: '', remarque: '', date_rappel: '' });
+            load();
+        } catch (err) {
+            const first = err.response?.data?.errors ? Object.values(err.response.data.errors)[0]?.[0] : null;
+            setError(first || 'Impossible d\u2019ajouter cette relance.');
+        } finally {
+            setAdding(false);
+        }
     };
 
     const columns = ["Date d'appel", 'Client', 'Solde', 'Remarque', 'Date de rappel', 'État', 'Actions'];
 
+    const renderRowCells = (row) => {
+        const clientName = rowValue(row, 'client_name');
+        const dateRappel = rowValue(row, 'date_rappel');
+        const dirty = isDirty(row);
+        return (
+            <>
+                <td className="px-2 py-1.5 min-w-[130px]">
+                    <input type="date" value={rowValue(row, 'date_appel')} onChange={(e) => setEdit(row, 'date_appel', e.target.value)} className={cellInputClass} />
+                </td>
+                <td className="px-2 py-1.5 min-w-[190px]">
+                    <ClientSelect clients={clients} value={clientName} extraName={row.client_name} onChange={(v) => setEdit(row, 'client_name', v)} />
+                    {(row.phone || row.city) && clientName === row.client_name && (
+                        <span className="block px-1.5 text-[11px] text-slate-400">{[row.city, row.phone].filter(Boolean).join(' · ')}</span>
+                    )}
+                </td>
+                <td className="px-2 py-1.5 text-center"><SoldeCell value={soldeFor(clientName, row.solde)} /></td>
+                <td className="px-2 py-1.5 min-w-[220px]">
+                    <textarea
+                        value={rowValue(row, 'remarque')}
+                        onChange={(e) => setEdit(row, 'remarque', e.target.value)}
+                        rows={1}
+                        placeholder="Remarque…"
+                        className={`${cellInputClass} resize-none`}
+                    />
+                </td>
+                <td className="px-2 py-1.5 min-w-[130px]">
+                    <input type="date" value={dateRappel} onChange={(e) => setEdit(row, 'date_rappel', e.target.value)} className={cellInputClass} />
+                </td>
+                <td className="px-2 py-1.5 text-center"><EtatBadge etat={computeEtat(dateRappel)} /></td>
+                <td className="px-2 py-1.5">
+                    <div className="flex items-center justify-center gap-1">
+                        {dirty && (
+                            <>
+                                <button type="button" onClick={() => saveRow(row)} disabled={savingId === row.id} className="p-1.5 rounded-lg text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60" title="Enregistrer la ligne">
+                                    <Check className="w-4 h-4" />
+                                </button>
+                                <button type="button" onClick={() => cancelEdit(row.id)} className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800" title="Annuler les modifications">
+                                    <X className="w-4 h-4" />
+                                </button>
+                            </>
+                        )}
+                        <button type="button" onClick={() => showHistory(row.client_name)} className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/30" title="Historique du client">
+                            <History className="w-4 h-4" />
+                        </button>
+                        <button type="button" onClick={() => handleDelete(row)} className="p-1.5 rounded-lg text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30" title="Supprimer">
+                            <Trash2 className="w-4 h-4" />
+                        </button>
+                    </div>
+                </td>
+            </>
+        );
+    };
+
     return (
         <div className="space-y-4">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                    <h1 className="text-xl font-bold text-slate-900 dark:text-white">Relance Clients</h1>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">Appels, discussions téléphoniques et rendez-vous à ne pas oublier</p>
-                </div>
-                <button type="button" onClick={openCreate} className="btn-primary text-xs px-4 py-2.5">
-                    <Plus className="w-4 h-4" /> Nouvelle relance
-                </button>
+            <div>
+                <h1 className="text-xl font-bold text-slate-900 dark:text-white">Relance Clients</h1>
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                    Cliquez directement dans une case pour modifier, puis enregistrez avec le bouton vert ✓
+                </p>
             </div>
-
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                <SummaryCard label="En retard" value={meta.en_retard} gradient="from-red-500 via-rose-600 to-red-800" icon={AlarmClock} active={applied.etat === 'en_retard'} onClick={() => filterByEtat('en_retard')} />
-                <SummaryCard label="À appeler aujourd'hui" value={meta.aujourd_hui} gradient="from-amber-400 via-orange-500 to-orange-700" icon={PhoneCall} active={applied.etat === 'aujourd_hui'} onClick={() => filterByEtat('aujourd_hui')} />
-                <SummaryCard label="À venir" value={meta.a_venir} gradient="from-blue-600 via-brand-navy to-slate-900" icon={CalendarClock} active={applied.etat === 'a_venir'} onClick={() => filterByEtat('a_venir')} />
-                <SummaryCard label="Total relances" value={meta.total} gradient="from-slate-600 via-slate-700 to-slate-900" icon={ListFilter} active={!applied.etat && !applied.client} onClick={resetAll} />
-            </div>
-
-            {applied.client && (
-                <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 px-4 py-3">
-                    <p className="text-sm text-blue-900 dark:text-blue-200">
-                        <History className="w-4 h-4 inline mr-1.5 -mt-0.5" />
-                        Historique de <strong>{applied.client}</strong> — {rows.length} appel(s)
-                    </p>
-                    <button type="button" onClick={resetAll} className="btn-secondary text-xs px-3 py-1.5">
-                        <X className="w-3.5 h-3.5" /> Voir tout
-                    </button>
-                </div>
-            )}
 
             <div className="glass-card relative z-40 p-4 shadow-card border border-slate-200/60 dark:border-slate-700/60">
                 <div className="grid grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr_auto] gap-2.5 items-end">
@@ -345,119 +410,88 @@ export default function ClientRelancePage() {
                 </div>
             </div>
 
-            {formOpen && (
-                <form onSubmit={handleSave} className="glass-card relative z-30 p-4 shadow-card border-2 border-brand-orange/40 dark:border-brand-orange/40 space-y-3">
-                    <div className="flex items-center justify-between">
-                        <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wide">
-                            {editing ? 'Modifier la relance' : 'Nouvelle relance'}
-                        </h3>
-                        <button type="button" onClick={() => setFormOpen(false)} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800" title="Fermer">
-                            <X className="w-4 h-4" />
-                        </button>
-                    </div>
+            {applied.client && (
+                <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 px-4 py-3">
+                    <p className="text-sm text-blue-900 dark:text-blue-200">
+                        <History className="w-4 h-4 inline mr-1.5 -mt-0.5" />
+                        Historique de <strong>{applied.client}</strong> — {rows.length} appel(s)
+                    </p>
+                    <button type="button" onClick={resetAll} className="btn-secondary text-xs px-3 py-1.5">
+                        <X className="w-3.5 h-3.5" /> Voir tout
+                    </button>
+                </div>
+            )}
 
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
-                        <Field label="Date d'appel *">
-                            <input type="date" required value={form.date_appel} onChange={(e) => setField('date_appel', e.target.value)} className={inputClass} />
-                        </Field>
-                        <Field label="Client appelé *" className="col-span-2 lg:col-span-2">
-                            <ClientAutocomplete
-                                clients={clients}
-                                value={form.client_name}
-                                onChangeText={(text) => setField('client_name', text)}
-                                onSelect={(c) => setField('client_name', c.name)}
-                                placeholder="Nom du client ou ville…"
-                            />
-                        </Field>
-                        <Field label="Date de rappel">
-                            <input type="date" value={form.date_rappel} onChange={(e) => setField('date_rappel', e.target.value)} className={inputClass} />
-                        </Field>
-                    </div>
-
-                    {matchedClient && (
-                        <p className="text-xs text-slate-500 dark:text-slate-400 flex flex-wrap gap-x-4 gap-y-1">
-                            {matchedClient.phone && (
-                                <span className="inline-flex items-center gap-1">
-                                    <Phone className="w-3.5 h-3.5" />
-                                    <a href={`tel:${matchedClient.phone}`} className="font-semibold text-brand-navy dark:text-orange-400">{matchedClient.phone}</a>
-                                </span>
-                            )}
-                            {matchedClient.city && <span>Ville : <strong>{matchedClient.city}</strong></span>}
-                            <span>
-                                Solde (Balance Fournisseur) :{' '}
-                                <strong className={matchedClient.solde > 0 ? 'text-red-600 dark:text-red-400' : ''}>
-                                    {matchedClient.solde === null || matchedClient.solde === undefined ? '—' : formatMontant(matchedClient.solde)}
-                                </strong>
-                            </span>
-                        </p>
-                    )}
-
-                    <Field label="Remarque sur l'appel">
-                        <textarea
-                            value={form.remarque}
-                            onChange={(e) => setField('remarque', e.target.value)}
-                            rows={2}
-                            placeholder="Ex : Sans réponse, promet de payer vendredi, rendez-vous le…"
-                            className={`${inputClass} resize-none`}
-                        />
-                    </Field>
-                    <div className="flex flex-wrap gap-1.5">
-                        {QUICK_NOTES.map((note) => (
-                            <button
-                                key={note}
-                                type="button"
-                                onClick={() => addQuickNote(note)}
-                                className="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 ring-1 ring-slate-200 dark:ring-slate-700 hover:bg-orange-50 hover:text-orange-700 hover:ring-orange-200 dark:hover:bg-orange-900/20 dark:hover:text-orange-300 transition-colors"
-                            >
-                                {note}
-                            </button>
-                        ))}
-                    </div>
-
-                    {formError && <p className="text-xs font-medium text-red-600 dark:text-red-400">{formError}</p>}
-
-                    <div className="flex justify-end gap-2 pt-1">
-                        <button type="button" onClick={() => setFormOpen(false)} className="btn-secondary text-xs px-4">Annuler</button>
-                        <button type="submit" disabled={saving} className="btn-primary text-xs px-5 disabled:opacity-60">
-                            <CalendarCheck className="w-4 h-4" /> {saving ? 'Enregistrement…' : editing ? 'Modifier' : 'Enregistrer'}
-                        </button>
-                    </div>
-                </form>
+            {error && (
+                <p className="rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 px-4 py-2.5 text-xs font-medium text-red-700 dark:text-red-300">
+                    {error}
+                </p>
             )}
 
             <div className="glass-card relative z-10 overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60">
-                <div className="px-5 py-3.5 bg-gradient-to-r from-blue-700 via-brand-navy to-slate-900 border-b border-white/10 flex items-center justify-between">
-                    <h3 className="text-sm font-bold text-white uppercase tracking-wide">Tableau de relance</h3>
+                <div className="px-5 py-3.5 bg-gradient-to-r from-blue-700 via-brand-navy to-slate-900 border-b border-white/10 flex items-center justify-between gap-2">
+                    <h3 className="text-sm font-bold text-white uppercase tracking-wide flex items-center gap-2">
+                        <PhoneCall className="w-4 h-4" /> Tableau de relance
+                    </h3>
                     <button type="button" onClick={load} disabled={loading} className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors" title="Actualiser">
                         <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
                     </button>
                 </div>
 
+                {/* Mobile : saisie + cartes modifiables */}
                 <div className="md:hidden">
+                    <div className="m-3 rounded-xl border-2 border-brand-orange/40 bg-orange-50/60 dark:bg-orange-900/10 p-3 space-y-2">
+                        <p className="text-[11px] font-bold uppercase tracking-wide text-orange-700 dark:text-orange-300">Nouvel appel</p>
+                        <input type="date" value={newRow.date_appel} onChange={(e) => setNew('date_appel', e.target.value)} className={inputClass} />
+                        <ClientSelect clients={clients} value={newRow.client_name} onChange={(v) => setNew('client_name', v)} />
+                        <textarea value={newRow.remarque} onChange={(e) => setNew('remarque', e.target.value)} rows={2} placeholder="Remarque sur l'appel…" className={`${inputClass} resize-none`} />
+                        <input type="date" value={newRow.date_rappel} onChange={(e) => setNew('date_rappel', e.target.value)} className={inputClass} />
+                        <button type="button" onClick={handleAdd} disabled={adding} className="btn-primary w-full text-xs py-2.5 disabled:opacity-60">
+                            <Plus className="w-4 h-4" /> {adding ? 'Ajout…' : 'Ajouter'}
+                        </button>
+                    </div>
+
                     <MobileCardList loading={loading} empty="Aucune relance pour ces critères">
-                        {rows.length > 0 && rows.map((row) => (
-                            <MobileRecordCard
-                                key={row.id}
-                                title={row.client_name}
-                                subtitle={`Appel du ${row.date_appel || '—'}`}
-                                badge={<EtatBadge etat={row.etat} />}
-                                fields={[
-                                    { label: 'Solde', value: row.solde > 0 ? formatMontant(row.solde) : '—', className: row.solde > 0 ? 'text-red-600 dark:text-red-400 font-bold' : '' },
-                                    { label: 'Date de rappel', value: row.date_rappel || '—' },
-                                    { label: 'Remarque', value: row.remarque || '—', full: true },
-                                    ...(row.appele_par ? [{ label: 'Appelé par', value: row.appele_par }] : []),
-                                    ...(row.phone ? [{ label: 'Téléphone', value: row.phone }] : []),
-                                ]}
-                                actions={[
-                                    { label: 'Historique', icon: History, color: 'blue', onClick: () => showHistory(row) },
-                                    { label: 'Modifier', icon: Pencil, color: 'amber', onClick: () => openEdit(row) },
-                                    { label: 'Supprimer', icon: Trash2, color: 'red', onClick: () => handleDelete(row) },
-                                ]}
-                            />
-                        ))}
+                        {rows.length > 0 && rows.map((row) => {
+                            const dirty = isDirty(row);
+                            return (
+                                <MobileRecordCard
+                                    key={row.id}
+                                    title={row.client_name}
+                                    subtitle={`Appel du ${row.date_appel || '—'}`}
+                                    badge={<EtatBadge etat={computeEtat(rowValue(row, 'date_rappel'))} />}
+                                    fields={[
+                                        { label: 'Date d\u2019appel', value: row.date_appel || '—' },
+                                        { label: 'Solde', value: row.solde > 0 ? formatMontant(row.solde) : '—', className: row.solde > 0 ? 'text-red-600 dark:text-red-400 font-bold' : '' },
+                                        { label: 'Remarque', value: row.remarque || '—', full: true },
+                                        { label: 'Date de rappel', value: row.date_rappel || '—' },
+                                        ...(row.appele_par ? [{ label: 'Appelé par', value: row.appele_par }] : []),
+                                    ]}
+                                    footer={(
+                                        <div className="space-y-2 rounded-lg bg-slate-50 dark:bg-slate-800/60 p-2">
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <input type="date" value={rowValue(row, 'date_appel')} onChange={(e) => setEdit(row, 'date_appel', e.target.value)} className={inputClass} />
+                                                <input type="date" value={rowValue(row, 'date_rappel')} onChange={(e) => setEdit(row, 'date_rappel', e.target.value)} className={inputClass} />
+                                            </div>
+                                            <textarea value={rowValue(row, 'remarque')} onChange={(e) => setEdit(row, 'remarque', e.target.value)} rows={2} placeholder="Remarque…" className={`${inputClass} resize-none`} />
+                                            {dirty && (
+                                                <button type="button" onClick={() => saveRow(row)} disabled={savingId === row.id} className="w-full py-2 rounded-lg bg-emerald-600 text-white text-xs font-bold disabled:opacity-60">
+                                                    <Check className="w-4 h-4 inline mr-1 -mt-0.5" /> Enregistrer
+                                                </button>
+                                            )}
+                                        </div>
+                                    )}
+                                    actions={[
+                                        { label: 'Historique', icon: History, color: 'blue', onClick: () => showHistory(row.client_name) },
+                                        { label: 'Supprimer', icon: Trash2, color: 'red', onClick: () => handleDelete(row) },
+                                    ]}
+                                />
+                            );
+                        })}
                     </MobileCardList>
                 </div>
 
+                {/* Ordinateur : tableau modifiable */}
                 <div className="hidden md:block overflow-x-auto">
                     <table className="w-full text-sm min-w-[900px]">
                         <thead>
@@ -468,8 +502,42 @@ export default function ClientRelancePage() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                            <tr className="bg-orange-50/70 dark:bg-orange-900/10">
+                                <td className="px-2 py-1.5 min-w-[130px]">
+                                    <input type="date" value={newRow.date_appel} onChange={(e) => setNew('date_appel', e.target.value)} className={`${cellInputClass} border-orange-300 dark:border-orange-800 bg-white dark:bg-slate-800`} title="Date d'appel" />
+                                </td>
+                                <td className="px-2 py-1.5 min-w-[190px]">
+                                    <ClientSelect clients={clients} value={newRow.client_name} onChange={(v) => setNew('client_name', v)} />
+                                </td>
+                                <td className="px-2 py-1.5 text-center">
+                                    <SoldeCell value={soldeFor(newRow.client_name, null)} />
+                                </td>
+                                <td className="px-2 py-1.5 min-w-[220px]">
+                                    <textarea
+                                        value={newRow.remarque}
+                                        onChange={(e) => setNew('remarque', e.target.value)}
+                                        rows={1}
+                                        placeholder="Remarque sur l'appel…"
+                                        className={`${cellInputClass} resize-none border-orange-300 dark:border-orange-800 bg-white dark:bg-slate-800`}
+                                    />
+                                </td>
+                                <td className="px-2 py-1.5 min-w-[130px]">
+                                    <input type="date" value={newRow.date_rappel} onChange={(e) => setNew('date_rappel', e.target.value)} className={`${cellInputClass} border-orange-300 dark:border-orange-800 bg-white dark:bg-slate-800`} title="Date de rappel" />
+                                </td>
+                                <td className="px-2 py-1.5 text-center">
+                                    <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-orange-600 dark:text-orange-400">
+                                        <CalendarClock className="w-3.5 h-3.5" /> Nouveau
+                                    </span>
+                                </td>
+                                <td className="px-2 py-1.5">
+                                    <button type="button" onClick={handleAdd} disabled={adding} className="mx-auto flex items-center gap-1 px-3 py-2 rounded-lg bg-brand-orange text-white text-xs font-bold hover:bg-orange-600 disabled:opacity-60" title="Ajouter la ligne">
+                                        <Plus className="w-4 h-4" /> {adding ? '…' : 'Ajouter'}
+                                    </button>
+                                </td>
+                            </tr>
+
                             {loading ? (
-                                [...Array(4)].map((_, i) => (
+                                [...Array(3)].map((_, i) => (
                                     <tr key={i}>
                                         {columns.map((__, j) => (
                                             <td key={j} className="px-4 py-3 text-center">
@@ -479,50 +547,41 @@ export default function ClientRelancePage() {
                                     </tr>
                                 ))
                             ) : rows.length ? (
-                                rows.map((row) => (
-                                    <tr key={row.id} className={`hover:bg-blue-50/40 dark:hover:bg-slate-800/40 transition-colors ${row.etat === 'en_retard' ? 'bg-red-50/50 dark:bg-red-900/10' : row.etat === 'aujourd_hui' ? 'bg-orange-50/60 dark:bg-orange-900/10' : ''}`}>
-                                        <td className="px-4 py-2.5 text-center text-slate-600 dark:text-slate-300 whitespace-nowrap">{row.date_appel || '—'}</td>
-                                        <td className="px-4 py-2.5 text-center">
-                                            <button type="button" onClick={() => showHistory(row)} title="Voir l'historique de ce client" className="font-medium text-brand-navy dark:text-orange-400 hover:underline">
-                                                {row.client_name}
-                                            </button>
-                                            {(row.phone || row.city) && (
-                                                <span className="block text-[11px] text-slate-400">
-                                                    {[row.city, row.phone].filter(Boolean).join(' · ')}
-                                                </span>
-                                            )}
-                                        </td>
-                                        <td className="px-4 py-2.5 text-center"><SoldeCell value={row.solde} /></td>
-                                        <td className="px-4 py-2.5 text-left text-slate-700 dark:text-slate-200 max-w-[260px]">
-                                            <span className="line-clamp-2" title={row.remarque || ''}>{row.remarque || '—'}</span>
-                                            {row.appele_par && <span className="block text-[11px] text-slate-400">Par {row.appele_par}</span>}
-                                        </td>
-                                        <td className="px-4 py-2.5 text-center whitespace-nowrap font-medium text-slate-700 dark:text-slate-200">{row.date_rappel || '—'}</td>
-                                        <td className="px-4 py-2.5 text-center"><EtatBadge etat={row.etat} /></td>
-                                        <td className="px-4 py-2.5">
-                                            <div className="flex items-center justify-center gap-1">
-                                                <button type="button" onClick={() => showHistory(row)} className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/30" title="Historique du client">
-                                                    <History className="w-4 h-4" />
-                                                </button>
-                                                <button type="button" onClick={() => openEdit(row)} className="p-1.5 rounded-lg text-amber-600 hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-900/30" title="Modifier">
-                                                    <Pencil className="w-4 h-4" />
-                                                </button>
-                                                <button type="button" onClick={() => handleDelete(row)} className="p-1.5 rounded-lg text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30" title="Supprimer">
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))
+                                rows.map((row) => {
+                                    const dirty = isDirty(row);
+                                    const etat = computeEtat(rowValue(row, 'date_rappel'));
+                                    return (
+                                        <tr
+                                            key={row.id}
+                                            className={`transition-colors ${dirty ? 'bg-amber-50/80 dark:bg-amber-900/10' : etat === 'en_retard' ? 'bg-red-50/50 dark:bg-red-900/10 hover:bg-red-50 dark:hover:bg-red-900/20' : etat === 'aujourd_hui' ? 'bg-orange-50/60 dark:bg-orange-900/10' : 'hover:bg-blue-50/40 dark:hover:bg-slate-800/40'}`}
+                                        >
+                                            {renderRowCells(row)}
+                                        </tr>
+                                    );
+                                })
                             ) : (
                                 <tr>
                                     <td colSpan={columns.length} className="px-4 py-12 text-center text-slate-400">
-                                        Aucune relance pour ces critères. Cliquez sur « Nouvelle relance » pour noter un appel.
+                                        Aucune relance pour ces critères. Remplissez la première ligne orange pour noter un appel.
                                     </td>
                                 </tr>
                             )}
                         </tbody>
                     </table>
+                </div>
+
+                <div className="hidden md:flex flex-wrap gap-1.5 px-4 py-3 border-t border-slate-100 dark:border-slate-800">
+                    <span className="text-[11px] text-slate-400 mr-1 py-1">Remarques rapides (nouvelle ligne) :</span>
+                    {QUICK_NOTES.map((note) => (
+                        <button
+                            key={note}
+                            type="button"
+                            onClick={() => addQuickNote(note)}
+                            className="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 ring-1 ring-slate-200 dark:ring-slate-700 hover:bg-orange-50 hover:text-orange-700 hover:ring-orange-200 dark:hover:bg-orange-900/20 dark:hover:text-orange-300 transition-colors"
+                        >
+                            {note}
+                        </button>
+                    ))}
                 </div>
             </div>
         </div>
