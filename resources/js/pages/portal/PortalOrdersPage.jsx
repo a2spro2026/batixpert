@@ -16,14 +16,18 @@ function statutKey(statut) {
         .trim();
     if (s === 'paye' || s === 'solde') return 'paye';
     if (s === 'imp' || s === 'impaye') return 'imp';
+    if (s === 'devalide' || s === 'deva') return 'deva';
+    if (s === 'repo' || s === 'reporte' || s === 'report') return 'repo';
     return 'inst';
 }
 
 function statutBadgeClass(statut) {
     const key = statutKey(statut);
-    if (key === 'paye') return 'bg-emerald-100 text-emerald-700 border border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800';
-    if (key === 'imp') return 'bg-red-100 text-red-700 border border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800';
-    return 'bg-amber-100 text-amber-700 border border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800';
+    if (key === 'paye') return 'bg-emerald-100 text-emerald-700 border border-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-300 dark:border-emerald-700';
+    if (key === 'imp') return 'bg-red-100 text-red-700 border border-red-200 dark:bg-red-900/40 dark:text-red-300 dark:border-red-700';
+    if (key === 'deva') return 'bg-violet-100 text-violet-700 border border-violet-200 dark:bg-violet-900/40 dark:text-violet-300 dark:border-violet-700';
+    if (key === 'repo') return 'bg-amber-100 text-amber-800 border border-amber-200 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-700';
+    return 'bg-amber-100 text-amber-700 border border-amber-200 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-700';
 }
 
 function buildBonHtml(row) {
