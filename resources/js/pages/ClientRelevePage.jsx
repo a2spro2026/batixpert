@@ -51,18 +51,23 @@ function SummaryCard({ label, value, gradient, glow, icon: Icon, compact = false
 
     return (
         <div
-            className={`group relative overflow-hidden rounded-xl bg-gradient-to-br ${gradient} text-white ${compact ? 'p-2' : 'p-2.5'}`}
+            className={`group relative overflow-hidden rounded-xl bg-gradient-to-br ${gradient} text-white ${compact ? 'p-1.5 sm:p-2' : 'p-2 sm:p-2.5'}`}
             style={{ boxShadow: `0 8px 22px -8px ${glow}` }}
         >
             <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-white/10 pointer-events-none" />
-            <div className="relative flex items-center justify-between gap-1.5">
-                <div className="min-w-0">
-                    <p className={`font-semibold uppercase tracking-wider text-white/85 ${compact ? 'text-[8px]' : 'text-[10px]'}`}>{label}</p>
-                    <p className={`mt-0.5 font-bold tabular-nums leading-tight ${compact ? 'text-xs' : 'text-sm sm:text-base'}`}>
+            <div className="relative flex items-center justify-between gap-1">
+                <div className="min-w-0 flex-1">
+                    <p className={`font-semibold uppercase tracking-wider text-white/85 truncate ${compact ? 'text-[8px]' : 'text-[9px] sm:text-[10px]'}`}>{label}</p>
+                    <p
+                        className={`mt-0.5 font-bold tabular-nums leading-tight truncate ${
+                            compact ? 'text-[10px] sm:text-xs' : 'text-[11px] sm:text-sm md:text-base'
+                        }`}
+                        title={display}
+                    >
                         {display}
                     </p>
                 </div>
-                <div className={`rounded-lg bg-white/15 ring-1 ring-white/20 shrink-0 ${compact ? 'p-1' : 'p-1.5'}`}>
+                <div className={`rounded-lg bg-white/15 ring-1 ring-white/20 shrink-0 ${compact ? 'p-1' : 'p-1 sm:p-1.5'} max-[380px]:hidden`}>
                     <Icon className={compact ? 'w-3 h-3' : 'w-3.5 h-3.5'} strokeWidth={2} />
                 </div>
             </div>
@@ -233,34 +238,36 @@ export default function ClientRelevePage() {
     ].filter(Boolean).join(' · ');
 
     return (
-        <div className="flex flex-col flex-1 h-full min-h-0 gap-3">
-            <div className="shrink-0 space-y-3 sticky top-0 z-20 bg-slate-50 dark:bg-slate-950 pb-1">
-                <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3">
-                    <div className="min-w-0">
+        <div className="flex flex-col flex-1 min-h-0 gap-3 lg:h-full">
+            <div className="shrink-0 space-y-2.5 lg:space-y-3 lg:sticky lg:top-0 lg:z-20 bg-slate-50 dark:bg-slate-950 pb-1">
+                <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-2.5">
+                    <div className="min-w-0 hidden xl:block">
                         <h1 className="text-xl font-bold text-slate-900 dark:text-white">Relevé de compte client</h1>
                         <p className="text-sm text-slate-500 dark:text-slate-400">Ventes et règlements consolidés</p>
                     </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                        <button
-                            type="button"
-                            disabled={pdfBusy || loading}
-                            onClick={() => {
-                                setPdfBusy(true);
-                                exportPdf(rows, summary, filtersLabel)
-                                    .catch(() => window.alert('Impossible de générer le PDF.'))
-                                    .finally(() => setPdfBusy(false));
-                            }}
-                            className="btn-primary text-xs"
-                        >
-                            <FileText className="w-3.5 h-3.5" /> {pdfBusy ? 'PDF…' : 'Envoyer PDF'}
-                        </button>
-                        <button type="button" onClick={() => openPrintable(rows, summary, filtersLabel)} className="btn-secondary text-xs">
-                            <Printer className="w-3.5 h-3.5" /> Imprimer
-                        </button>
-                        <button type="button" onClick={() => navigate('/')} className="btn-muted text-xs">
-                            <X className="w-3.5 h-3.5" /> Fermer
-                        </button>
-                        <div className="grid grid-cols-3 gap-1.5 w-full sm:w-[320px]">
+                    <div className="flex flex-col gap-2 w-full xl:w-auto">
+                        <div className="grid grid-cols-3 gap-1.5 sm:flex sm:flex-wrap sm:items-center">
+                            <button
+                                type="button"
+                                disabled={pdfBusy || loading}
+                                onClick={() => {
+                                    setPdfBusy(true);
+                                    exportPdf(rows, summary, filtersLabel)
+                                        .catch(() => window.alert('Impossible de générer le PDF.'))
+                                        .finally(() => setPdfBusy(false));
+                                }}
+                                className="btn-primary text-[10px] sm:text-xs px-2 sm:px-3 py-2 justify-center"
+                            >
+                                <FileText className="w-3.5 h-3.5" /> {pdfBusy ? 'PDF…' : 'Envoyer PDF'}
+                            </button>
+                            <button type="button" onClick={() => openPrintable(rows, summary, filtersLabel)} className="btn-secondary text-[10px] sm:text-xs px-2 sm:px-3 py-2 justify-center">
+                                <Printer className="w-3.5 h-3.5" /> Imprimer
+                            </button>
+                            <button type="button" onClick={() => navigate('/')} className="btn-muted text-[10px] sm:text-xs px-2 sm:px-3 py-2 justify-center">
+                                <X className="w-3.5 h-3.5" /> Fermer
+                            </button>
+                        </div>
+                        <div className="grid grid-cols-3 gap-1.5 w-full sm:max-w-[360px] sm:ml-auto">
                             <SummaryCard
                                 compact
                                 label="Imp"
@@ -289,7 +296,7 @@ export default function ClientRelevePage() {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-2">
+                <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-1.5 sm:gap-2">
                     <SummaryCard
                         label="Total Débit"
                         value={summary.total_debit}
@@ -335,8 +342,8 @@ export default function ClientRelevePage() {
                     />
                 </div>
 
-                <div className="glass-card p-3 shadow-card border border-slate-200/60 dark:border-slate-700/60">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-[1fr_1.3fr_1fr_auto] gap-2.5 items-end">
+                <div className="glass-card p-2.5 sm:p-3 shadow-card border border-slate-200/60 dark:border-slate-700/60">
+                    <div className="grid grid-cols-2 xl:grid-cols-[1fr_1.3fr_1fr_auto] gap-2 sm:gap-2.5 items-end">
                         <Field label="Mois">
                             <select value={filters.mois} onChange={(e) => setFilter('mois', e.target.value)} className={filterClass}>
                                 {MONTH_OPTIONS.map((m) => (
@@ -352,26 +359,28 @@ export default function ClientRelevePage() {
                                 ))}
                             </select>
                         </Field>
-                        <Field label="Trésorerie">
-                            <select
-                                value={filters.tresorerie}
-                                onChange={(e) => setFilter('tresorerie', e.target.value)}
-                                className={filterClass}
-                            >
-                                <option value="">Toutes</option>
-                                {tresoreries.map((t) => (
-                                    <option key={t} value={t}>{t}</option>
-                                ))}
-                            </select>
-                        </Field>
-                        <div className="flex items-center gap-1.5 self-end">
-                            <button type="button" onClick={handleSearch} className="p-2 rounded-lg border border-slate-200 dark:border-slate-600 text-slate-500 hover:text-brand-navy hover:bg-slate-50 dark:hover:bg-slate-800" title="Actualiser">
+                        <div className="col-span-2 xl:col-span-1 min-w-0">
+                            <Field label="Trésorerie">
+                                <select
+                                    value={filters.tresorerie}
+                                    onChange={(e) => setFilter('tresorerie', e.target.value)}
+                                    className={filterClass}
+                                >
+                                    <option value="">Toutes</option>
+                                    {tresoreries.map((t) => (
+                                        <option key={t} value={t}>{t}</option>
+                                    ))}
+                                </select>
+                            </Field>
+                        </div>
+                        <div className="col-span-2 xl:col-span-1 flex items-center justify-end gap-1.5 self-end">
+                            <button type="button" onClick={handleSearch} className="p-2 rounded-lg border border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-300 hover:text-brand-navy hover:bg-slate-50 dark:hover:bg-slate-800" title="Rechercher">
                                 <Search className="w-4 h-4" />
                             </button>
-                            <button type="button" onClick={load} disabled={loading} className="p-2 rounded-lg border border-slate-200 dark:border-slate-600 text-slate-500 hover:text-brand-navy hover:bg-slate-50 dark:hover:bg-slate-800" title="Actualiser">
+                            <button type="button" onClick={load} disabled={loading} className="p-2 rounded-lg border border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-300 hover:text-brand-navy hover:bg-slate-50 dark:hover:bg-slate-800" title="Actualiser">
                                 <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
                             </button>
-                            <button type="button" onClick={handleReset} className="p-2 rounded-lg border border-slate-200 dark:border-slate-600 text-slate-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20" title="Fermer / réinitialiser">
+                            <button type="button" onClick={handleReset} className="p-2 rounded-lg border border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-300 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20" title="Réinitialiser">
                                 <X className="w-4 h-4" />
                             </button>
                         </div>
@@ -379,8 +388,8 @@ export default function ClientRelevePage() {
                 </div>
             </div>
 
-            <div className="flex-1 min-h-0 glass-card overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60 flex flex-col">
-                <div className="px-5 py-2.5 bg-gradient-to-r from-brand-navy via-blue-800 to-slate-800 border-b border-white/10 shrink-0">
+            <div className="flex-1 min-h-[280px] lg:min-h-0 glass-card overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60 flex flex-col">
+                <div className="px-4 sm:px-5 py-2.5 bg-gradient-to-r from-brand-navy via-blue-800 to-slate-800 border-b border-white/10 shrink-0">
                     <h3 className="text-sm font-bold text-white uppercase tracking-wide">Relevé de compte</h3>
                 </div>
                 <div className="flex-1 min-h-0 overflow-auto">
