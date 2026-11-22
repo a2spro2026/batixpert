@@ -509,7 +509,7 @@ export default function FactureAchatsPage({ depotFilter = null, pageTitle = '', 
                 : 'from-brand-navy via-blue-800 to-indigo-900';
 
     return (
-        <div className="space-y-3">
+        <div className="flex flex-col flex-1 min-h-0 h-full overflow-y-auto overscroll-contain gap-3">
             <ViewModal row={viewRow} onClose={() => setViewRow(null)} />
             <PhotoModal row={photoRow} onClose={() => setPhotoRow(null)} />
             <FormModal

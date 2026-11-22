@@ -209,7 +209,7 @@ export default function ReglementFactureVentePage() {
     };
 
     return (
-        <div className="space-y-4">
+        <div className="flex flex-col flex-1 min-h-0 h-full overflow-y-auto overscroll-contain gap-4">
             <PaymentModal open={modalOpen} form={form} invoices={invoices} editingId={editingId} saving={saving} error={error} onChange={onChange} onClose={() => setModalOpen(false)} onSubmit={submit} />
 
             <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">

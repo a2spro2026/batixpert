@@ -31,9 +31,9 @@ export default function ReportTable({
                 )}
             </div>
 
-            <div className="overflow-x-auto">
+            <div className="overflow-auto max-h-[320px] overscroll-contain">
                 <table className="w-full text-sm min-w-[640px]">
-                    <thead>
+                    <thead className="sticky top-0 z-10">
                         <tr className={grayHeader
                             ? 'bg-gradient-to-r from-slate-100 via-slate-200/90 to-slate-100 dark:from-slate-800 dark:via-slate-700/80 dark:to-slate-800 border-b-2 border-slate-300 dark:border-slate-600'
                             : 'bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700'
@@ -43,8 +43,8 @@ export default function ReportTable({
                                     key={col.key}
                                     className={`px-4 py-3.5 text-[11px] font-bold uppercase tracking-[0.12em] whitespace-nowrap ${
                                         grayHeader
-                                            ? 'text-slate-600 dark:text-slate-300'
-                                            : 'text-xs text-slate-500 dark:text-slate-400'
+                                            ? 'text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800'
+                                            : 'text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800'
                                     } ${col.align === 'right' ? 'text-right' : 'text-center'}`}
                                 >
                                     {col.label}

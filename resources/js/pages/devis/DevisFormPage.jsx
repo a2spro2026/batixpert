@@ -303,7 +303,7 @@ export default function DevisFormPage() {
     }
 
     return (
-        <div className="flex flex-col h-[calc(100vh-10.5rem)] min-h-0">
+        <div className="flex flex-col flex-1 h-full min-h-0 overflow-hidden">
             <button type="button" onClick={goToList} className="btn-secondary text-sm shrink-0 self-start mb-3">
                 <ArrowLeft className="w-4 h-4" />
                 Retour à la liste

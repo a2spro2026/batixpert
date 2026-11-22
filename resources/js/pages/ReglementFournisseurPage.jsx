@@ -911,7 +911,7 @@ export default function ReglementFournisseurPage() {
 
     /* ───────────── FORM VIEW (Nouveau / Modifier) ───────────── */
     return (
-        <div className="space-y-4">
+        <div className="flex flex-col flex-1 min-h-0 h-full overflow-y-auto overscroll-contain gap-4">
             <ImportReglModal
                 open={importOpen}
                 rows={importRows}

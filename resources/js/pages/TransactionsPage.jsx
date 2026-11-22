@@ -371,7 +371,7 @@ export default function TransactionsPage() {
     const soldePositive = summary.solde >= 0;
 
     return (
-        <div className="space-y-4">
+        <div className="flex flex-col flex-1 min-h-0 h-full overflow-y-auto overscroll-contain gap-4">
             <ViewModal row={viewRow} onClose={() => setViewRow(null)} />
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">

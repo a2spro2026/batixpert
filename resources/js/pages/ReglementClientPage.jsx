@@ -776,7 +776,7 @@ export default function ReglementClientPage() {
 
     /* ───────────── FORM VIEW (Nouveau / Modifier) ───────────── */
     return (
-        <div className="space-y-4">
+        <div className="flex flex-col flex-1 min-h-0 h-full overflow-y-auto overscroll-contain gap-4">
             <form onSubmit={handleSubmit} className="space-y-3">
                 {error && (
                     <div className="p-3 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm border border-red-100 dark:border-red-800">{error}</div>

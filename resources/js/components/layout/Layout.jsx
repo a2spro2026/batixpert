@@ -9,9 +9,6 @@ export default function Layout() {
     const { pathname } = useLocation();
     const isDashboard = pathname === '/';
     const isDevisForm = /^\/clients\/devis\/(nouveau|\d+)/.test(pathname);
-    const isBonListPage = /^\/(fournisseurs\/bons-achats|clients\/bons-de-vente)/.test(pathname);
-    const isRelevePage = /^\/(fournisseurs|clients)\/releve-compte/.test(pathname);
-    const isLockedPage = isBonListPage || isRelevePage;
 
     useEffect(() => {
         if (!sidebarOpen) return undefined;
@@ -21,29 +18,47 @@ export default function Layout() {
     }, [sidebarOpen]);
 
     useEffect(() => {
-        if (!isLockedPage) return undefined;
         const html = document.documentElement;
         const body = document.body;
+        const root = document.getElementById('root');
         const prev = {
             htmlOverflow: html.style.overflow,
             bodyOverflow: body.style.overflow,
+            htmlHeight: html.style.height,
+            bodyHeight: body.style.height,
             htmlOverscroll: html.style.overscrollBehavior,
             bodyOverscroll: body.style.overscrollBehavior,
+            rootHeight: root?.style.height || '',
+            rootOverflow: root?.style.overflow || '',
         };
+
         html.style.overflow = 'hidden';
         body.style.overflow = 'hidden';
+        html.style.height = '100%';
+        body.style.height = '100%';
         html.style.overscrollBehavior = 'none';
         body.style.overscrollBehavior = 'none';
+        if (root) {
+            root.style.height = '100%';
+            root.style.overflow = 'hidden';
+        }
+
         return () => {
             html.style.overflow = prev.htmlOverflow;
             body.style.overflow = prev.bodyOverflow;
+            html.style.height = prev.htmlHeight;
+            body.style.height = prev.bodyHeight;
             html.style.overscrollBehavior = prev.htmlOverscroll;
             body.style.overscrollBehavior = prev.bodyOverscroll;
+            if (root) {
+                root.style.height = prev.rootHeight;
+                root.style.overflow = prev.rootOverflow;
+            }
         };
-    }, [isLockedPage]);
+    }, []);
 
     return (
-        <div className={`${isLockedPage ? 'h-[100dvh] overflow-hidden' : 'min-h-[100dvh] lg:h-screen lg:overflow-hidden'} bg-slate-50 dark:bg-slate-950 flex`}>
+        <div className="h-[100dvh] overflow-hidden overscroll-none bg-slate-50 dark:bg-slate-950 flex">
             {sidebarOpen && (
                 <>
                     <Sidebar />
@@ -55,7 +70,7 @@ export default function Layout() {
                 <Header sidebarOpen={sidebarOpen} onToggleSidebar={() => setSidebarOpen((v) => !v)} />
 
                 {isDashboard && (
-                    <div className="flex-1 flex flex-col min-h-0 bg-slate-50 dark:bg-slate-950">
+                    <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-slate-50 dark:bg-slate-950">
                         <DashboardSection />
                     </div>
                 )}
@@ -65,15 +80,9 @@ export default function Layout() {
                         <Outlet />
                     </main>
                 ) : (
-                    <main className={`flex-1 flex flex-col min-w-0 min-h-0 p-3 sm:p-4 lg:p-6 ${isLockedPage ? 'overflow-hidden' : 'lg:overflow-y-auto lg:overflow-x-hidden'}`}>
+                    <main className={`flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden ${isDevisForm ? 'p-0' : 'p-3 sm:p-4 lg:p-6'}`}>
                         <Outlet />
                     </main>
-                )}
-
-                {!isDevisForm && !isRelevePage && (
-                    <footer className="hidden lg:block mt-auto shrink-0 px-6 py-4 border-t border-slate-200 dark:border-slate-800 text-center text-xs text-slate-500">
-                        © {new Date().getFullYear()} BatiXpert — Construisons l'avenir avec une gestion intelligente | v1.0.0
-                    </footer>
                 )}
             </div>
         </div>

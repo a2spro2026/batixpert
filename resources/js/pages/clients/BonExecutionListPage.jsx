@@ -80,7 +80,7 @@ export default function BonExecutionListPage() {
     ];
 
     return (
-        <div className="space-y-4">
+        <div className="flex flex-col flex-1 min-h-0 h-full overflow-y-auto overscroll-contain gap-4">
             <div className="glass-card p-4 shadow-card border border-slate-200/60 dark:border-slate-700/60">
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-[1fr_1fr_1.2fr_0.9fr_auto] gap-2.5 items-end">
                     <Field label="Date du">

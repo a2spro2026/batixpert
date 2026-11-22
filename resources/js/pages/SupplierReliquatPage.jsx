@@ -274,7 +274,7 @@ export default function SupplierReliquatPage() {
     };
 
     return (
-        <div className="flex flex-col flex-1 h-full min-h-0 gap-3">
+        <div className="flex flex-col flex-1 h-full min-h-0 overflow-hidden gap-3">
             <div className="shrink-0 space-y-3">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div className="min-w-0">

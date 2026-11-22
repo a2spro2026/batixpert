@@ -226,7 +226,7 @@ export default function UserAuthorizationsPage() {
     };
 
     return (
-        <div className="flex flex-col flex-1 h-full min-h-0 gap-3">
+        <div className="flex flex-col flex-1 h-full min-h-0 overflow-hidden gap-3">
             <div className="shrink-0 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                     <h1 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">

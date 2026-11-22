@@ -312,7 +312,7 @@ export default function UsersPage() {
     };
 
     return (
-        <div className="space-y-4">
+        <div className="flex flex-col flex-1 min-h-0 h-full overflow-y-auto overscroll-contain gap-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                     <h1 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">

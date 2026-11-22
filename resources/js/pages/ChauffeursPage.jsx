@@ -21,7 +21,7 @@ export default function ChauffeursPage() {
     }, [load]);
 
     return (
-        <div className="space-y-4">
+        <div className="flex flex-col flex-1 min-h-0 h-full overflow-y-auto overscroll-contain gap-4">
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
                 <div>
                     <h1 className="text-xl font-bold text-slate-900 dark:text-white">Chauffeur</h1>

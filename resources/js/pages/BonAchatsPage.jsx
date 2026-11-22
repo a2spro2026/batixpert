@@ -487,7 +487,7 @@ export default function BonAchatsPage() {
         : meta.next_ref;
 
     return (
-        <div className="flex flex-col gap-3 sm:gap-4 lg:flex-1 lg:min-h-0 lg:overflow-hidden">
+        <div className="flex flex-col flex-1 min-h-0 h-full overflow-hidden gap-3 sm:gap-4">
             <ViewModal row={viewRow} onClose={() => setViewRow(null)} />
 
             {formOpen && (
@@ -724,7 +724,7 @@ export default function BonAchatsPage() {
                 </div>
             </div>
 
-            <div className="glass-card overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60 flex flex-col lg:flex-1 lg:min-h-0">
+            <div className="glass-card overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60 flex flex-col flex-1 min-h-0">
                 <div className="px-3 sm:px-5 py-3 sm:py-3.5 bg-gradient-to-r from-amber-500 via-orange-500 to-orange-700 border-b border-white/10 space-y-2 shrink-0">
                     <h3 className="text-sm font-bold text-white uppercase tracking-wide">
                         Tableau des Bon D&apos;achats
@@ -760,7 +760,7 @@ export default function BonAchatsPage() {
                         </select>
                     </div>
                 </div>
-                <div className="lg:hidden">
+                <div className="lg:hidden flex-1 min-h-0 overflow-y-auto overscroll-contain">
                     <MobileCardList
                         loading={loading}
                         empty={hasTableFilters ? 'Aucun bon ne correspond aux filtres' : 'Aucun bon d\'achat enregistré'}
@@ -793,7 +793,7 @@ export default function BonAchatsPage() {
                         ))}
                     </MobileCardList>
                 </div>
-                <div className="hidden lg:block lg:flex-1 lg:min-h-0 overflow-auto">
+                <div className="hidden lg:block flex-1 min-h-0 overflow-auto overscroll-contain">
                     <table className="w-full text-sm min-w-[1100px]">
                         <thead className="sticky top-0 z-10">
                             <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700">

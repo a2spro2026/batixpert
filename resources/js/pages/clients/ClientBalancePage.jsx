@@ -118,7 +118,7 @@ export default function ClientBalancePage() {
     const handleSearch = () => setAppliedFilters({ ...filters });
 
     return (
-        <div className="space-y-4">
+        <div className="flex flex-col flex-1 min-h-0 h-full overflow-y-auto overscroll-contain gap-4">
             <div>
                 <h1 className="text-xl font-bold text-slate-900 dark:text-white">Balance Client</h1>
                 <p className="text-sm text-slate-500 dark:text-slate-400">Situation consolidée par client</p>

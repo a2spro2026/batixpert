@@ -20,7 +20,7 @@ export default function ChantiersPage() {
     const exportCsv = () => window.open('/api/reports/export/chantiers?format=csv&token=' + authStorage.get('batixpert_token'));
 
     return (
-        <div className="space-y-6">
+        <div className="flex flex-col flex-1 min-h-0 h-full overflow-y-auto overscroll-contain gap-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Gestion des chantiers</h1>

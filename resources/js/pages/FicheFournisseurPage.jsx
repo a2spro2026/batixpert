@@ -268,7 +268,7 @@ export default function FicheFournisseurPage() {
     };
 
     return (
-        <div className="space-y-6">
+        <div className="flex flex-col flex-1 min-h-0 h-full overflow-y-auto overscroll-contain gap-6">
             <ViewModal row={viewRow} onClose={() => setViewRow(null)} />
 
             <form onSubmit={handleSubmit} className="glass-card p-5 lg:p-6 shadow-card border border-slate-200/60 dark:border-slate-700/60">

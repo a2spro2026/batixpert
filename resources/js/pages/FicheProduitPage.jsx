@@ -256,7 +256,7 @@ export default function FicheProduitPage() {
         : meta.next_ref;
 
     return (
-        <div className="flex flex-col flex-1 min-h-0 gap-4">
+        <div className="flex flex-col flex-1 min-h-0 h-full overflow-hidden gap-4">
             <ViewModal row={viewRow} onClose={() => setViewRow(null)} />
 
             <form onSubmit={handleSubmit} className="shrink-0 glass-card p-4 lg:p-5 shadow-card border border-slate-200/60 dark:border-slate-700/60">

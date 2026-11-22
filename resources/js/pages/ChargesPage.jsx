@@ -382,7 +382,7 @@ export default function ChargesPage() {
     const headers = ['Date', 'Réf', 'Désignation', 'Bénéficiaire', 'Type Rég', 'N°', 'Bnq', 'Tiré', 'Date Décaiss', 'Remarque', 'Actions'];
 
     return (
-        <div className="space-y-4">
+        <div className="flex flex-col flex-1 min-h-0 h-full overflow-y-auto overscroll-contain gap-4">
             <ViewModal row={viewRow} onClose={() => setViewRow(null)} />
             <FormModal
                 open={modalOpen}

@@ -126,7 +126,7 @@ export default function StockMouvementsPage() {
     const colCount = 2 + monthsMeta.length * 2 + 2;
 
     return (
-        <div className="space-y-4 h-full min-h-0 flex flex-col">
+        <div className="flex flex-col flex-1 h-full min-h-0 overflow-hidden gap-4">
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 shrink-0">
                 <div>
                     <h1 className="text-xl font-bold text-slate-900 dark:text-white">Mouvement Stock</h1>
