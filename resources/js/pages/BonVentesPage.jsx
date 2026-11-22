@@ -112,6 +112,7 @@ th{background:#f8fafc;font-weight:700}.badge{background:#fff7ed;color:#ea580c;pa
 <h1>BATIXPERT — Bon de Vente <span class="badge">${row.reference}</span></h1>
 <table>
 <tr><th>Date</th><td>${row.order_date || '—'}</td><th>Client</th><td>${row.client || '—'}</td></tr>
+<tr><th>Fournisseur</th><td colspan="3">${row.fournisseur || '—'}</td></tr>
 <tr><th>Ville</th><td>${row.city || '—'}</td><th>Adresse Livraison</th><td>${row.address || '—'}</td></tr>
 <tr><th>Type Régl / Échéance</th><td>${row.reglement || '—'} / ${row.echeance || '—'}</td><th>Chauffeur</th><td>${row.chauffeur || '—'}</td></tr>
 <tr><th>Matricule</th><td colspan="3">${row.matricule || '—'}</td></tr>
@@ -180,6 +181,7 @@ function ViewModal({ row, onClose }) {
                             ['Date Bon', row.order_date],
                             ['N° Bon', row.reference],
                             ['Nom Client', row.client],
+                            ['Fournisseur', row.fournisseur],
                         ].map(([label, value]) => (
                             <div key={label} className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 px-3 py-2.5 text-center">
                                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">{label}</p>
@@ -479,7 +481,7 @@ export default function BonVentesPage() {
             order_date: purchase.order_date_raw || f.order_date || new Date().toISOString().slice(0, 10),
             client_id: matchedClient ? String(matchedClient.id) : '',
             city: purchase.city || '',
-            fournisseur: purchase.fournisseur || '',
+            fournisseur: (purchase.fournisseur && purchase.fournisseur !== '—') ? purchase.fournisseur : '',
             // N° B-V reste auto ; adresse / régl / échéance / chauffeur / matricule manuels
         }));
 
@@ -658,7 +660,7 @@ export default function BonVentesPage() {
                             )}
 
                             <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/40 p-2.5">
-                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 xl:grid-cols-9 gap-2 items-end">
+                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 xl:grid-cols-10 gap-2 items-end">
                                     <Field label="Date">
                                         <input type="date" required value={form.order_date} onChange={(e) => set('order_date', e.target.value)} className={inputClass} />
                                     </Field>
@@ -670,6 +672,16 @@ export default function BonVentesPage() {
                                             <option value="">—</option>
                                             {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                                         </select>
+                                    </Field>
+                                    <Field label="Fournisseur">
+                                        <input
+                                            type="text"
+                                            value={form.fournisseur}
+                                            onChange={(e) => set('fournisseur', e.target.value)}
+                                            placeholder="Import B-A"
+                                            className={inputClass}
+                                            title="Rempli automatiquement à l'import du bon d'achat"
+                                        />
                                     </Field>
                                     <Field label="Ville">
                                         <input type="text" value={form.city} onChange={(e) => set('city', e.target.value)} placeholder="Ville" className={inputClass} />
@@ -893,6 +905,7 @@ export default function BonVentesPage() {
                                 badge={<span className="text-xs font-medium text-slate-500">{row.order_date}</span>}
                                 onOpen={() => setViewRow(row)}
                                 fields={[
+                                    { label: 'Fournisseur', value: row.fournisseur || '—' },
                                     { label: 'Ville · Adresse', value: [row.city, row.address].filter(Boolean).join(' · ') || '—', full: true },
                                     { label: 'Total', value: formatMontantDisplay(row.subtotal ?? row.montant), className: 'font-bold text-brand-navy dark:text-orange-400' },
                                     {
@@ -917,7 +930,7 @@ export default function BonVentesPage() {
                     <table className="w-full text-sm min-w-[1100px]">
                         <thead className="sticky top-0 z-10">
                             <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700">
-                                {['Date', 'N° B-V', 'Client', 'Ville', 'Adresse Livraison', 'Qté totale', 'Total', 'Solde', 'Échéance', 'Actions'].map((h) => (
+                                {['Date', 'N° B-V', 'Client', 'Fournisseur', 'Ville', 'Adresse Livraison', 'Qté totale', 'Total', 'Solde', 'Échéance', 'Actions'].map((h) => (
                                     <th key={h} className="px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap text-center">{h}</th>
                                 ))}
                             </tr>
@@ -925,7 +938,7 @@ export default function BonVentesPage() {
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                             {loading ? (
                                 [...Array(3)].map((_, i) => (
-                                    <tr key={i}>{[...Array(10)].map((__, j) => (
+                                    <tr key={i}>{[...Array(11)].map((__, j) => (
                                         <td key={j} className="px-4 py-3 text-center"><div className="h-4 bg-slate-200 dark:bg-slate-700 rounded animate-pulse mx-auto max-w-[80px]" /></td>
                                     ))}</tr>
                                 ))
@@ -940,6 +953,7 @@ export default function BonVentesPage() {
                                         <td className="px-4 py-2.5 text-center text-slate-600 dark:text-slate-300">{row.order_date}</td>
                                         <td className="px-4 py-2.5 text-center font-mono text-xs font-semibold text-brand-navy dark:text-orange-400">{row.reference}</td>
                                         <td className="px-4 py-2.5 text-center font-medium text-slate-800 dark:text-white">{row.client || '—'}</td>
+                                        <td className="px-4 py-2.5 text-center text-slate-600 dark:text-slate-300">{row.fournisseur || '—'}</td>
                                         <td className="px-4 py-2.5 text-center text-slate-600 dark:text-slate-300">{row.city || '—'}</td>
                                         <td className="px-4 py-2.5 text-center text-slate-600 dark:text-slate-300">{row.address || '—'}</td>
                                         <td className="px-4 py-2.5 text-center font-semibold tabular-nums text-emerald-700 dark:text-emerald-300">
@@ -966,7 +980,7 @@ export default function BonVentesPage() {
                                     </tr>
                                 ))
                             ) : (
-                                <tr><td colSpan={10} className="px-4 py-12 text-center text-slate-400">{hasTableFilters ? 'Aucun bon ne correspond aux filtres' : 'Aucun bon de vente enregistré'}</td></tr>
+                                <tr><td colSpan={11} className="px-4 py-12 text-center text-slate-400">{hasTableFilters ? 'Aucun bon ne correspond aux filtres' : 'Aucun bon de vente enregistré'}</td></tr>
                             )}
                         </tbody>
                     </table>
