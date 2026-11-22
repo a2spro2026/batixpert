@@ -11,7 +11,7 @@ export default function DashboardSection() {
 
     return (
         <div className="flex flex-col flex-1 min-h-0 h-full overflow-hidden">
-            <div className="shrink-0 px-4 lg:px-6 pt-3 pb-4 border-b border-slate-200/50 dark:border-slate-800/50 bg-slate-50/95 dark:bg-slate-950/95">
+            <div className="shrink-0 px-3 sm:px-4 lg:px-6 pt-2.5 sm:pt-3 pb-3 sm:pb-4 border-b border-slate-200/50 dark:border-slate-800/50 bg-slate-50/95 dark:bg-slate-950/95">
                 <KpiCards kpis={data?.kpis} loading={loading} />
             </div>
             <div className="shrink-0 px-4 lg:px-6 pt-4 flex items-center justify-between gap-3 bg-slate-50 dark:bg-slate-950">

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
     ShoppingCart, ShoppingBag, Scale, Receipt, Truck, TrendingUp, TrendingDown,
+    Eye, EyeOff, LayoutGrid,
 } from 'lucide-react';
 import api from '../../lib/api';
 
@@ -94,22 +95,22 @@ function KpiCard({ card, value, index, supplierFilter }) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.06, duration: 0.4 }}
             whileHover={{ y: -2, scale: 1.01 }}
-            className={`kpi-card-compact group relative overflow-hidden rounded-lg bg-gradient-to-br ${card.gradient} shadow-md hover:shadow-lg transition-all duration-300`}
-            style={{ '--kpi-glow': card.glow }}
+            className={`group relative overflow-hidden rounded-2xl sm:rounded-lg bg-gradient-to-br ${card.gradient} shadow-md hover:shadow-lg transition-all duration-300`}
+            style={{ boxShadow: `0 10px 24px -12px ${card.glow}` }}
         >
-            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-white/10 pointer-events-none" />
             <div className="absolute -top-6 -right-6 w-16 h-16 rounded-full bg-white/10 blur-xl pointer-events-none" />
 
-            <div className={`relative p-2.5 flex flex-col ${supplierFilter ? 'min-h-[88px]' : 'min-h-[82px]'}`}>
-                <div className="flex items-center justify-between gap-1.5 mb-1.5">
-                    <div className="p-1 rounded-md bg-white/20 backdrop-blur-sm">
-                        <Icon className="w-3 h-3 text-white" strokeWidth={2} />
+            <div className={`relative flex flex-col p-2.5 sm:p-2.5 ${supplierFilter ? 'min-h-[84px] sm:min-h-[88px]' : 'min-h-[76px] sm:min-h-[82px]'}`}>
+                <div className="flex items-center justify-between gap-1.5 mb-1">
+                    <div className="p-1.5 sm:p-1 rounded-lg sm:rounded-md bg-white/20 backdrop-blur-sm">
+                        <Icon className="w-3.5 h-3.5 sm:w-3 sm:h-3 text-white" strokeWidth={2} />
                     </div>
                     {isDynamic && (
-                        <span className={`inline-flex items-center gap-0.5 text-[8px] font-bold uppercase px-1 py-0.5 rounded-full ${
+                        <span className={`inline-flex items-center gap-0.5 text-[8px] font-bold uppercase px-1.5 py-0.5 rounded-full ${
                             positive ? 'bg-white/25 text-white' : 'bg-black/25 text-red-200'
                         }`}>
-                            {positive ? <TrendingUp className="w-2 h-2" /> : <TrendingDown className="w-2 h-2" />}
+                            {positive ? <TrendingUp className="w-2.5 h-2.5" /> : <TrendingDown className="w-2.5 h-2.5" />}
                         </span>
                     )}
                 </div>
@@ -119,7 +120,7 @@ function KpiCard({ card, value, index, supplierFilter }) {
                         value={supplierFilter.value}
                         onChange={(e) => supplierFilter.onChange(e.target.value)}
                         onClick={(e) => e.stopPropagation()}
-                        className="w-full mb-1.5 rounded border border-white/20 bg-white/10 text-white text-[8px] font-medium px-1 py-0.5 h-5 outline-none focus:ring-1 focus:ring-white/30 cursor-pointer truncate leading-none"
+                        className="w-full mb-1.5 rounded-md border border-white/20 bg-white/10 text-white text-[8px] font-medium px-1.5 py-0.5 h-5 outline-none focus:ring-1 focus:ring-white/30 cursor-pointer truncate leading-none"
                         title="Filtrer par fournisseur"
                     >
                         <option value="" className="text-slate-900">Tous</option>
@@ -131,12 +132,12 @@ function KpiCard({ card, value, index, supplierFilter }) {
                     </select>
                 )}
 
-                <p className="text-[9px] font-semibold text-white/80 uppercase tracking-wide leading-tight line-clamp-2">
+                <p className="text-[9px] sm:text-[9px] font-semibold text-white/85 uppercase tracking-wide leading-tight line-clamp-2">
                     {card.label}
                 </p>
 
                 <p className={`mt-auto font-bold text-white tracking-tight leading-none tabular-nums ${
-                    supplierFilter ? 'text-sm pt-1' : 'text-base pt-2.5'
+                    supplierFilter ? 'text-sm pt-1' : 'text-[15px] sm:text-base pt-2'
                 }`}>
                     <AnimatedValue value={value} format={card.format} />
                 </p>
@@ -145,19 +146,36 @@ function KpiCard({ card, value, index, supplierFilter }) {
     );
 }
 
-function SectionTitle() {
+function SectionTitle({ showToggle, visible, onToggle }) {
     return (
-        <div className="flex items-center gap-3 mb-3">
+        <div className="flex items-center gap-2 sm:gap-3 mb-2.5 sm:mb-3">
             <h2 className="text-xs font-bold tracking-[0.25em] text-slate-600 dark:text-slate-300 uppercase whitespace-nowrap">
                 Cartes Analytiques
             </h2>
             <div className="h-px flex-1 bg-gradient-to-r from-brand-orange/60 via-brand-navy/30 to-transparent" />
+            {showToggle && (
+                <button
+                    type="button"
+                    onClick={onToggle}
+                    className={`lg:hidden inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-[10px] font-bold uppercase tracking-wide shadow-sm ${
+                        visible
+                            ? 'bg-brand-navy text-white border-brand-navy'
+                            : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                    }`}
+                    title={visible ? 'Masquer les KPI' : 'Afficher les KPI'}
+                    aria-label={visible ? 'Masquer les KPI' : 'Afficher les KPI'}
+                >
+                    {visible ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    <LayoutGrid className="w-3.5 h-3.5" />
+                </button>
+            )}
         </div>
     );
 }
 
 export default function KpiCards({ kpis, loading }) {
     const [supplierId, setSupplierId] = useState('');
+    const [showKpi, setShowKpi] = useState(false);
 
     const supplierOptions = useMemo(
         () => (Array.isArray(kpis?.soldes_fournisseurs) ? kpis.soldes_fournisseurs : []),
@@ -181,10 +199,15 @@ export default function KpiCards({ kpis, loading }) {
     if (loading) {
         return (
             <div>
-                <SectionTitle />
-                <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-2">
+                <SectionTitle showToggle visible={showKpi} onToggle={() => setShowKpi((v) => !v)} />
+                <div className={`${showKpi ? 'grid' : 'hidden'} lg:grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-2`}>
                     {cards.map((card) => (
-                        <div key={card.key} className={`kpi-card-skeleton rounded-lg ${card.supplierFilter ? 'h-[92px]' : 'h-[82px]'}`} />
+                        <div
+                            key={card.key}
+                            className={`rounded-2xl sm:rounded-lg bg-slate-200 dark:bg-slate-800 animate-pulse ${
+                                card.supplierFilter ? 'h-[84px] sm:h-[92px]' : 'h-[76px] sm:h-[82px]'
+                            }`}
+                        />
                     ))}
                 </div>
             </div>
@@ -193,8 +216,8 @@ export default function KpiCards({ kpis, loading }) {
 
     return (
         <div>
-            <SectionTitle />
-            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-2">
+            <SectionTitle showToggle visible={showKpi} onToggle={() => setShowKpi((v) => !v)} />
+            <div className={`${showKpi ? 'grid' : 'hidden'} lg:grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-2`}>
                 {cards.map((card, i) => (
                     <KpiCard
                         key={card.key}

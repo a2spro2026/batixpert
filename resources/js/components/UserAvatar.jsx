@@ -1,8 +1,16 @@
 import { useMemo } from 'react';
 
+const ADMIN_AVATAR = '/images/admin-profile.jpg';
+
 function getAvatarUrl(user) {
     if (user?.avatar) {
-        return user.avatar.startsWith('http') ? user.avatar : `/storage/${user.avatar}`;
+        if (user.avatar.startsWith('http') || user.avatar.startsWith('/')) {
+            return user.avatar;
+        }
+        return `/storage/${user.avatar}`;
+    }
+    if (user?.is_admin) {
+        return ADMIN_AVATAR;
     }
     const name = encodeURIComponent(user?.name || 'User');
     return `https://ui-avatars.com/api/?name=${name}&background=F97316&color=fff&size=128&bold=true&format=svg`;
@@ -16,6 +24,7 @@ export default function UserAvatar({ user, size = 'md', className = '' }) {
     };
 
     const avatarUrl = useMemo(() => getAvatarUrl(user), [user]);
+    const isPhoto = Boolean(user?.avatar || user?.is_admin);
 
     return (
         <div
@@ -25,7 +34,7 @@ export default function UserAvatar({ user, size = 'md', className = '' }) {
             <img
                 src={avatarUrl}
                 alt={user?.name || 'Utilisateur'}
-                className="w-full h-full object-cover bg-brand-navy"
+                className={`w-full h-full bg-brand-navy ${isPhoto ? 'object-cover object-[68%_12%]' : 'object-cover'}`}
             />
         </div>
     );

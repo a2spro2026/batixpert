@@ -178,6 +178,7 @@ class AuthController extends Controller
                 ->all(),
             'is_admin' => $user->isAdmin(),
             'is_client_portal' => false,
+            'avatar' => $user->isAdmin() ? '/images/admin-profile.jpg' : null,
             'title' => $statutLabel
                 ?? (self::STATUTS[$user->statut] ?? null)
                 ?? ($user->isAdmin() ? 'Directeur Général' : ($user->role?->name ?? '')),
