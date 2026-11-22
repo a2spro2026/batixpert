@@ -430,14 +430,14 @@ export default function SupplierRelevePage() {
                                         { label: 'Date', value: row.date || '—' },
                                         { label: 'Ville liv.', value: row.ville_liv || '—' },
                                         { label: 'Qté', value: formatQty(row.qte) },
-                                        { label: 'Type rég.', value: row.type_reg || '—' },
                                         { label: 'Débit', value: formatMontant(row.debit), className: 'font-semibold text-rose-700 dark:text-rose-400', wrap: true },
                                         { label: 'Crédit', value: formatMontant(row.credit), className: 'font-semibold text-emerald-700 dark:text-emerald-400', wrap: true },
-                                        { label: 'Solde', value: (Number(row.solde) || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }), className: 'font-bold text-brand-navy dark:text-orange-400', full: true, wrap: true },
+                                        { label: 'Solde', value: (Number(row.solde) || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }), className: 'font-bold text-brand-navy dark:text-orange-400', wrap: true },
+                                        { label: 'Type rég.', value: row.type_reg || '—' },
                                         { label: 'N° rég.', value: row.numero_reg || '—' },
                                         { label: 'Nom tiré', value: row.nom_tire || '—', wrap: true },
-                                        { label: 'Date encaiss.', value: row.date_encaiss || '—', full: true },
-                                        ...(flags ? [{ label: 'Statut', value: flags, full: true, wrap: true }] : []),
+                                        { label: 'Date encaiss.', value: row.date_encaiss || '—' },
+                                        ...(flags ? [{ label: 'Statut', value: flags, wrap: true }] : []),
                                     ]}
                                 />
                             );
