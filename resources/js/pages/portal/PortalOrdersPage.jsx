@@ -69,7 +69,7 @@ th{background:#f8fafc;font-weight:700}.badge{background:#fff7ed;color:#ea580c;pa
 </body></html>`;
 }
 
-function ViewModal({ row, onClose, onPrint }) {
+function ViewModal({ row, onClose }) {
     if (!row) return null;
     return (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/50" onClick={onClose}>
@@ -113,9 +113,6 @@ function ViewModal({ row, onClose, onPrint }) {
                             </tbody>
                         </table>
                     </div>
-                    <button type="button" onClick={() => onPrint(row)} className="btn-primary w-full text-xs py-2.5">
-                        <Printer className="w-4 h-4" /> Imprimer
-                    </button>
                 </div>
             </div>
         </div>
@@ -315,7 +312,7 @@ export default function PortalOrdersPage() {
 
     return (
         <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
-            <ViewModal row={view} onClose={() => setView(null)} onPrint={printRow} />
+            <ViewModal row={view} onClose={() => setView(null)} />
             <PaymentsPanel order={paymentsFor} onClose={() => setPaymentsFor(null)} />
 
             <div className="shrink-0 space-y-2.5 pb-2.5">

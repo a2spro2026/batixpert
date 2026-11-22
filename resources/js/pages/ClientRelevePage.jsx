@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
     FileText, Printer, X, RefreshCw, Search, AlertTriangle, Ban, Clock,
     ArrowDownCircle, ArrowUpCircle, BadgeCheck, Vault, Scale, Package,
+    Eye, EyeOff, LayoutGrid, MousePointerClick,
 } from 'lucide-react';
 import api from '../lib/api';
 import { downloadPdf, openPrintPreview } from '../lib/printDocument';
@@ -174,6 +175,9 @@ export default function ClientRelevePage() {
     const [tresoreries, setTresoreries] = useState([]);
     const [loading, setLoading] = useState(true);
     const [pdfBusy, setPdfBusy] = useState(false);
+    const [showActions, setShowActions] = useState(false);
+    const [showKpi, setShowKpi] = useState(false);
+    const [showFilters, setShowFilters] = useState(false);
 
     const setFilter = (key, value) => setFilters((f) => ({ ...f, [key]: value }));
 
@@ -237,15 +241,40 @@ export default function ClientRelevePage() {
         applied.tresorerie ? `Trésorerie : ${applied.tresorerie}` : null,
     ].filter(Boolean).join(' · ');
 
+    const toggleBtnClass = (active) =>
+        `inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-[10px] font-bold uppercase tracking-wide ${
+            active
+                ? 'bg-brand-navy text-white border-brand-navy'
+                : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+        }`;
+
     return (
         <div className="flex flex-col flex-1 min-h-0 gap-3 lg:h-full">
             <div className="shrink-0 space-y-2.5 lg:space-y-3 lg:sticky lg:top-0 lg:z-20 bg-slate-50 dark:bg-slate-950 pb-1">
+                <div className="lg:hidden flex items-center justify-between gap-2">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Afficher</p>
+                    <div className="flex items-center gap-1.5">
+                        <button type="button" onClick={() => setShowActions((v) => !v)} className={toggleBtnClass(showActions)} title={showActions ? 'Masquer les boutons' : 'Afficher les boutons'} aria-label={showActions ? 'Masquer les boutons' : 'Afficher les boutons'}>
+                            {showActions ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                            <MousePointerClick className="w-3.5 h-3.5" />
+                        </button>
+                        <button type="button" onClick={() => setShowKpi((v) => !v)} className={toggleBtnClass(showKpi)} title={showKpi ? 'Masquer les KPI' : 'Afficher les KPI'} aria-label={showKpi ? 'Masquer les KPI' : 'Afficher les KPI'}>
+                            {showKpi ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                            <LayoutGrid className="w-3.5 h-3.5" />
+                        </button>
+                        <button type="button" onClick={() => setShowFilters((v) => !v)} className={toggleBtnClass(showFilters)} title={showFilters ? 'Masquer la recherche' : 'Afficher la recherche'} aria-label={showFilters ? 'Masquer la recherche' : 'Afficher la recherche'}>
+                            {showFilters ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                            <Search className="w-3.5 h-3.5" />
+                        </button>
+                    </div>
+                </div>
+
                 <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-2.5">
                     <div className="min-w-0 hidden xl:block">
                         <h1 className="text-xl font-bold text-slate-900 dark:text-white">Relevé de compte client</h1>
                         <p className="text-sm text-slate-500 dark:text-slate-400">Ventes et règlements consolidés</p>
                     </div>
-                    <div className="flex flex-col gap-2 w-full xl:w-auto">
+                    <div className={`flex-col gap-2 w-full xl:w-auto ${showActions ? 'flex' : 'hidden'} lg:flex`}>
                         <div className="grid grid-cols-3 gap-1.5 sm:flex sm:flex-wrap sm:items-center">
                             <button
                                 type="button"
@@ -267,82 +296,84 @@ export default function ClientRelevePage() {
                                 <X className="w-3.5 h-3.5" /> Fermer
                             </button>
                         </div>
-                        <div className="grid grid-cols-3 gap-1.5 w-full sm:max-w-[360px] sm:ml-auto">
-                            <SummaryCard
-                                compact
-                                label="Imp"
-                                value={summary.total_imp}
-                                gradient="from-red-500 via-rose-600 to-red-800"
-                                glow="rgba(220, 38, 38, 0.45)"
-                                icon={AlertTriangle}
-                            />
-                            <SummaryCard
-                                compact
-                                label="Déva"
-                                value={summary.total_deva}
-                                gradient="from-violet-500 via-purple-600 to-indigo-900"
-                                glow="rgba(124, 58, 237, 0.45)"
-                                icon={Ban}
-                            />
-                            <SummaryCard
-                                compact
-                                label="Repo"
-                                value={summary.total_repo}
-                                gradient="from-amber-400 via-yellow-500 to-amber-600"
-                                glow="rgba(217, 119, 6, 0.45)"
-                                icon={Clock}
-                            />
-                        </div>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-1.5 sm:gap-2">
-                    <SummaryCard
-                        label="Total Débit"
-                        value={summary.total_debit}
-                        gradient="from-rose-500 via-red-600 to-rose-800"
-                        glow="rgba(225, 29, 72, 0.4)"
-                        icon={ArrowDownCircle}
-                    />
-                    <SummaryCard
-                        label="Total Crédit"
-                        value={summary.total_credit}
-                        gradient="from-emerald-500 via-teal-600 to-green-800"
-                        glow="rgba(16, 185, 129, 0.4)"
-                        icon={ArrowUpCircle}
-                    />
-                    <SummaryCard
-                        label="Total Encaissé"
-                        value={summary.total_encaisse}
-                        gradient="from-blue-600 via-brand-navy to-slate-900"
-                        glow="rgba(30, 58, 95, 0.45)"
-                        icon={BadgeCheck}
-                    />
-                    <SummaryCard
-                        label="Coffre"
-                        value={summary.total_coffre}
-                        gradient="from-cyan-500 via-sky-600 to-blue-800"
-                        glow="rgba(14, 165, 233, 0.4)"
-                        icon={Vault}
-                    />
-                    <SummaryCard
-                        label="Solde"
-                        value={summary.solde}
-                        gradient="from-orange-500 via-amber-600 to-orange-800"
-                        glow="rgba(249, 115, 22, 0.4)"
-                        icon={Scale}
-                    />
-                    <SummaryCard
-                        label="Quantité"
-                        value={summary.total_qte}
-                        format="qty"
-                        gradient="from-slate-600 via-slate-700 to-slate-900"
-                        glow="rgba(71, 85, 105, 0.4)"
-                        icon={Package}
-                    />
+                <div className={`space-y-2.5 ${showKpi ? 'block' : 'hidden'} lg:block`}>
+                    <div className="grid grid-cols-3 gap-1.5 w-full sm:max-w-[360px] sm:ml-auto xl:ml-auto">
+                        <SummaryCard
+                            compact
+                            label="Imp"
+                            value={summary.total_imp}
+                            gradient="from-red-500 via-rose-600 to-red-800"
+                            glow="rgba(220, 38, 38, 0.45)"
+                            icon={AlertTriangle}
+                        />
+                        <SummaryCard
+                            compact
+                            label="Déva"
+                            value={summary.total_deva}
+                            gradient="from-violet-500 via-purple-600 to-indigo-900"
+                            glow="rgba(124, 58, 237, 0.45)"
+                            icon={Ban}
+                        />
+                        <SummaryCard
+                            compact
+                            label="Repo"
+                            value={summary.total_repo}
+                            gradient="from-amber-400 via-yellow-500 to-amber-600"
+                            glow="rgba(217, 119, 6, 0.45)"
+                            icon={Clock}
+                        />
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-1.5 sm:gap-2">
+                        <SummaryCard
+                            label="Total Débit"
+                            value={summary.total_debit}
+                            gradient="from-rose-500 via-red-600 to-rose-800"
+                            glow="rgba(225, 29, 72, 0.4)"
+                            icon={ArrowDownCircle}
+                        />
+                        <SummaryCard
+                            label="Total Crédit"
+                            value={summary.total_credit}
+                            gradient="from-emerald-500 via-teal-600 to-green-800"
+                            glow="rgba(16, 185, 129, 0.4)"
+                            icon={ArrowUpCircle}
+                        />
+                        <SummaryCard
+                            label="Total Encaissé"
+                            value={summary.total_encaisse}
+                            gradient="from-blue-600 via-brand-navy to-slate-900"
+                            glow="rgba(30, 58, 95, 0.45)"
+                            icon={BadgeCheck}
+                        />
+                        <SummaryCard
+                            label="Coffre"
+                            value={summary.total_coffre}
+                            gradient="from-cyan-500 via-sky-600 to-blue-800"
+                            glow="rgba(14, 165, 233, 0.4)"
+                            icon={Vault}
+                        />
+                        <SummaryCard
+                            label="Solde"
+                            value={summary.solde}
+                            gradient="from-orange-500 via-amber-600 to-orange-800"
+                            glow="rgba(249, 115, 22, 0.4)"
+                            icon={Scale}
+                        />
+                        <SummaryCard
+                            label="Quantité"
+                            value={summary.total_qte}
+                            format="qty"
+                            gradient="from-slate-600 via-slate-700 to-slate-900"
+                            glow="rgba(71, 85, 105, 0.4)"
+                            icon={Package}
+                        />
+                    </div>
                 </div>
 
-                <div className="glass-card p-2.5 sm:p-3 shadow-card border border-slate-200/60 dark:border-slate-700/60">
+                <div className={`${showFilters ? 'block' : 'hidden'} lg:block glass-card p-2.5 sm:p-3 shadow-card border border-slate-200/60 dark:border-slate-700/60`}>
                     <div className="grid grid-cols-2 xl:grid-cols-[1fr_1.3fr_1fr_auto] gap-2 sm:gap-2.5 items-end">
                         <Field label="Mois">
                             <select value={filters.mois} onChange={(e) => setFilter('mois', e.target.value)} className={filterClass}>
