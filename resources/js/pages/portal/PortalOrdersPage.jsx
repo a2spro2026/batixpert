@@ -307,28 +307,27 @@ export default function PortalOrdersPage() {
             <ViewModal row={view} onClose={() => setView(null)} onPrint={printRow} />
             <PaymentsPanel order={paymentsFor} onClose={() => setPaymentsFor(null)} />
 
-            <div className="flex items-start justify-between gap-3">
-                <div>
+            <div className="sticky top-[7.5rem] sm:top-[8rem] z-30 -mx-4 px-4 pt-1 pb-3 space-y-3 bg-slate-50/95 dark:bg-slate-950/95 backdrop-blur border-b border-slate-200/70 dark:border-slate-800/70">
+                <div className="flex items-center justify-between gap-3">
                     <h2 className="text-lg font-bold text-slate-900 dark:text-white">Mes bons de vente</h2>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">Consultation et impression uniquement</p>
+                    <button type="button" onClick={load} className="p-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 bg-white/80 dark:bg-slate-900/80" title="Actualiser">
+                        <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                    </button>
                 </div>
-                <button type="button" onClick={load} className="p-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300" title="Actualiser">
-                    <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                </button>
-            </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                <div className="rounded-xl bg-brand-navy text-white p-3">
-                    <p className="text-[10px] uppercase text-blue-100">Bons</p>
-                    <p className="text-xl font-bold tabular-nums">{meta.count}</p>
-                </div>
-                <div className="rounded-xl bg-orange-500 text-white p-3">
-                    <p className="text-[10px] uppercase text-orange-100">Total</p>
-                    <p className="text-sm sm:text-lg font-bold tabular-nums">{formatMontant(meta.total_montant)}</p>
-                </div>
-                <div className="rounded-xl bg-red-600 text-white p-3 col-span-2 sm:col-span-1">
-                    <p className="text-[10px] uppercase text-red-100">Solde restant</p>
-                    <p className="text-sm sm:text-lg font-bold tabular-nums">{formatMontant(meta.total_solde)}</p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    <div className="rounded-xl bg-brand-navy text-white p-3 shadow-md">
+                        <p className="text-[10px] uppercase text-blue-100">Bons</p>
+                        <p className="text-xl font-bold tabular-nums">{meta.count}</p>
+                    </div>
+                    <div className="rounded-xl bg-orange-500 text-white p-3 shadow-md">
+                        <p className="text-[10px] uppercase text-orange-100">Total</p>
+                        <p className="text-sm sm:text-lg font-bold tabular-nums">{formatMontant(meta.total_montant)}</p>
+                    </div>
+                    <div className="rounded-xl bg-red-600 text-white p-3 shadow-md col-span-2 sm:col-span-1">
+                        <p className="text-[10px] uppercase text-red-100">Solde restant</p>
+                        <p className="text-sm sm:text-lg font-bold tabular-nums">{formatMontant(meta.total_solde)}</p>
+                    </div>
                 </div>
             </div>
 

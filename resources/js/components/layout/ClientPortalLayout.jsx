@@ -39,8 +39,14 @@ export default function ClientPortalLayout() {
                         >
                             {dark ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-600" />}
                         </button>
-                        <button type="button" onClick={handleLogout} className="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold uppercase text-red-600 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40">
-                            <LogOut className="w-4 h-4" /> Déconnexion
+                        <button
+                            type="button"
+                            onClick={handleLogout}
+                            className="p-2 rounded-xl text-red-600 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40"
+                            title="Se déconnecter"
+                            aria-label="Se déconnecter"
+                        >
+                            <LogOut className="w-4 h-4" />
                         </button>
                     </div>
                 </div>
