@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Eye, Printer, RefreshCw } from 'lucide-react';
 import api from '../../lib/api';
 import { openPrintPreview } from '../../lib/printDocument';
-import MobileRecordCard, { MobileCardList } from '../../components/MobileRecordCard';
+import { MobileCardList } from '../../components/MobileRecordCard';
 
 function formatMontant(value) {
     return (Number(value) || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -57,24 +57,24 @@ function ViewModal({ row, onClose, onPrint }) {
                     </div>
                     <button type="button" onClick={onClose} className="px-3 py-1.5 rounded-lg bg-white/15 text-xs font-bold">Fermer</button>
                 </div>
-                <div className="p-4 space-y-3 text-sm">
+                <div className="p-4 space-y-3 text-sm text-slate-800 dark:text-slate-100">
                     <div className="grid grid-cols-2 gap-3">
-                        <p><span className="text-slate-400 text-[10px] uppercase block">Date</span>{row.order_date || '—'}</p>
-                        <p><span className="text-slate-400 text-[10px] uppercase block">Ville</span>{row.city || '—'}</p>
-                        <p><span className="text-slate-400 text-[10px] uppercase block">Montant</span><strong>{formatMontant(row.montant)}</strong></p>
-                        <p><span className="text-slate-400 text-[10px] uppercase block">Solde</span><strong className="text-red-600">{formatMontant(row.solde)}</strong></p>
-                        <p className="col-span-2"><span className="text-slate-400 text-[10px] uppercase block">Adresse</span>{row.address || '—'}</p>
+                        <p><span className="text-slate-400 dark:text-slate-500 text-[10px] uppercase block">Date</span>{row.order_date || '—'}</p>
+                        <p><span className="text-slate-400 dark:text-slate-500 text-[10px] uppercase block">Ville</span>{row.city || '—'}</p>
+                        <p><span className="text-slate-400 dark:text-slate-500 text-[10px] uppercase block">Montant total</span><strong className="text-slate-900 dark:text-white">{formatMontant(row.montant)}</strong></p>
+                        <p><span className="text-slate-400 dark:text-slate-500 text-[10px] uppercase block">Solde</span><strong className="text-red-600 dark:text-red-400">{formatMontant(row.solde)}</strong></p>
+                        <p className="col-span-2"><span className="text-slate-400 dark:text-slate-500 text-[10px] uppercase block">Adresse</span>{row.address || '—'}</p>
                     </div>
                     <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700">
                         <table className="w-full text-xs">
-                            <thead className="bg-slate-50 dark:bg-slate-800">
+                            <thead className="bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
                                 <tr>
                                     {['Réf', 'Désignation', 'U', 'Qté', 'P/U', 'Total'].map((h) => (
                                         <th key={h} className="px-2 py-2 text-center">{h}</th>
                                     ))}
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody className="text-slate-700 dark:text-slate-200">
                                 {(row.items || []).map((i, idx) => (
                                     <tr key={idx} className="border-t border-slate-100 dark:border-slate-800">
                                         <td className="px-2 py-2 text-center">{i.article_ref || '—'}</td>
@@ -94,6 +94,42 @@ function ViewModal({ row, onClose, onPrint }) {
                 </div>
             </div>
         </div>
+    );
+}
+
+function OrderMobileCard({ row, onOpen }) {
+    return (
+        <button
+            type="button"
+            onClick={onOpen}
+            className="w-full text-left overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700 border-l-[4px] !border-l-brand-navy dark:!border-l-orange-400 shadow-md bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-950"
+        >
+            <div className="px-3.5 py-3 space-y-2.5">
+                <div className="flex items-start justify-between gap-3">
+                    <p className="font-mono text-[13px] font-bold text-brand-navy dark:text-orange-400 truncate">{row.reference}</p>
+                    <p className="shrink-0 text-[13px] font-semibold text-slate-800 dark:text-slate-100 tabular-nums">{row.order_date || '—'}</p>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                    <div className="min-w-0">
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Ville</p>
+                        <p className="text-[13px] font-medium text-slate-800 dark:text-slate-100 truncate">{row.city || '—'}</p>
+                    </div>
+                    <div className="min-w-0">
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Montant total</p>
+                        <p className="text-[13px] font-bold underline decoration-2 underline-offset-2 text-slate-900 dark:text-white tabular-nums truncate">
+                            {formatMontant(row.montant)}
+                        </p>
+                    </div>
+                    <div className="min-w-0">
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Solde</p>
+                        <p className="text-[13px] font-bold text-red-600 dark:text-red-400 tabular-nums truncate">
+                            {formatMontant(row.solde)}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </button>
     );
 }
 
@@ -128,9 +164,9 @@ export default function PortalOrdersPage() {
             <div className="flex items-start justify-between gap-3">
                 <div>
                     <h2 className="text-lg font-bold text-slate-900 dark:text-white">Mes bons de vente</h2>
-                    <p className="text-sm text-slate-500">Consultation et impression uniquement</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Consultation et impression uniquement</p>
                 </div>
-                <button type="button" onClick={load} className="p-2 rounded-xl border border-slate-200 dark:border-slate-700" title="Actualiser">
+                <button type="button" onClick={load} className="p-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300" title="Actualiser">
                     <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
                 </button>
             </div>
@@ -150,60 +186,45 @@ export default function PortalOrdersPage() {
                 </div>
             </div>
 
-            <div className="glass-card overflow-hidden border border-slate-200/60 dark:border-slate-700/60">
+            <div className="glass-card overflow-hidden border border-slate-200/60 dark:border-slate-700/60 bg-white/80 dark:bg-slate-900/60">
                 <div className="md:hidden">
                     <MobileCardList loading={loading} empty="Aucun bon de vente">
                         {rows.map((row) => (
-                            <MobileRecordCard
-                                key={row.id}
-                                title={row.reference}
-                                subtitle={row.order_date}
-                                fields={[
-                                    { label: 'Montant', value: formatMontant(row.montant) },
-                                    { label: 'Solde', value: formatMontant(row.solde), className: 'text-red-600 font-bold' },
-                                    { label: 'Payé', value: formatMontant(row.montant_paye) },
-                                    { label: 'Ville', value: row.city || '—' },
-                                ]}
-                                actions={[
-                                    { label: 'Voir', icon: Eye, color: 'blue', onClick: () => setView(row) },
-                                    { label: 'Imprimer', icon: Printer, color: 'slate', onClick: () => printRow(row) },
-                                ]}
-                            />
+                            <OrderMobileCard key={row.id} row={row} onOpen={() => setView(row)} />
                         ))}
                     </MobileCardList>
                 </div>
 
                 <div className="hidden md:block overflow-x-auto">
-                    <table className="w-full text-sm min-w-[720px]">
+                    <table className="w-full text-sm min-w-[640px]">
                         <thead>
-                            <tr className="bg-slate-100 dark:bg-slate-800">
-                                {['Date', 'Référence', 'Montant', 'Payé', 'Solde', 'Ville', 'Actions'].map((h) => (
+                            <tr className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                                {['Référence', 'Date', 'Ville', 'Montant total', 'Solde', 'Actions'].map((h) => (
                                     <th key={h} className="px-3 py-3 text-[11px] font-bold uppercase text-center">{h}</th>
                                 ))}
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-800 dark:text-slate-100">
                             {loading ? (
                                 [...Array(4)].map((_, i) => (
-                                    <tr key={i}><td colSpan={7} className="px-3 py-3"><div className="h-4 bg-slate-200 dark:bg-slate-700 rounded animate-pulse" /></td></tr>
+                                    <tr key={i}><td colSpan={6} className="px-3 py-3"><div className="h-4 bg-slate-200 dark:bg-slate-700 rounded animate-pulse" /></td></tr>
                                 ))
                             ) : rows.length ? rows.map((row) => (
                                 <tr key={row.id} className="hover:bg-blue-50/40 dark:hover:bg-slate-800/40">
-                                    <td className="px-3 py-2.5 text-center">{row.order_date}</td>
                                     <td className="px-3 py-2.5 text-center font-mono font-bold text-brand-navy dark:text-orange-400">{row.reference}</td>
-                                    <td className="px-3 py-2.5 text-center tabular-nums font-semibold">{formatMontant(row.montant)}</td>
-                                    <td className="px-3 py-2.5 text-center tabular-nums text-emerald-700">{formatMontant(row.montant_paye)}</td>
-                                    <td className="px-3 py-2.5 text-center tabular-nums font-bold text-red-600">{formatMontant(row.solde)}</td>
+                                    <td className="px-3 py-2.5 text-center">{row.order_date || '—'}</td>
                                     <td className="px-3 py-2.5 text-center">{row.city || '—'}</td>
+                                    <td className="px-3 py-2.5 text-center tabular-nums font-bold underline decoration-2 underline-offset-2">{formatMontant(row.montant)}</td>
+                                    <td className="px-3 py-2.5 text-center tabular-nums font-bold text-red-600 dark:text-red-400">{formatMontant(row.solde)}</td>
                                     <td className="px-3 py-2.5">
                                         <div className="flex justify-center gap-1">
-                                            <button type="button" onClick={() => setView(row)} className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50" title="Voir"><Eye className="w-4 h-4" /></button>
-                                            <button type="button" onClick={() => printRow(row)} className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100" title="Imprimer"><Printer className="w-4 h-4" /></button>
+                                            <button type="button" onClick={() => setView(row)} className="p-1.5 rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30" title="Voir"><Eye className="w-4 h-4" /></button>
+                                            <button type="button" onClick={() => printRow(row)} className="p-1.5 rounded-lg text-slate-500 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800" title="Imprimer"><Printer className="w-4 h-4" /></button>
                                         </div>
                                     </td>
                                 </tr>
                             )) : (
-                                <tr><td colSpan={7} className="px-3 py-12 text-center text-slate-400">Aucun bon de vente</td></tr>
+                                <tr><td colSpan={6} className="px-3 py-12 text-center text-slate-400 dark:text-slate-500">Aucun bon de vente</td></tr>
                             )}
                         </tbody>
                     </table>
