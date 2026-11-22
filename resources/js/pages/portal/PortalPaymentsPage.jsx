@@ -119,34 +119,36 @@ export default function PortalPaymentsPage() {
     useEffect(() => { load(); }, [filter]);
 
     return (
-        <div className="space-y-4">
-            <div className="flex items-start justify-between gap-3">
-                <div>
-                    <h2 className="text-lg font-bold text-slate-900 dark:text-white">Mes règlements</h2>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">Soldés et non soldés — consultation uniquement</p>
+        <div className="flex flex-col flex-1 min-h-0 h-full gap-3 overflow-hidden">
+            <div className="shrink-0 space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                    <div>
+                        <h2 className="text-lg font-bold text-slate-900 dark:text-white">Mes règlements</h2>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">Soldés et non soldés — consultation uniquement</p>
+                    </div>
+                    <button type="button" onClick={load} className="p-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300" title="Actualiser">
+                        <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                    </button>
                 </div>
-                <button type="button" onClick={load} className="p-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300" title="Actualiser">
-                    <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                </button>
+
+                <div className="grid grid-cols-3 gap-2">
+                    <button type="button" onClick={() => setFilter('')} className={`rounded-xl p-3 text-left ${!filter ? 'bg-brand-navy text-white' : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700'}`}>
+                        <p className={`text-[10px] uppercase ${!filter ? 'text-blue-100' : 'text-slate-400 dark:text-slate-500'}`}>Tous</p>
+                        <p className="text-xl font-bold tabular-nums text-slate-900 dark:text-white">{meta.soldes + meta.non_soldes}</p>
+                    </button>
+                    <button type="button" onClick={() => setFilter('soldes')} className={`rounded-xl p-3 text-left ${filter === 'soldes' ? 'bg-emerald-600 text-white' : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700'}`}>
+                        <p className={`text-[10px] uppercase ${filter === 'soldes' ? 'text-emerald-100' : 'text-slate-400 dark:text-slate-500'}`}>Soldés</p>
+                        <p className={`text-xl font-bold tabular-nums ${filter === 'soldes' ? 'text-white' : 'text-slate-900 dark:text-white'}`}>{meta.soldes}</p>
+                    </button>
+                    <button type="button" onClick={() => setFilter('non_soldes')} className={`rounded-xl p-3 text-left ${filter === 'non_soldes' ? 'bg-amber-500 text-white' : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700'}`}>
+                        <p className={`text-[10px] uppercase ${filter === 'non_soldes' ? 'text-amber-100' : 'text-slate-400 dark:text-slate-500'}`}>Non soldés</p>
+                        <p className={`text-xl font-bold tabular-nums ${filter === 'non_soldes' ? 'text-white' : 'text-slate-900 dark:text-white'}`}>{meta.non_soldes}</p>
+                    </button>
+                </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-2">
-                <button type="button" onClick={() => setFilter('')} className={`rounded-xl p-3 text-left ${!filter ? 'bg-brand-navy text-white' : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700'}`}>
-                    <p className={`text-[10px] uppercase ${!filter ? 'text-blue-100' : 'text-slate-400 dark:text-slate-500'}`}>Tous</p>
-                    <p className="text-xl font-bold tabular-nums text-slate-900 dark:text-white">{meta.soldes + meta.non_soldes}</p>
-                </button>
-                <button type="button" onClick={() => setFilter('soldes')} className={`rounded-xl p-3 text-left ${filter === 'soldes' ? 'bg-emerald-600 text-white' : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700'}`}>
-                    <p className={`text-[10px] uppercase ${filter === 'soldes' ? 'text-emerald-100' : 'text-slate-400 dark:text-slate-500'}`}>Soldés</p>
-                    <p className={`text-xl font-bold tabular-nums ${filter === 'soldes' ? 'text-white' : 'text-slate-900 dark:text-white'}`}>{meta.soldes}</p>
-                </button>
-                <button type="button" onClick={() => setFilter('non_soldes')} className={`rounded-xl p-3 text-left ${filter === 'non_soldes' ? 'bg-amber-500 text-white' : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700'}`}>
-                    <p className={`text-[10px] uppercase ${filter === 'non_soldes' ? 'text-amber-100' : 'text-slate-400 dark:text-slate-500'}`}>Non soldés</p>
-                    <p className={`text-xl font-bold tabular-nums ${filter === 'non_soldes' ? 'text-white' : 'text-slate-900 dark:text-white'}`}>{meta.non_soldes}</p>
-                </button>
-            </div>
-
-            <div className="glass-card overflow-hidden border border-slate-200/60 dark:border-slate-700/60 bg-white/80 dark:bg-slate-900/60">
-                <div className="md:hidden">
+            <div className="flex-1 min-h-0 glass-card overflow-hidden border border-slate-200/60 dark:border-slate-700/60 bg-white/80 dark:bg-slate-900/60 flex flex-col">
+                <div className="md:hidden flex-1 min-h-0 overflow-y-auto overscroll-contain">
                     <MobileCardList loading={loading} empty="Aucun règlement">
                         {rows.map((row) => (
                             <PaymentMobileCard key={row.id} row={row} />
@@ -154,9 +156,9 @@ export default function PortalPaymentsPage() {
                     </MobileCardList>
                 </div>
 
-                <div className="hidden md:block overflow-x-auto">
+                <div className="hidden md:block flex-1 min-h-0 overflow-auto">
                     <table className="w-full text-sm min-w-[820px]">
-                        <thead>
+                        <thead className="sticky top-0 z-10">
                             <tr className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
                                 {['Réf', 'Date saisie', 'Type', 'N°', 'Banq', 'Nom tiré', 'Date échéance', 'Montant', 'Trésorerie', 'Statut'].map((h) => (
                                     <th key={h} className="px-3 py-3 text-[11px] font-bold uppercase text-center">{h}</th>

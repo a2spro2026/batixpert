@@ -303,11 +303,11 @@ export default function PortalOrdersPage() {
     });
 
     return (
-        <div className="space-y-4">
+        <div className="flex flex-col flex-1 min-h-0 h-full gap-3 overflow-hidden">
             <ViewModal row={view} onClose={() => setView(null)} onPrint={printRow} />
             <PaymentsPanel order={paymentsFor} onClose={() => setPaymentsFor(null)} />
 
-            <div className="sticky top-[7.5rem] sm:top-[8rem] z-30 -mx-4 px-4 pt-1 pb-3 space-y-3 bg-slate-50/95 dark:bg-slate-950/95 backdrop-blur border-b border-slate-200/70 dark:border-slate-800/70">
+            <div className="shrink-0 space-y-3">
                 <div className="flex items-center justify-between gap-3">
                     <h2 className="text-lg font-bold text-slate-900 dark:text-white">Mes bons de vente</h2>
                     <button type="button" onClick={load} className="p-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 bg-white/80 dark:bg-slate-900/80" title="Actualiser">
@@ -331,8 +331,8 @@ export default function PortalOrdersPage() {
                 </div>
             </div>
 
-            <div className="glass-card overflow-hidden border border-slate-200/60 dark:border-slate-700/60 bg-white/80 dark:bg-slate-900/60">
-                <div className="md:hidden">
+            <div className="flex-1 min-h-0 glass-card overflow-hidden border border-slate-200/60 dark:border-slate-700/60 bg-white/80 dark:bg-slate-900/60 flex flex-col">
+                <div className="md:hidden flex-1 min-h-0 overflow-y-auto overscroll-contain">
                     <MobileCardList loading={loading} empty="Aucun bon de vente">
                         {rows.map((row) => (
                             <OrderMobileCard
@@ -345,9 +345,9 @@ export default function PortalOrdersPage() {
                     </MobileCardList>
                 </div>
 
-                <div className="hidden md:block overflow-x-auto">
+                <div className="hidden md:block flex-1 min-h-0 overflow-auto">
                     <table className="w-full text-sm min-w-[760px]">
-                        <thead>
+                        <thead className="sticky top-0 z-10">
                             <tr className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
                                 {['Référence', 'Date', 'Fournisseur', 'Ville', 'Montant total', 'Solde', 'Actions'].map((h) => (
                                     <th key={h} className="px-3 py-3 text-[11px] font-bold uppercase text-center">{h}</th>

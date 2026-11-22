@@ -19,8 +19,8 @@ export default function ClientPortalLayout() {
     };
 
     return (
-        <div className="min-h-[100dvh] bg-slate-50 dark:bg-slate-950 flex flex-col">
-            <header className="sticky top-0 z-40 border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur">
+        <div className="h-[100dvh] bg-slate-50 dark:bg-slate-950 flex flex-col overflow-hidden">
+            <header className="shrink-0 z-40 border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur">
                 <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
                     <div className="min-w-0">
                         <p className="text-[10px] font-bold uppercase tracking-wider text-brand-orange">Portail Client</p>
@@ -71,7 +71,7 @@ export default function ClientPortalLayout() {
                 </nav>
             </header>
 
-            <main className="flex-1 max-w-6xl w-full mx-auto px-4 py-4 sm:py-6">
+            <main className="flex-1 min-h-0 max-w-6xl w-full mx-auto px-4 py-3 sm:py-4 flex flex-col overflow-hidden">
                 <Outlet />
             </main>
         </div>
