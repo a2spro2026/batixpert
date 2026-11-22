@@ -74,21 +74,43 @@ function ViewModal({ row, onClose }) {
     return (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/50" onClick={onClose}>
             <div className="bg-white dark:bg-slate-900 w-full sm:max-w-2xl sm:rounded-2xl rounded-t-2xl max-h-[90dvh] overflow-auto" onClick={(e) => e.stopPropagation()}>
-                <div className="sticky top-0 px-4 py-3 bg-gradient-to-r from-brand-navy to-blue-800 text-white flex items-center justify-between">
-                    <div>
+                <div className="sticky top-0 px-4 py-3 bg-gradient-to-r from-brand-navy to-blue-800 text-white flex items-center justify-between gap-3">
+                    <div className="min-w-0">
                         <p className="text-[10px] uppercase text-blue-100">Bon de vente</p>
-                        <h3 className="font-bold">{row.reference}</h3>
+                        <h3 className="font-bold truncate">{row.reference}</h3>
                     </div>
-                    <button type="button" onClick={onClose} className="px-3 py-1.5 rounded-lg bg-white/15 text-xs font-bold">Fermer</button>
+                    <button type="button" onClick={onClose} className="p-2 rounded-lg bg-white/15 shrink-0" title="Fermer" aria-label="Fermer">
+                        <X className="w-4 h-4" />
+                    </button>
                 </div>
                 <div className="p-4 space-y-3 text-sm text-slate-800 dark:text-slate-100">
-                    <div className="grid grid-cols-2 gap-3">
-                        <p><span className="text-slate-400 dark:text-slate-500 text-[10px] uppercase block">Date</span>{row.order_date || '—'}</p>
-                        <p><span className="text-slate-400 dark:text-slate-500 text-[10px] uppercase block">Fournisseur</span>{row.fournisseur || '—'}</p>
-                        <p><span className="text-slate-400 dark:text-slate-500 text-[10px] uppercase block">Ville</span>{row.city || '—'}</p>
-                        <p><span className="text-slate-400 dark:text-slate-500 text-[10px] uppercase block">Montant total</span><strong className="text-slate-900 dark:text-white">{formatMontant(row.montant)}</strong></p>
-                        <p><span className="text-slate-400 dark:text-slate-500 text-[10px] uppercase block">Solde</span><strong className="text-red-600 dark:text-red-400">{formatMontant(row.solde)}</strong></p>
-                        <p className="col-span-2"><span className="text-slate-400 dark:text-slate-500 text-[10px] uppercase block">Adresse</span>{row.address || '—'}</p>
+                    <div className="grid grid-cols-3 gap-2 items-start">
+                        <div className="min-w-0">
+                            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">B-V</p>
+                            <p className="font-mono text-[13px] font-bold text-brand-navy dark:text-orange-400 truncate">{row.reference}</p>
+                        </div>
+                        <div className="min-w-0 text-center">
+                            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Date</p>
+                            <p className="text-[13px] font-semibold tabular-nums">{row.order_date || '—'}</p>
+                        </div>
+                        <div className="min-w-0 text-right">
+                            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Fournisseur</p>
+                            <p className="text-[13px] font-medium truncate">{row.fournisseur || '—'}</p>
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                        <div className="min-w-0">
+                            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Montant</p>
+                            <p className="text-[13px] font-bold underline decoration-2 underline-offset-2 text-slate-900 dark:text-white tabular-nums truncate">
+                                {formatMontant(row.montant)}
+                            </p>
+                        </div>
+                        <div className="min-w-0 text-right">
+                            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Solde</p>
+                            <p className="text-[13px] font-bold text-red-600 dark:text-red-400 tabular-nums truncate">
+                                {formatMontant(row.solde)}
+                            </p>
+                        </div>
                     </div>
                     <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700">
                         <table className="w-full text-xs">
@@ -239,18 +261,14 @@ function OrderMobileCard({ row, onOpen, onPayments }) {
                     </div>
                 </div>
 
-                <div className="mt-2.5 grid grid-cols-3 gap-2">
+                <div className="mt-2.5 grid grid-cols-2 gap-2">
                     <div className="min-w-0">
-                        <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Ville</p>
-                        <p className="text-[13px] font-medium text-slate-800 dark:text-slate-100 truncate">{row.city || '—'}</p>
-                    </div>
-                    <div className="min-w-0">
-                        <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Montant total</p>
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Montant</p>
                         <p className="text-[13px] font-bold underline decoration-2 underline-offset-2 text-slate-900 dark:text-white tabular-nums truncate">
                             {formatMontant(row.montant)}
                         </p>
                     </div>
-                    <div className="min-w-0">
+                    <div className="min-w-0 text-right">
                         <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Solde</p>
                         <p className="text-[13px] font-bold text-red-600 dark:text-red-400 tabular-nums truncate">
                             {formatMontant(row.solde)}
