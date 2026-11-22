@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { RefreshCw } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import api from '../../lib/api';
 import { MobileCardList } from '../../components/MobileRecordCard';
 
@@ -98,13 +98,15 @@ function PaymentMobileCard({ row }) {
 }
 
 export default function PortalPaymentsPage() {
+    const { setRefreshHandler, setRefreshing } = useOutletContext() || {};
     const [rows, setRows] = useState([]);
     const [meta, setMeta] = useState({ count: 0, soldes: 0, non_soldes: 0, total_montant: 0 });
     const [filter, setFilter] = useState('');
     const [loading, setLoading] = useState(true);
 
-    const load = () => {
+    const load = useCallback(() => {
         setLoading(true);
+        setRefreshing?.(true);
         const params = {};
         if (filter) params.solde = filter;
         api.get('/portal/payments', { params })
@@ -113,42 +115,45 @@ export default function PortalPaymentsPage() {
                 setMeta(r.data.meta ?? { count: 0, soldes: 0, non_soldes: 0, total_montant: 0 });
             })
             .catch(() => setRows([]))
-            .finally(() => setLoading(false));
-    };
+            .finally(() => {
+                setLoading(false);
+                setRefreshing?.(false);
+            });
+    }, [filter, setRefreshing]);
 
-    useEffect(() => { load(); }, [filter]);
+    useEffect(() => {
+        setRefreshHandler?.(load);
+        return () => setRefreshHandler?.(null);
+    }, [load, setRefreshHandler]);
+
+    useEffect(() => { load(); }, [load]);
 
     return (
-        <div className="flex flex-col flex-1 min-h-0 h-full gap-3 overflow-hidden">
-            <div className="shrink-0 space-y-3">
-                <div className="flex items-start justify-between gap-3">
-                    <div>
-                        <h2 className="text-lg font-bold text-slate-900 dark:text-white">Mes règlements</h2>
-                        <p className="text-sm text-slate-500 dark:text-slate-400">Soldés et non soldés — consultation uniquement</p>
-                    </div>
-                    <button type="button" onClick={load} className="p-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300" title="Actualiser">
-                        <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                    </button>
+        <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+            <div className="shrink-0 space-y-2.5 pb-2.5">
+                <div>
+                    <h2 className="text-lg font-bold text-slate-900 dark:text-white">Mes règlements</h2>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Soldés et non soldés — consultation uniquement</p>
                 </div>
 
-                <div className="grid grid-cols-3 gap-2">
-                    <button type="button" onClick={() => setFilter('')} className={`rounded-xl p-3 text-left ${!filter ? 'bg-brand-navy text-white' : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700'}`}>
-                        <p className={`text-[10px] uppercase ${!filter ? 'text-blue-100' : 'text-slate-400 dark:text-slate-500'}`}>Tous</p>
-                        <p className="text-xl font-bold tabular-nums text-slate-900 dark:text-white">{meta.soldes + meta.non_soldes}</p>
+                <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
+                    <button type="button" onClick={() => setFilter('')} className={`rounded-xl p-2 sm:p-3 text-left min-w-0 ${!filter ? 'bg-brand-navy text-white' : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700'}`}>
+                        <p className={`text-[9px] sm:text-[10px] uppercase truncate ${!filter ? 'text-blue-100' : 'text-slate-400 dark:text-slate-500'}`}>Tous</p>
+                        <p className="text-base sm:text-xl font-bold tabular-nums text-slate-900 dark:text-white truncate">{meta.soldes + meta.non_soldes}</p>
                     </button>
-                    <button type="button" onClick={() => setFilter('soldes')} className={`rounded-xl p-3 text-left ${filter === 'soldes' ? 'bg-emerald-600 text-white' : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700'}`}>
-                        <p className={`text-[10px] uppercase ${filter === 'soldes' ? 'text-emerald-100' : 'text-slate-400 dark:text-slate-500'}`}>Soldés</p>
-                        <p className={`text-xl font-bold tabular-nums ${filter === 'soldes' ? 'text-white' : 'text-slate-900 dark:text-white'}`}>{meta.soldes}</p>
+                    <button type="button" onClick={() => setFilter('soldes')} className={`rounded-xl p-2 sm:p-3 text-left min-w-0 ${filter === 'soldes' ? 'bg-emerald-600 text-white' : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700'}`}>
+                        <p className={`text-[9px] sm:text-[10px] uppercase truncate ${filter === 'soldes' ? 'text-emerald-100' : 'text-slate-400 dark:text-slate-500'}`}>Soldés</p>
+                        <p className={`text-base sm:text-xl font-bold tabular-nums truncate ${filter === 'soldes' ? 'text-white' : 'text-slate-900 dark:text-white'}`}>{meta.soldes}</p>
                     </button>
-                    <button type="button" onClick={() => setFilter('non_soldes')} className={`rounded-xl p-3 text-left ${filter === 'non_soldes' ? 'bg-amber-500 text-white' : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700'}`}>
-                        <p className={`text-[10px] uppercase ${filter === 'non_soldes' ? 'text-amber-100' : 'text-slate-400 dark:text-slate-500'}`}>Non soldés</p>
-                        <p className={`text-xl font-bold tabular-nums ${filter === 'non_soldes' ? 'text-white' : 'text-slate-900 dark:text-white'}`}>{meta.non_soldes}</p>
+                    <button type="button" onClick={() => setFilter('non_soldes')} className={`rounded-xl p-2 sm:p-3 text-left min-w-0 ${filter === 'non_soldes' ? 'bg-amber-500 text-white' : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700'}`}>
+                        <p className={`text-[9px] sm:text-[10px] uppercase truncate ${filter === 'non_soldes' ? 'text-amber-100' : 'text-slate-400 dark:text-slate-500'}`}>Non soldés</p>
+                        <p className={`text-base sm:text-xl font-bold tabular-nums truncate ${filter === 'non_soldes' ? 'text-white' : 'text-slate-900 dark:text-white'}`}>{meta.non_soldes}</p>
                     </button>
                 </div>
             </div>
 
             <div className="flex-1 min-h-0 glass-card overflow-hidden border border-slate-200/60 dark:border-slate-700/60 bg-white/80 dark:bg-slate-900/60 flex flex-col">
-                <div className="md:hidden flex-1 min-h-0 overflow-y-auto overscroll-contain">
+                <div className="md:hidden flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y">
                     <MobileCardList loading={loading} empty="Aucun règlement">
                         {rows.map((row) => (
                             <PaymentMobileCard key={row.id} row={row} />
@@ -156,7 +161,7 @@ export default function PortalPaymentsPage() {
                     </MobileCardList>
                 </div>
 
-                <div className="hidden md:block flex-1 min-h-0 overflow-auto">
+                <div className="hidden md:block flex-1 min-h-0 overflow-auto overscroll-contain">
                     <table className="w-full text-sm min-w-[820px]">
                         <thead className="sticky top-0 z-10">
                             <tr className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">

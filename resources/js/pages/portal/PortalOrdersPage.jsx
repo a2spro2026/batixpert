@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
-import { Banknote, Eye, Printer, RefreshCw, X } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { useOutletContext } from 'react-router-dom';
+import { Banknote, Eye, Printer, X } from 'lucide-react';
 import api from '../../lib/api';
 import { openPrintPreview } from '../../lib/printDocument';
 import { MobileCardList } from '../../components/MobileRecordCard';
@@ -278,24 +279,34 @@ function OrderMobileCard({ row, onOpen, onPayments }) {
 }
 
 export default function PortalOrdersPage() {
+    const { setRefreshHandler, setRefreshing } = useOutletContext() || {};
     const [rows, setRows] = useState([]);
     const [meta, setMeta] = useState({ count: 0, total_montant: 0, total_solde: 0 });
     const [loading, setLoading] = useState(true);
     const [view, setView] = useState(null);
     const [paymentsFor, setPaymentsFor] = useState(null);
 
-    const load = () => {
+    const load = useCallback(() => {
         setLoading(true);
+        setRefreshing?.(true);
         api.get('/portal/orders')
             .then((r) => {
                 setRows(r.data.data ?? []);
                 setMeta(r.data.meta ?? { count: 0, total_montant: 0, total_solde: 0 });
             })
             .catch(() => setRows([]))
-            .finally(() => setLoading(false));
-    };
+            .finally(() => {
+                setLoading(false);
+                setRefreshing?.(false);
+            });
+    }, [setRefreshing]);
 
-    useEffect(() => { load(); }, []);
+    useEffect(() => {
+        setRefreshHandler?.(load);
+        return () => setRefreshHandler?.(null);
+    }, [load, setRefreshHandler]);
+
+    useEffect(() => { load(); }, [load]);
 
     const printRow = (row) => openPrintPreview(buildBonHtml(row), {
         title: `Bon de vente ${row.reference || ''}`,
@@ -303,36 +314,31 @@ export default function PortalOrdersPage() {
     });
 
     return (
-        <div className="flex flex-col flex-1 min-h-0 h-full gap-3 overflow-hidden">
+        <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
             <ViewModal row={view} onClose={() => setView(null)} onPrint={printRow} />
             <PaymentsPanel order={paymentsFor} onClose={() => setPaymentsFor(null)} />
 
-            <div className="shrink-0 space-y-3">
-                <div className="flex items-center justify-between gap-3">
-                    <h2 className="text-lg font-bold text-slate-900 dark:text-white">Mes bons de vente</h2>
-                    <button type="button" onClick={load} className="p-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 bg-white/80 dark:bg-slate-900/80" title="Actualiser">
-                        <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                    </button>
-                </div>
+            <div className="shrink-0 space-y-2.5 pb-2.5">
+                <h2 className="text-lg font-bold text-slate-900 dark:text-white">Mes bons de vente</h2>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    <div className="rounded-xl bg-brand-navy text-white p-3 shadow-md">
-                        <p className="text-[10px] uppercase text-blue-100">Bons</p>
-                        <p className="text-xl font-bold tabular-nums">{meta.count}</p>
+                <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
+                    <div className="rounded-xl bg-brand-navy text-white p-2 sm:p-3 shadow-md min-w-0">
+                        <p className="text-[9px] sm:text-[10px] uppercase text-blue-100 truncate">Bons</p>
+                        <p className="text-base sm:text-xl font-bold tabular-nums truncate">{meta.count}</p>
                     </div>
-                    <div className="rounded-xl bg-orange-500 text-white p-3 shadow-md">
-                        <p className="text-[10px] uppercase text-orange-100">Total</p>
-                        <p className="text-sm sm:text-lg font-bold tabular-nums">{formatMontant(meta.total_montant)}</p>
+                    <div className="rounded-xl bg-orange-500 text-white p-2 sm:p-3 shadow-md min-w-0">
+                        <p className="text-[9px] sm:text-[10px] uppercase text-orange-100 truncate">Total</p>
+                        <p className="text-[11px] sm:text-lg font-bold tabular-nums truncate">{formatMontant(meta.total_montant)}</p>
                     </div>
-                    <div className="rounded-xl bg-red-600 text-white p-3 shadow-md col-span-2 sm:col-span-1">
-                        <p className="text-[10px] uppercase text-red-100">Solde restant</p>
-                        <p className="text-sm sm:text-lg font-bold tabular-nums">{formatMontant(meta.total_solde)}</p>
+                    <div className="rounded-xl bg-red-600 text-white p-2 sm:p-3 shadow-md min-w-0">
+                        <p className="text-[9px] sm:text-[10px] uppercase text-red-100 truncate">Solde</p>
+                        <p className="text-[11px] sm:text-lg font-bold tabular-nums truncate">{formatMontant(meta.total_solde)}</p>
                     </div>
                 </div>
             </div>
 
             <div className="flex-1 min-h-0 glass-card overflow-hidden border border-slate-200/60 dark:border-slate-700/60 bg-white/80 dark:bg-slate-900/60 flex flex-col">
-                <div className="md:hidden flex-1 min-h-0 overflow-y-auto overscroll-contain">
+                <div className="md:hidden flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y">
                     <MobileCardList loading={loading} empty="Aucun bon de vente">
                         {rows.map((row) => (
                             <OrderMobileCard
@@ -345,7 +351,7 @@ export default function PortalOrdersPage() {
                     </MobileCardList>
                 </div>
 
-                <div className="hidden md:block flex-1 min-h-0 overflow-auto">
+                <div className="hidden md:block flex-1 min-h-0 overflow-auto overscroll-contain">
                     <table className="w-full text-sm min-w-[760px]">
                         <thead className="sticky top-0 z-10">
                             <tr className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
