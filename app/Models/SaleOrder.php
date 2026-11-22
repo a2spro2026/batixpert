@@ -14,7 +14,7 @@ class SaleOrder extends Model
     protected $table = 'sales_orders';
 
     protected $fillable = [
-        'reference', 'bc_number', 'order_date', 'client_id',
+        'reference', 'bc_number', 'order_date', 'client_id', 'fournisseur',
         'designation', 'article_ref', 'unit', 'unit_price', 'quantity', 'subtotal',
         'reglement', 'echeance', 'city', 'address', 'chauffeur', 'matricule',
         'total_ht', 'tva', 'total_ttc', 'montant_paye', 'payment_action', 'status', 'notes', 'user_id',

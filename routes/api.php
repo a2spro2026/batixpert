@@ -40,6 +40,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::middleware('client.portal')->prefix('portal')->group(function () {
         Route::get('/orders', [ClientPortalApiController::class, 'orders']);
+        Route::get('/orders/{sales_order}/payments', [ClientPortalApiController::class, 'orderPayments']);
         Route::get('/orders/{sales_order}', [ClientPortalApiController::class, 'showOrder']);
         Route::get('/payments', [ClientPortalApiController::class, 'payments']);
         Route::get('/payments/{client_payment}', [ClientPortalApiController::class, 'showPayment']);

@@ -1,11 +1,29 @@
 import { useEffect, useState } from 'react';
-import { Eye, Printer, RefreshCw } from 'lucide-react';
+import { Banknote, Eye, Printer, RefreshCw, X } from 'lucide-react';
 import api from '../../lib/api';
 import { openPrintPreview } from '../../lib/printDocument';
 import { MobileCardList } from '../../components/MobileRecordCard';
 
 function formatMontant(value) {
     return (Number(value) || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function statutKey(statut) {
+    const s = String(statut || '')
+        .normalize('NFD')
+        .replace(/\p{M}/gu, '')
+        .toLowerCase()
+        .trim();
+    if (s === 'paye' || s === 'solde') return 'paye';
+    if (s === 'imp' || s === 'impaye') return 'imp';
+    return 'inst';
+}
+
+function statutBadgeClass(statut) {
+    const key = statutKey(statut);
+    if (key === 'paye') return 'bg-emerald-100 text-emerald-700 border border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800';
+    if (key === 'imp') return 'bg-red-100 text-red-700 border border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800';
+    return 'bg-amber-100 text-amber-700 border border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800';
 }
 
 function buildBonHtml(row) {
@@ -33,7 +51,8 @@ th{background:#f8fafc;font-weight:700}.badge{background:#fff7ed;color:#ea580c;pa
 <h1>BATIXPERT — Bon de Vente <span class="badge">${row.reference}</span></h1>
 <table>
 <tr><th>Date</th><td>${row.order_date || '—'}</td><th>Client</th><td>${row.client || '—'}</td></tr>
-<tr><th>Ville</th><td>${row.city || '—'}</td><th>Adresse Livraison</th><td>${row.address || '—'}</td></tr>
+<tr><th>Fournisseur</th><td>${row.fournisseur || '—'}</td><th>Ville</th><td>${row.city || '—'}</td></tr>
+<tr><th>Adresse Livraison</th><td colspan="3">${row.address || '—'}</td></tr>
 <tr><th>Type Régl / Échéance</th><td>${row.reglement || '—'} / ${row.echeance || '—'}</td><th>Chauffeur</th><td>${row.chauffeur || '—'}</td></tr>
 </table>
 <table>
@@ -60,6 +79,7 @@ function ViewModal({ row, onClose, onPrint }) {
                 <div className="p-4 space-y-3 text-sm text-slate-800 dark:text-slate-100">
                     <div className="grid grid-cols-2 gap-3">
                         <p><span className="text-slate-400 dark:text-slate-500 text-[10px] uppercase block">Date</span>{row.order_date || '—'}</p>
+                        <p><span className="text-slate-400 dark:text-slate-500 text-[10px] uppercase block">Fournisseur</span>{row.fournisseur || '—'}</p>
                         <p><span className="text-slate-400 dark:text-slate-500 text-[10px] uppercase block">Ville</span>{row.city || '—'}</p>
                         <p><span className="text-slate-400 dark:text-slate-500 text-[10px] uppercase block">Montant total</span><strong className="text-slate-900 dark:text-white">{formatMontant(row.montant)}</strong></p>
                         <p><span className="text-slate-400 dark:text-slate-500 text-[10px] uppercase block">Solde</span><strong className="text-red-600 dark:text-red-400">{formatMontant(row.solde)}</strong></p>
@@ -97,20 +117,127 @@ function ViewModal({ row, onClose, onPrint }) {
     );
 }
 
-function OrderMobileCard({ row, onOpen }) {
+function PaymentsPanel({ order, onClose }) {
+    const [rows, setRows] = useState([]);
+    const [meta, setMeta] = useState({ count: 0, total_affecte: 0, solde: 0 });
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        if (!order?.id) return;
+        setLoading(true);
+        api.get(`/portal/orders/${order.id}/payments`)
+            .then((r) => {
+                setRows(r.data.data ?? []);
+                setMeta(r.data.meta ?? { count: 0, total_affecte: 0, solde: 0 });
+            })
+            .catch(() => {
+                setRows([]);
+                setMeta({ count: 0, total_affecte: 0, solde: 0 });
+            })
+            .finally(() => setLoading(false));
+    }, [order?.id]);
+
+    if (!order) return null;
+
     return (
-        <button
-            type="button"
-            onClick={onOpen}
-            className="w-full text-left overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700 border-l-[4px] !border-l-brand-navy dark:!border-l-orange-400 shadow-md bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-950"
-        >
-            <div className="px-3.5 py-3 space-y-2.5">
-                <div className="flex items-start justify-between gap-3">
-                    <p className="font-mono text-[13px] font-bold text-brand-navy dark:text-orange-400 truncate">{row.reference}</p>
-                    <p className="shrink-0 text-[13px] font-semibold text-slate-800 dark:text-slate-100 tabular-nums">{row.order_date || '—'}</p>
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/50" onClick={onClose}>
+            <div
+                className="bg-white dark:bg-slate-900 w-full sm:max-w-lg sm:rounded-2xl rounded-t-2xl max-h-[90dvh] overflow-auto shadow-2xl"
+                onClick={(e) => e.stopPropagation()}
+            >
+                <div className="sticky top-0 px-4 py-3 bg-gradient-to-r from-emerald-600 to-teal-700 text-white flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                        <p className="text-[10px] uppercase text-emerald-100">Règlements du bon</p>
+                        <h3 className="font-bold truncate">{order.reference}</h3>
+                        <p className="text-xs text-emerald-100 mt-0.5">{order.order_date || '—'} · {order.fournisseur || '—'}</p>
+                    </div>
+                    <button type="button" onClick={onClose} className="p-2 rounded-lg bg-white/15" aria-label="Fermer">
+                        <X className="w-4 h-4" />
+                    </button>
                 </div>
 
-                <div className="grid grid-cols-3 gap-2">
+                <div className="p-4 space-y-3">
+                    <div className="grid grid-cols-2 gap-2">
+                        <div className="rounded-xl bg-slate-50 dark:bg-slate-800 p-3">
+                            <p className="text-[10px] uppercase text-slate-400">Total affecté</p>
+                            <p className="text-sm font-bold tabular-nums text-slate-900 dark:text-white">{formatMontant(meta.total_affecte)}</p>
+                        </div>
+                        <div className="rounded-xl bg-red-50 dark:bg-red-900/20 p-3">
+                            <p className="text-[10px] uppercase text-red-400">Solde bon</p>
+                            <p className="text-sm font-bold tabular-nums text-red-600 dark:text-red-400">{formatMontant(meta.solde)}</p>
+                        </div>
+                    </div>
+
+                    {loading ? (
+                        <div className="space-y-2">
+                            {[...Array(3)].map((_, i) => (
+                                <div key={i} className="h-24 rounded-2xl bg-slate-100 dark:bg-slate-800 animate-pulse" />
+                            ))}
+                        </div>
+                    ) : rows.length ? (
+                        <div className="space-y-2.5">
+                            {rows.map((row) => (
+                                <div
+                                    key={row.allocation_id || row.id}
+                                    className="rounded-2xl border border-slate-200 dark:border-slate-700 border-l-[4px] !border-l-emerald-500 bg-gradient-to-br from-white to-emerald-50/40 dark:from-slate-900 dark:to-emerald-950/20 p-3.5 space-y-2"
+                                >
+                                    <div className="flex items-start justify-between gap-2">
+                                        <p className="font-mono text-[13px] font-bold text-brand-navy dark:text-orange-400">{row.reference}</p>
+                                        <div className="text-right shrink-0 space-y-1">
+                                            <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${statutBadgeClass(row.statut)}`}>
+                                                {row.statut || 'Inst'}
+                                            </span>
+                                            <p className="text-[13px] font-semibold text-slate-800 dark:text-slate-100 tabular-nums">{row.payment_date || '—'}</p>
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        <div>
+                                            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Type</p>
+                                            <p className="text-[13px] font-medium text-slate-800 dark:text-slate-100">{row.reglement || '—'}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">N°</p>
+                                            <p className="text-[13px] font-medium text-slate-800 dark:text-slate-100 truncate">{row.numero || '—'}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Affecté</p>
+                                            <p className="text-[13px] font-bold underline decoration-2 underline-offset-2 text-slate-900 dark:text-white tabular-nums">
+                                                {formatMontant(row.amount)}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="py-10 text-center text-sm text-slate-400 dark:text-slate-500">Aucun règlement lié à ce bon</p>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function OrderMobileCard({ row, onOpen, onPayments }) {
+    return (
+        <div className="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700 border-l-[4px] !border-l-brand-navy dark:!border-l-orange-400 shadow-md bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-950">
+            <button type="button" onClick={onOpen} className="w-full text-left px-3.5 pt-3 pb-2 active:bg-slate-50 dark:active:bg-slate-800/50">
+                <div className="grid grid-cols-3 gap-2 items-start">
+                    <div className="min-w-0">
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">B-V</p>
+                        <p className="font-mono text-[13px] font-bold text-brand-navy dark:text-orange-400 truncate">{row.reference}</p>
+                    </div>
+                    <div className="min-w-0 text-center">
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Date</p>
+                        <p className="text-[13px] font-semibold text-slate-800 dark:text-slate-100 tabular-nums">{row.order_date || '—'}</p>
+                    </div>
+                    <div className="min-w-0 text-right">
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Fournisseur</p>
+                        <p className="text-[13px] font-medium text-slate-800 dark:text-slate-100 truncate">{row.fournisseur || '—'}</p>
+                    </div>
+                </div>
+
+                <div className="mt-2.5 grid grid-cols-3 gap-2">
                     <div className="min-w-0">
                         <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Ville</p>
                         <p className="text-[13px] font-medium text-slate-800 dark:text-slate-100 truncate">{row.city || '—'}</p>
@@ -128,8 +255,21 @@ function OrderMobileCard({ row, onOpen }) {
                         </p>
                     </div>
                 </div>
+            </button>
+
+            <div className="flex border-t border-slate-100 dark:border-slate-800">
+                <button
+                    type="button"
+                    onClick={onPayments}
+                    className="flex-1 flex items-center justify-center gap-2 py-2.5 text-[11px] font-bold uppercase tracking-wide text-emerald-700 dark:text-emerald-300 active:bg-emerald-50 dark:active:bg-emerald-900/20"
+                >
+                    <span className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300">
+                        <Banknote className="w-4 h-4" />
+                    </span>
+                    Paiements
+                </button>
             </div>
-        </button>
+        </div>
     );
 }
 
@@ -138,6 +278,7 @@ export default function PortalOrdersPage() {
     const [meta, setMeta] = useState({ count: 0, total_montant: 0, total_solde: 0 });
     const [loading, setLoading] = useState(true);
     const [view, setView] = useState(null);
+    const [paymentsFor, setPaymentsFor] = useState(null);
 
     const load = () => {
         setLoading(true);
@@ -160,6 +301,7 @@ export default function PortalOrdersPage() {
     return (
         <div className="space-y-4">
             <ViewModal row={view} onClose={() => setView(null)} onPrint={printRow} />
+            <PaymentsPanel order={paymentsFor} onClose={() => setPaymentsFor(null)} />
 
             <div className="flex items-start justify-between gap-3">
                 <div>
@@ -190,16 +332,21 @@ export default function PortalOrdersPage() {
                 <div className="md:hidden">
                     <MobileCardList loading={loading} empty="Aucun bon de vente">
                         {rows.map((row) => (
-                            <OrderMobileCard key={row.id} row={row} onOpen={() => setView(row)} />
+                            <OrderMobileCard
+                                key={row.id}
+                                row={row}
+                                onOpen={() => setView(row)}
+                                onPayments={() => setPaymentsFor(row)}
+                            />
                         ))}
                     </MobileCardList>
                 </div>
 
                 <div className="hidden md:block overflow-x-auto">
-                    <table className="w-full text-sm min-w-[640px]">
+                    <table className="w-full text-sm min-w-[760px]">
                         <thead>
                             <tr className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-                                {['Référence', 'Date', 'Ville', 'Montant total', 'Solde', 'Actions'].map((h) => (
+                                {['Référence', 'Date', 'Fournisseur', 'Ville', 'Montant total', 'Solde', 'Actions'].map((h) => (
                                     <th key={h} className="px-3 py-3 text-[11px] font-bold uppercase text-center">{h}</th>
                                 ))}
                             </tr>
@@ -207,24 +354,26 @@ export default function PortalOrdersPage() {
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-800 dark:text-slate-100">
                             {loading ? (
                                 [...Array(4)].map((_, i) => (
-                                    <tr key={i}><td colSpan={6} className="px-3 py-3"><div className="h-4 bg-slate-200 dark:bg-slate-700 rounded animate-pulse" /></td></tr>
+                                    <tr key={i}><td colSpan={7} className="px-3 py-3"><div className="h-4 bg-slate-200 dark:bg-slate-700 rounded animate-pulse" /></td></tr>
                                 ))
                             ) : rows.length ? rows.map((row) => (
                                 <tr key={row.id} className="hover:bg-blue-50/40 dark:hover:bg-slate-800/40">
                                     <td className="px-3 py-2.5 text-center font-mono font-bold text-brand-navy dark:text-orange-400">{row.reference}</td>
                                     <td className="px-3 py-2.5 text-center">{row.order_date || '—'}</td>
+                                    <td className="px-3 py-2.5 text-center">{row.fournisseur || '—'}</td>
                                     <td className="px-3 py-2.5 text-center">{row.city || '—'}</td>
                                     <td className="px-3 py-2.5 text-center tabular-nums font-bold underline decoration-2 underline-offset-2">{formatMontant(row.montant)}</td>
                                     <td className="px-3 py-2.5 text-center tabular-nums font-bold text-red-600 dark:text-red-400">{formatMontant(row.solde)}</td>
                                     <td className="px-3 py-2.5">
                                         <div className="flex justify-center gap-1">
+                                            <button type="button" onClick={() => setPaymentsFor(row)} className="p-1.5 rounded-lg text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30" title="Paiements"><Banknote className="w-4 h-4" /></button>
                                             <button type="button" onClick={() => setView(row)} className="p-1.5 rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30" title="Voir"><Eye className="w-4 h-4" /></button>
                                             <button type="button" onClick={() => printRow(row)} className="p-1.5 rounded-lg text-slate-500 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800" title="Imprimer"><Printer className="w-4 h-4" /></button>
                                         </div>
                                     </td>
                                 </tr>
                             )) : (
-                                <tr><td colSpan={6} className="px-3 py-12 text-center text-slate-400 dark:text-slate-500">Aucun bon de vente</td></tr>
+                                <tr><td colSpan={7} className="px-3 py-12 text-center text-slate-400 dark:text-slate-500">Aucun bon de vente</td></tr>
                             )}
                         </tbody>
                     </table>

@@ -42,6 +42,50 @@ class ClientPortalApiController extends Controller
         ));
     }
 
+    public function orderPayments(Request $request, SaleOrder $sales_order)
+    {
+        $this->assertOwnsOrder($request, $sales_order);
+
+        $sales_order->loadMissing(['paymentAllocations.payment']);
+
+        $payments = $sales_order->paymentAllocations
+            ->filter(fn ($a) => $a->payment)
+            ->map(function ($allocation) {
+                $payment = $allocation->payment;
+                $statut = $payment->statut ?: 'Inst';
+
+                return [
+                    'id' => $payment->id,
+                    'allocation_id' => $allocation->id,
+                    'reference' => $payment->reference,
+                    'payment_date' => $payment->payment_date?->format('d/m/Y'),
+                    'reglement' => $payment->reglement,
+                    'numero' => $payment->numero,
+                    'banque' => $payment->banque,
+                    'nom_tire' => $payment->nom_tire,
+                    'tresorerie' => $payment->tresorerie ? mb_strtoupper((string) $payment->tresorerie) : null,
+                    'date_decaissement' => $payment->date_decaissement?->format('d/m/Y'),
+                    'statut' => $statut,
+                    'solded' => $this->isSolded($statut),
+                    'amount' => number_format((float) $allocation->amount, 2, '.', ''),
+                    'action' => $allocation->action,
+                ];
+            })
+            ->values()
+            ->all();
+
+        return response()->json([
+            'data' => $payments,
+            'meta' => [
+                'order_id' => $sales_order->id,
+                'reference' => $sales_order->reference,
+                'count' => count($payments),
+                'total_affecte' => round(collect($payments)->sum(fn ($p) => (float) $p['amount']), 2),
+                'solde' => number_format($sales_order->computeSolde(), 2, '.', ''),
+            ],
+        ]);
+    }
+
     public function payments(Request $request)
     {
         /** @var Client $client */
@@ -115,6 +159,7 @@ class ClientPortalApiController extends Controller
             'reference' => $order->reference,
             'order_date' => $order->order_date?->format('d/m/Y'),
             'client' => $order->client?->name,
+            'fournisseur' => $order->fournisseur,
             'city' => $order->city,
             'address' => $order->address,
             'reglement' => $order->reglement,

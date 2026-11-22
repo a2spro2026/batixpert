@@ -19,6 +19,7 @@ const emptyHeader = {
     echeance: '',
     chauffeur: '',
     matricule: '',
+    fournisseur: '',
 };
 
 const emptyLine = () => ({
@@ -478,6 +479,7 @@ export default function BonVentesPage() {
             order_date: purchase.order_date_raw || f.order_date || new Date().toISOString().slice(0, 10),
             client_id: matchedClient ? String(matchedClient.id) : '',
             city: purchase.city || '',
+            fournisseur: purchase.fournisseur || '',
             // N° B-V reste auto ; adresse / régl / échéance / chauffeur / matricule manuels
         }));
 
@@ -523,6 +525,7 @@ export default function BonVentesPage() {
             echeance: row.echeance || '',
             chauffeur: row.chauffeur || '',
             matricule: row.matricule || '',
+            fournisseur: row.fournisseur || '',
         });
         if (row.items?.length) {
             setLines(row.items.map((i) => ({
@@ -580,6 +583,7 @@ export default function BonVentesPage() {
             echeance: form.echeance || null,
             chauffeur: form.chauffeur || null,
             matricule: form.matricule || null,
+            fournisseur: form.fournisseur || null,
             status: 'valide',
             items: validLines.map((l) => ({
                 product_id: l.product_id || null,
