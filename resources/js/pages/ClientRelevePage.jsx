@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import api from '../lib/api';
 import { downloadPdf, openPrintPreview } from '../lib/printDocument';
+import MobileRecordCard, { MobileCardList } from '../components/MobileRecordCard';
 
 const emptyFilters = {
     mois: '',
@@ -423,7 +424,50 @@ export default function ClientRelevePage() {
                 <div className="px-4 sm:px-5 py-2.5 bg-gradient-to-r from-brand-navy via-blue-800 to-slate-800 border-b border-white/10 shrink-0">
                     <h3 className="text-sm font-bold text-white uppercase tracking-wide">Relevé de compte</h3>
                 </div>
-                <div className="flex-1 min-h-0 overflow-auto overscroll-contain touch-pan-y">
+
+                <div className="md:hidden flex-1 min-h-0 overflow-y-auto overscroll-contain">
+                    <MobileCardList loading={loading} empty="Aucune opération pour ces critères">
+                        {rows.map((row, idx) => {
+                            const flags = [
+                                row.paye ? 'Payé' : null,
+                                row.devalide ? 'Dévalidé' : null,
+                                row.impaye ? 'Impayé' : null,
+                                row.reporte ? 'Reporté' : null,
+                            ].filter(Boolean).join(' · ');
+                            return (
+                                <MobileRecordCard
+                                    key={`${row.operation}-${row.numero_bn}-${idx}`}
+                                    title={row.numero_bn || row.operation || '—'}
+                                    subtitle={row.client_livre || '—'}
+                                    badge={(
+                                        <span className={`inline-flex px-2 py-0.5 rounded-md text-[10px] font-bold uppercase ${
+                                            row.operation === 'Vente'
+                                                ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
+                                                : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
+                                        }`}>
+                                            {row.operation || '—'}
+                                        </span>
+                                    )}
+                                    fields={[
+                                        { label: 'Date', value: row.date || '—' },
+                                        { label: 'Ville liv.', value: row.ville_liv || '—' },
+                                        { label: 'Qté', value: formatQty(row.qte) },
+                                        { label: 'Type rég.', value: row.type_reg || '—' },
+                                        { label: 'Débit', value: formatMontant(row.debit), className: 'font-semibold text-rose-700 dark:text-rose-400' },
+                                        { label: 'Crédit', value: formatMontant(row.credit), className: 'font-semibold text-emerald-700 dark:text-emerald-400' },
+                                        { label: 'Solde', value: (Number(row.solde) || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }), className: 'font-bold text-brand-navy dark:text-orange-400', full: true },
+                                        { label: 'N° rég.', value: row.numero_reg || '—' },
+                                        { label: 'Nom tiré', value: row.nom_tire || '—' },
+                                        { label: 'Date encaiss.', value: row.date_encaiss || '—', full: true },
+                                        ...(flags ? [{ label: 'Statut', value: flags, full: true }] : []),
+                                    ]}
+                                />
+                            );
+                        })}
+                    </MobileCardList>
+                </div>
+
+                <div className="hidden md:block flex-1 min-h-0 overflow-auto overscroll-contain">
                     <table className="w-full text-sm min-w-[1500px]">
                         <thead className="sticky top-0 z-20">
                             <tr className="bg-gradient-to-r from-slate-100 via-slate-200/90 to-slate-100 dark:from-slate-800 dark:via-slate-700/80 dark:to-slate-800 border-b-2 border-slate-300 dark:border-slate-600 shadow-sm">
