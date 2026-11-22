@@ -13,7 +13,7 @@ export default function Header({ sidebarOpen, onToggleSidebar }) {
     const pageTitle = getPageTitle(pathname);
 
     return (
-        <header className="sticky top-0 z-50 navbar-header border-b border-slate-200/60 dark:border-slate-700/60">
+        <header className="sticky top-0 z-50 shrink-0 navbar-header border-b border-slate-200/60 dark:border-slate-700/60">
             <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-brand-orange/40 to-transparent pointer-events-none" />
             <div className="flex items-center justify-between gap-3 sm:gap-4 px-4 lg:px-6 py-2.5 sm:py-3">
                 <div className="flex items-center gap-2 sm:gap-3 min-w-0">

@@ -233,8 +233,8 @@ export default function SupplierRelevePage() {
         }`;
 
     return (
-        <div className="flex flex-col flex-1 min-h-0 gap-3 lg:h-full">
-            <div className="shrink-0 space-y-2.5 lg:space-y-3 lg:sticky lg:top-0 lg:z-20 bg-slate-50 dark:bg-slate-950 pb-1">
+        <div className="flex flex-col flex-1 min-h-0 h-full overflow-hidden gap-2.5 sm:gap-3">
+            <div className="shrink-0 space-y-2.5 lg:space-y-3 bg-slate-50 dark:bg-slate-950">
                 <div className="lg:hidden flex items-center justify-between gap-2">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Afficher</p>
                     <div className="flex items-center gap-1.5">
@@ -397,14 +397,14 @@ export default function SupplierRelevePage() {
                 </div>
             </div>
 
-            <div className="flex-1 min-h-[280px] lg:min-h-0 glass-card overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60 flex flex-col">
+            <div className="flex-1 min-h-0 glass-card overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60 flex flex-col">
                 <div className="px-4 sm:px-5 py-2.5 bg-gradient-to-r from-brand-navy via-blue-800 to-slate-800 border-b border-white/10 shrink-0">
                     <h3 className="text-sm font-bold text-white uppercase tracking-wide">Relevé de compte</h3>
                 </div>
-                <div className="flex-1 min-h-0 overflow-auto">
+                <div className="flex-1 min-h-0 overflow-auto overscroll-contain touch-pan-y">
                     <table className="w-full text-sm min-w-[1500px]">
-                        <thead className="sticky top-0 z-10">
-                            <tr className="bg-gradient-to-r from-slate-100 via-slate-200/90 to-slate-100 dark:from-slate-800 dark:via-slate-700/80 dark:to-slate-800 border-b-2 border-slate-300 dark:border-slate-600">
+                        <thead className="sticky top-0 z-20">
+                            <tr className="bg-gradient-to-r from-slate-100 via-slate-200/90 to-slate-100 dark:from-slate-800 dark:via-slate-700/80 dark:to-slate-800 border-b-2 border-slate-300 dark:border-slate-600 shadow-sm">
                                 {columns.map((h) => (
                                     <th key={h} className="px-2.5 py-3 text-[10px] font-bold uppercase tracking-[0.1em] text-slate-600 dark:text-slate-300 whitespace-nowrap text-center bg-slate-100 dark:bg-slate-800">
                                         {h}

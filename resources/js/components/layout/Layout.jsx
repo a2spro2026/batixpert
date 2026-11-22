@@ -10,6 +10,8 @@ export default function Layout() {
     const isDashboard = pathname === '/';
     const isDevisForm = /^\/clients\/devis\/(nouveau|\d+)/.test(pathname);
     const isBonListPage = /^\/(fournisseurs\/bons-achats|clients\/bons-de-vente)/.test(pathname);
+    const isRelevePage = /^\/(fournisseurs|clients)\/releve-compte/.test(pathname);
+    const isLockedPage = isBonListPage || isRelevePage;
 
     useEffect(() => {
         if (!sidebarOpen) return undefined;
@@ -18,8 +20,30 @@ export default function Layout() {
         return () => document.removeEventListener('keydown', onKey);
     }, [sidebarOpen]);
 
+    useEffect(() => {
+        if (!isLockedPage) return undefined;
+        const html = document.documentElement;
+        const body = document.body;
+        const prev = {
+            htmlOverflow: html.style.overflow,
+            bodyOverflow: body.style.overflow,
+            htmlOverscroll: html.style.overscrollBehavior,
+            bodyOverscroll: body.style.overscrollBehavior,
+        };
+        html.style.overflow = 'hidden';
+        body.style.overflow = 'hidden';
+        html.style.overscrollBehavior = 'none';
+        body.style.overscrollBehavior = 'none';
+        return () => {
+            html.style.overflow = prev.htmlOverflow;
+            body.style.overflow = prev.bodyOverflow;
+            html.style.overscrollBehavior = prev.htmlOverscroll;
+            body.style.overscrollBehavior = prev.bodyOverscroll;
+        };
+    }, [isLockedPage]);
+
     return (
-        <div className="min-h-[100dvh] lg:h-screen bg-slate-50 dark:bg-slate-950 flex lg:overflow-hidden">
+        <div className={`${isLockedPage ? 'h-[100dvh] overflow-hidden' : 'min-h-[100dvh] lg:h-screen lg:overflow-hidden'} bg-slate-50 dark:bg-slate-950 flex`}>
             {sidebarOpen && (
                 <>
                     <Sidebar />
@@ -27,7 +51,7 @@ export default function Layout() {
                     <Sidebar mobile onClose={() => setSidebarOpen(false)} />
                 </>
             )}
-            <div className="flex-1 flex flex-col min-w-0 lg:min-h-0">
+            <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
                 <Header sidebarOpen={sidebarOpen} onToggleSidebar={() => setSidebarOpen((v) => !v)} />
 
                 {isDashboard && (
@@ -41,12 +65,12 @@ export default function Layout() {
                         <Outlet />
                     </main>
                 ) : (
-                    <main className={`flex-1 flex flex-col min-w-0 p-3 sm:p-4 lg:p-6 lg:min-h-0 ${isBonListPage ? 'lg:overflow-hidden' : 'lg:overflow-y-auto lg:overflow-x-hidden'}`}>
+                    <main className={`flex-1 flex flex-col min-w-0 min-h-0 p-3 sm:p-4 lg:p-6 ${isLockedPage ? 'overflow-hidden' : 'lg:overflow-y-auto lg:overflow-x-hidden'}`}>
                         <Outlet />
                     </main>
                 )}
 
-                {!isDevisForm && (
+                {!isDevisForm && !isRelevePage && (
                     <footer className="hidden lg:block mt-auto shrink-0 px-6 py-4 border-t border-slate-200 dark:border-slate-800 text-center text-xs text-slate-500">
                         © {new Date().getFullYear()} BatiXpert — Construisons l'avenir avec une gestion intelligente | v1.0.0
                     </footer>

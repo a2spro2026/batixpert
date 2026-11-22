@@ -1,6 +1,6 @@
 {
-  "_jspdf.es.min-BDtpBP58.js": {
-    "file": "assets/jspdf.es.min-BDtpBP58.js",
+  "_jspdf.es.min-D-SiJRcH.js": {
+    "file": "assets/jspdf.es.min-D-SiJRcH.js",
     "name": "jspdf.es.min",
     "isDynamicEntry": true,
     "imports": [
@@ -13,16 +13,16 @@
     ]
   },
   "node_modules/canvg/lib/index.es.js": {
-    "file": "assets/index.es-CUTOk-Z6.js",
+    "file": "assets/index.es-CtC5Ob2J.js",
     "name": "index.es",
     "src": "node_modules/canvg/lib/index.es.js",
     "isDynamicEntry": true,
     "imports": [
-      "_jspdf.es.min-BDtpBP58.js",
+      "_jspdf.es.min-D-SiJRcH.js",
       "resources/js/main.jsx"
     ],
     "css": [
-      "assets/app-g_zxqXHa.css"
+      "assets/app-xCJe3Jo5.css"
     ]
   },
   "node_modules/dompurify/dist/purify.es.mjs": {
@@ -38,7 +38,7 @@
     "isDynamicEntry": true
   },
   "resources/css/app.css": {
-    "file": "assets/app-g_zxqXHa.css",
+    "file": "assets/app-xCJe3Jo5.css",
     "src": "resources/css/app.css",
     "isEntry": true,
     "name": "app",
@@ -47,16 +47,16 @@
     ]
   },
   "resources/js/main.jsx": {
-    "file": "assets/main-jYt-vA2c.js",
+    "file": "assets/main-DcyK6MUI.js",
     "name": "main",
     "src": "resources/js/main.jsx",
     "isEntry": true,
     "dynamicImports": [
       "node_modules/html2canvas/dist/html2canvas.esm.js",
-      "_jspdf.es.min-BDtpBP58.js"
+      "_jspdf.es.min-D-SiJRcH.js"
     ],
     "css": [
-      "assets/app-g_zxqXHa.css"
+      "assets/app-xCJe3Jo5.css"
     ]
   }
 }
