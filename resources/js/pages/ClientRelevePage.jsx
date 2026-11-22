@@ -61,7 +61,7 @@ function SummaryCard({ label, value, gradient, glow, icon: Icon, compact = false
                 <div className="min-w-0 flex-1">
                     <p className={`font-semibold uppercase tracking-wider text-white/85 truncate ${compact ? 'text-[8px]' : 'text-[9px] sm:text-[10px]'}`}>{label}</p>
                     <p
-                        className={`mt-0.5 font-bold tabular-nums leading-tight truncate ${
+                        className={`mt-0.5 font-bold tabular-nums leading-tight break-all ${
                             compact ? 'text-[10px] sm:text-xs' : 'text-[11px] sm:text-sm md:text-base'
                         }`}
                         title={display}
@@ -425,7 +425,7 @@ export default function ClientRelevePage() {
                     <h3 className="text-sm font-bold text-white uppercase tracking-wide">Relevé de compte</h3>
                 </div>
 
-                <div className="md:hidden flex-1 min-h-0 overflow-y-auto overscroll-contain">
+                <div className="lg:hidden flex-1 min-h-0 overflow-y-auto overscroll-contain">
                     <MobileCardList loading={loading} empty="Aucune opération pour ces critères">
                         {rows.map((row, idx) => {
                             const flags = [
@@ -453,13 +453,13 @@ export default function ClientRelevePage() {
                                         { label: 'Ville liv.', value: row.ville_liv || '—' },
                                         { label: 'Qté', value: formatQty(row.qte) },
                                         { label: 'Type rég.', value: row.type_reg || '—' },
-                                        { label: 'Débit', value: formatMontant(row.debit), className: 'font-semibold text-rose-700 dark:text-rose-400' },
-                                        { label: 'Crédit', value: formatMontant(row.credit), className: 'font-semibold text-emerald-700 dark:text-emerald-400' },
-                                        { label: 'Solde', value: (Number(row.solde) || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }), className: 'font-bold text-brand-navy dark:text-orange-400', full: true },
+                                        { label: 'Débit', value: formatMontant(row.debit), className: 'font-semibold text-rose-700 dark:text-rose-400', wrap: true },
+                                        { label: 'Crédit', value: formatMontant(row.credit), className: 'font-semibold text-emerald-700 dark:text-emerald-400', wrap: true },
+                                        { label: 'Solde', value: (Number(row.solde) || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }), className: 'font-bold text-brand-navy dark:text-orange-400', full: true, wrap: true },
                                         { label: 'N° rég.', value: row.numero_reg || '—' },
-                                        { label: 'Nom tiré', value: row.nom_tire || '—' },
+                                        { label: 'Nom tiré', value: row.nom_tire || '—', wrap: true },
                                         { label: 'Date encaiss.', value: row.date_encaiss || '—', full: true },
-                                        ...(flags ? [{ label: 'Statut', value: flags, full: true }] : []),
+                                        ...(flags ? [{ label: 'Statut', value: flags, full: true, wrap: true }] : []),
                                     ]}
                                 />
                             );
@@ -467,7 +467,7 @@ export default function ClientRelevePage() {
                     </MobileCardList>
                 </div>
 
-                <div className="hidden md:block flex-1 min-h-0 overflow-auto overscroll-contain">
+                <div className="hidden lg:block flex-1 min-h-0 overflow-x-auto overflow-y-auto overscroll-contain">
                     <table className="w-full text-sm min-w-[1500px]">
                         <thead className="sticky top-0 z-20">
                             <tr className="bg-gradient-to-r from-slate-100 via-slate-200/90 to-slate-100 dark:from-slate-800 dark:via-slate-700/80 dark:to-slate-800 border-b-2 border-slate-300 dark:border-slate-600 shadow-sm">

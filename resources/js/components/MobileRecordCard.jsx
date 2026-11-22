@@ -62,7 +62,12 @@ export default function MobileRecordCard({
                         {fields.map((f) => (
                             <div key={f.label} className={`min-w-0 ${f.full ? 'col-span-2' : ''}`}>
                                 <dt className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">{f.label}</dt>
-                                <dd className={`text-[13px] font-medium text-slate-700 dark:text-slate-200 truncate tabular-nums ${f.className || ''}`}>
+                                <dd
+                                    className={`text-[13px] font-medium text-slate-700 dark:text-slate-200 tabular-nums ${
+                                        f.wrap ? 'whitespace-normal break-words' : 'truncate'
+                                    } ${f.className || ''}`}
+                                    title={typeof f.value === 'string' || typeof f.value === 'number' ? String(f.value) : undefined}
+                                >
                                     {f.value ?? '—'}
                                 </dd>
                             </div>
