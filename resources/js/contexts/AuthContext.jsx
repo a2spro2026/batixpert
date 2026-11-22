@@ -9,6 +9,7 @@ const STATUT_LABELS = {
     Assistant: 'Assistant(e)',
     Commercial: 'Commercial',
     Facturation: 'Facturation',
+    Client: 'Client',
 };
 
 function mergeUserWithStatut(userData) {
@@ -65,10 +66,15 @@ export function AuthProvider({ children }) {
         setUser(null);
     };
 
-    const can = (permission) => user?.is_admin || user?.permissions?.includes(permission);
+    const can = (permission) => {
+        if (user?.is_client_portal) return false;
+        return user?.is_admin || user?.permissions?.includes(permission);
+    };
+
+    const isClientPortal = !!user?.is_client_portal;
 
     return (
-        <AuthContext.Provider value={{ user, loading, login, logout, can }}>
+        <AuthContext.Provider value={{ user, loading, login, logout, can, isClientPortal }}>
             {children}
         </AuthContext.Provider>
     );

@@ -31,15 +31,31 @@ import ClientRelancePage from './pages/ClientRelancePage';
 import UsersPage from './pages/UsersPage';
 import UserAuthorizationsPage from './pages/UserAuthorizationsPage';
 import ChauffeursPage from './pages/ChauffeursPage';
+import ClientPortalLayout from './components/layout/ClientPortalLayout';
+import PortalOrdersPage from './pages/portal/PortalOrdersPage';
+import PortalPaymentsPage from './pages/portal/PortalPaymentsPage';
 
-function ProtectedRoute({ children }) {
-    const { user, loading } = useAuth();
-    if (loading) return (
+function AuthSpinner() {
+    return (
         <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
             <div className="w-10 h-10 border-4 border-brand-navy border-t-transparent rounded-full animate-spin" />
         </div>
     );
+}
+
+function ProtectedRoute({ children }) {
+    const { user, loading, isClientPortal } = useAuth();
+    if (loading) return <AuthSpinner />;
     if (!user) return <Navigate to="/login" replace />;
+    if (isClientPortal) return <Navigate to="/portal" replace />;
+    return children;
+}
+
+function ClientPortalRoute({ children }) {
+    const { user, loading, isClientPortal } = useAuth();
+    if (loading) return <AuthSpinner />;
+    if (!user) return <Navigate to="/login" replace />;
+    if (!isClientPortal) return <Navigate to="/" replace />;
     return children;
 }
 
@@ -55,6 +71,10 @@ function AppRoutes() {
     return (
         <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/portal" element={<ClientPortalRoute><ClientPortalLayout /></ClientPortalRoute>}>
+                <Route index element={<PortalOrdersPage />} />
+                <Route path="reglements" element={<PortalPaymentsPage />} />
+            </Route>
             <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
                 <Route index element={<Dashboard />} />
 

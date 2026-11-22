@@ -14,6 +14,8 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'permission' => \App\Http\Middleware\CheckPermission::class,
+            'staff' => \App\Http\Middleware\EnsureStaffUser::class,
+            'client.portal' => \App\Http\Middleware\EnsureClientPortal::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

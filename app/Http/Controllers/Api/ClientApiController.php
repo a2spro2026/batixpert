@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Client;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 
 class ClientApiController extends Controller
 {
@@ -35,11 +37,12 @@ class ClientApiController extends Controller
     public function store(Request $request)
     {
         $validated = $this->validated($request);
+        $payload = $this->preparePortalCredentials($validated);
 
         $client = Client::create([
-            ...$validated,
-            'budget' => $validated['budget'] ?? 0,
-            'status' => $validated['status'] ?? 'actif',
+            ...$payload,
+            'budget' => $payload['budget'] ?? 0,
+            'status' => $payload['status'] ?? 'actif',
         ]);
 
         return response()->json($this->formatClient($client), 201);
@@ -52,7 +55,10 @@ class ClientApiController extends Controller
 
     public function update(Request $request, Client $client)
     {
-        $client->update($this->validated($request, true));
+        $validated = $this->validated($request, true, $client);
+        $payload = $this->preparePortalCredentials($validated, $client);
+
+        $client->update($payload);
 
         return response()->json($this->formatClient($client->fresh()));
     }
@@ -64,13 +70,21 @@ class ClientApiController extends Controller
         return response()->json(['message' => 'Client supprimé']);
     }
 
-    private function validated(Request $request, bool $partial = false): array
+    private function validated(Request $request, bool $partial = false, ?Client $client = null): array
     {
         return $request->validate([
             'name' => ($partial ? 'sometimes' : 'required').'|string|max:255',
             'contact_person' => 'nullable|string',
             'email' => 'nullable|email',
             'phone' => 'nullable|string',
+            'portal_login' => [
+                'nullable',
+                'string',
+                'max:255',
+                Rule::unique('clients', 'portal_login')->ignore($client?->id),
+            ],
+            'portal_password' => 'nullable|string|min:4|max:100',
+            'portal_enabled' => 'nullable|boolean',
             'address' => 'nullable|string',
             'city' => 'nullable|string',
             'ice' => 'nullable|string',
@@ -81,6 +95,34 @@ class ClientApiController extends Controller
             'work_delay' => 'nullable|string|max:100',
             'status' => 'in:actif,inactif',
         ]);
+    }
+
+    private function preparePortalCredentials(array $validated, ?Client $client = null): array
+    {
+        $login = array_key_exists('portal_login', $validated)
+            ? trim((string) ($validated['portal_login'] ?? ''))
+            : null;
+
+        if (array_key_exists('portal_login', $validated)) {
+            $validated['portal_login'] = $login !== '' ? $login : null;
+        }
+
+        $password = trim((string) ($validated['portal_password'] ?? ''));
+        if ($password !== '') {
+            $validated['portal_password'] = Hash::make($password);
+        } else {
+            unset($validated['portal_password']);
+        }
+
+        if (! array_key_exists('portal_enabled', $validated)) {
+            $effectiveLogin = array_key_exists('portal_login', $validated)
+                ? $validated['portal_login']
+                : $client?->portal_login;
+            $hasPassword = isset($validated['portal_password']) || filled($client?->portal_password);
+            $validated['portal_enabled'] = filled($effectiveLogin) && $hasPassword;
+        }
+
+        return $validated;
     }
 
     private function nextClientCode(): string
@@ -100,6 +142,9 @@ class ClientApiController extends Controller
             'contact' => $client->phone ?: $client->contact_person,
             'email' => $client->email,
             'phone' => $client->phone,
+            'portal_login' => $client->portal_login,
+            'has_portal_password' => filled($client->portal_password),
+            'portal_enabled' => (bool) $client->portal_enabled,
             'address' => $client->address,
             'city' => $client->city,
             'chantier_type' => $client->chantier_type,

@@ -9,6 +9,7 @@ const STATUT_OPTIONS = [
     { value: 'Assistant', label: 'Assistant(e)' },
     { value: 'Commercial', label: 'Commercial' },
     { value: 'Facturation', label: 'Facturation' },
+    { value: 'Client', label: 'Client' },
 ];
 
 const TEXT_SECURITY_SUPPORTED = typeof CSS !== 'undefined' && CSS.supports?.('-webkit-text-security', 'disc');
@@ -41,14 +42,14 @@ function RevealButton({ visible, onToggle, label }) {
     );
 }
 
-function PasswordField({ value, onChange, showPassword, onToggle, locked, onUnlock }) {
+function PasswordField({ value, onChange, showPassword, onToggle, locked, onUnlock, label = 'Mot de passe', placeholder = 'Votre mot de passe' }) {
     const [focused, setFocused] = useState(false);
     const hasValue = value.length > 0;
 
     return (
         <div className="relative">
             <label htmlFor="bx-pass" className="field-label-form">
-                Mot de passe
+                {label}
             </label>
             <motion.div
                 animate={{ scale: focused ? 1.01 : 1 }}
@@ -94,7 +95,7 @@ function PasswordField({ value, onChange, showPassword, onToggle, locked, onUnlo
                         onPointerDown={onUnlock}
                         onFocus={() => { onUnlock(); setFocused(true); }}
                         onBlur={() => setFocused(false)}
-                        placeholder="Votre mot de passe"
+                        placeholder={placeholder}
                         required
                         autoComplete="new-password"
                         autoCorrect="off"
@@ -207,8 +208,8 @@ export default function Login() {
 
         setLoading(true);
         try {
-            await login(credentials.login, credentials.password, statut);
-            navigate('/');
+            const logged = await login(credentials.login, credentials.password, statut);
+            navigate(logged?.is_client_portal ? '/portal' : '/');
         } catch (err) {
             setError(
                 err.response?.data?.message
@@ -389,13 +390,17 @@ export default function Login() {
                                         onToggle={() => setShowPassword((v) => !v)}
                                         locked={locked.password}
                                         onUnlock={() => setLocked((l) => ({ ...l, password: false }))}
+                                        label="Mot de passe"
+                                        placeholder="Votre mot de passe"
                                     />
 
+                                    {statut !== 'Client' && (
                                     <div className="flex justify-end text-sm pt-1">
                                         <button type="button" className="text-brand-orange text-sm font-medium hover:underline underline-offset-2">
                                             Mot de passe oublié ?
                                         </button>
                                     </div>
+                                    )}
 
                                     <motion.button
                                         type="submit"

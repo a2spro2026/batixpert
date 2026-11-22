@@ -36,6 +36,8 @@ const emptyForm = {
     chantier_address: '',
     work_delay: '', // Échéance
     budget: '', // Solde Initial
+    portal_login: '',
+    portal_password: '',
 };
 
 function Field({ label, children, className = '' }) {
@@ -219,6 +221,8 @@ export default function FicheClientPage() {
             chantier_address: row.chantier_address || '',
             work_delay: row.work_delay || row.echeance || '',
             budget: parseSoldeInput(row.budget ?? row.initial_balance),
+            portal_login: row.portal_login || '',
+            portal_password: '',
         });
         setEditingId(row.id);
         setError('');
@@ -249,7 +253,11 @@ export default function FicheClientPage() {
             chantier_address: form.chantier_address || null,
             work_delay: form.work_delay || null,
             budget: form.budget === '' ? 0 : Number(parseSoldeInput(form.budget) || 0),
+            portal_login: form.portal_login || null,
         };
+        if (form.portal_password) {
+            payload.portal_password = form.portal_password;
+        }
         try {
             if (editingId) {
                 await api.put(`/clients/${editingId}`, payload);
@@ -334,6 +342,33 @@ export default function FicheClientPage() {
                             />
                         </Field>
                     </div>
+                </div>
+
+                <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2 max-w-xl">
+                    <Field label="Login portail">
+                        <input
+                            type="text"
+                            value={form.portal_login}
+                            onChange={(e) => set('portal_login', e.target.value)}
+                            placeholder="Identifiant client"
+                            autoComplete="off"
+                            data-lpignore="true"
+                            data-1p-ignore
+                            className={inputClass}
+                        />
+                    </Field>
+                    <Field label="Mot de passe portail">
+                        <input
+                            type="password"
+                            value={form.portal_password}
+                            onChange={(e) => set('portal_password', e.target.value)}
+                            placeholder={editingId ? 'Laisser vide = inchangé' : 'Mot de passe'}
+                            autoComplete="new-password"
+                            data-lpignore="true"
+                            data-1p-ignore
+                            className={inputClass}
+                        />
+                    </Field>
                 </div>
 
                 <div className="flex flex-wrap gap-3 mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">

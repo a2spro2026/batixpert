@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\ClientOrderApiController;
 use App\Http\Controllers\Api\ClientPaymentApiController;
 use App\Http\Controllers\Api\ClientReleveApiController;
 use App\Http\Controllers\Api\ClientRelanceApiController;
+use App\Http\Controllers\Api\ClientPortalApiController;
 use App\Http\Controllers\Api\ClientApiController;
 use App\Http\Controllers\Api\DashboardApiController;
 use App\Http\Controllers\Api\DocumentApiController;
@@ -37,6 +38,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', [AuthController::class, 'user']);
 
+    Route::middleware('client.portal')->prefix('portal')->group(function () {
+        Route::get('/orders', [ClientPortalApiController::class, 'orders']);
+        Route::get('/orders/{sales_order}', [ClientPortalApiController::class, 'showOrder']);
+        Route::get('/payments', [ClientPortalApiController::class, 'payments']);
+        Route::get('/payments/{client_payment}', [ClientPortalApiController::class, 'showPayment']);
+    });
+
+    Route::middleware('staff')->group(function () {
     Route::get('/dashboard', [DashboardApiController::class, 'index']);
     Route::get('/dashboard/chart', [DashboardApiController::class, 'chart']);
 
@@ -117,4 +126,5 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/reports/financial', [ReportApiController::class, 'financial']);
     Route::get('/reports/export/{type}', [ReportApiController::class, 'export']);
+    });
 });
