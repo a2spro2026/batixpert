@@ -7,6 +7,7 @@ const emptyForm = {
     login: '',
     password: '',
     permissions: [],
+    tresoreries: [],
 };
 
 const columns = ['Client', 'Contact', 'Login', 'Mot de passe', 'Accès côté client', 'Actions'];
@@ -29,6 +30,7 @@ export default function PartnersPage() {
     const [rows, setRows] = useState([]);
     const [clients, setClients] = useState([]);
     const [sections, setSections] = useState([]);
+    const [tresoreries, setTresoreries] = useState([]);
     const [loading, setLoading] = useState(true);
     const [formOpen, setFormOpen] = useState(false);
     const [form, setForm] = useState(emptyForm);
@@ -43,6 +45,7 @@ export default function PartnersPage() {
                 setRows(res.data.data ?? []);
                 setClients(res.data.meta?.clients ?? []);
                 setSections(res.data.meta?.sections ?? []);
+                setTresoreries(res.data.meta?.tresoreries ?? []);
             })
             .catch(() => setRows([]))
             .finally(() => setLoading(false));
@@ -71,19 +74,20 @@ export default function PartnersPage() {
             login: row.login || '',
             password: '',
             permissions: row.permissions || [],
+            tresoreries: row.tresoreries === null ? (tresoreries.length ? [...tresoreries] : []) : (row.tresoreries || []),
         });
         setError('');
         setFormOpen(true);
     };
 
-    const togglePerm = (slug) => {
+    const toggleList = (key, value) => {
         setForm((current) => {
-            const has = current.permissions.includes(slug);
+            const has = current[key].includes(value);
             return {
                 ...current,
-                permissions: has
-                    ? current.permissions.filter((item) => item !== slug)
-                    : [...current.permissions, slug],
+                [key]: has
+                    ? current[key].filter((item) => item !== value)
+                    : [...current[key], value],
             };
         });
     };
@@ -97,6 +101,7 @@ export default function PartnersPage() {
                 client_id: Number(form.client_id),
                 login: form.login,
                 permissions: form.permissions,
+                tresoreries: form.tresoreries,
             };
             if (form.password) payload.password = form.password;
             if (editingId) {
@@ -182,7 +187,14 @@ export default function PartnersPage() {
                                     <td className="px-4 py-2.5 text-center font-mono text-xs text-brand-navy dark:text-violet-300">{row.login}</td>
                                     <td className="px-4 py-2.5 text-center tracking-widest text-slate-400">{row.password_mask}</td>
                                     <td className="px-4 py-2.5 text-center text-xs text-slate-600 dark:text-slate-300">
-                                        {row.access_labels?.length ? row.access_labels.join(' · ') : 'Aucun'}
+                                        <div>{row.access_labels?.length ? row.access_labels.join(' · ') : 'Aucun'}</div>
+                                        <div className="mt-1 text-[11px] text-slate-500">
+                                            {row.tresoreries === null
+                                                ? 'Trésorerie : toutes'
+                                                : row.tresoreries.length
+                                                    ? `Trésorerie : ${row.tresoreries.join(' · ')}`
+                                                    : 'Trésorerie : aucune'}
+                                        </div>
                                         {!row.is_active && (
                                             <div className="mt-1 text-[10px] font-semibold uppercase text-red-500 inline-flex items-center gap-1">
                                                 <Ban className="w-3 h-3" /> Suspendu
@@ -240,13 +252,32 @@ export default function PartnersPage() {
                                             <input
                                                 type="checkbox"
                                                 checked={form.permissions.includes(section.slug)}
-                                                onChange={() => togglePerm(section.slug)}
+                                                onChange={() => toggleList('permissions', section.slug)}
                                                 className="rounded border-slate-300 text-brand-navy"
                                             />
                                             {section.label}
                                         </label>
                                     ))}
                                 </div>
+                            </div>
+                            <div>
+                                <p className="field-label field-label-compact mb-2">Trésoreries qu&apos;il peut voir</p>
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                    {tresoreries.map((name) => (
+                                        <label key={name} className="flex items-center gap-2 rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2 text-sm cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={form.tresoreries.includes(name)}
+                                                onChange={() => toggleList('tresoreries', name)}
+                                                className="rounded border-slate-300 text-brand-navy"
+                                            />
+                                            {name}
+                                        </label>
+                                    ))}
+                                </div>
+                                <p className="mt-2 text-[11px] text-slate-400">
+                                    Seuls les règlements de ces trésoreries apparaissent dans son espace. Aucune case : il n&apos;en voit aucun.
+                                </p>
                             </div>
                             <div className="flex justify-end gap-2">
                                 <button type="button" onClick={() => setFormOpen(false)} className="btn-secondary text-xs px-4">Fermer</button>

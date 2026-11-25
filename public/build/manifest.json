@@ -1,6 +1,6 @@
 {
-  "_jspdf.es.min-ROQtqmyF.js": {
-    "file": "assets/jspdf.es.min-ROQtqmyF.js",
+  "_jspdf.es.min-RGOVbMFH.js": {
+    "file": "assets/jspdf.es.min-RGOVbMFH.js",
     "name": "jspdf.es.min",
     "isDynamicEntry": true,
     "imports": [
@@ -13,12 +13,12 @@
     ]
   },
   "node_modules/canvg/lib/index.es.js": {
-    "file": "assets/index.es-C0NHeofn.js",
+    "file": "assets/index.es-D0iNs3vx.js",
     "name": "index.es",
     "src": "node_modules/canvg/lib/index.es.js",
     "isDynamicEntry": true,
     "imports": [
-      "_jspdf.es.min-ROQtqmyF.js",
+      "_jspdf.es.min-RGOVbMFH.js",
       "resources/js/main.jsx"
     ],
     "css": [
@@ -47,13 +47,13 @@
     ]
   },
   "resources/js/main.jsx": {
-    "file": "assets/main--Nr9l35v.js",
+    "file": "assets/main-CUWylKyH.js",
     "name": "main",
     "src": "resources/js/main.jsx",
     "isEntry": true,
     "dynamicImports": [
       "node_modules/html2canvas/dist/html2canvas.esm.js",
-      "_jspdf.es.min-ROQtqmyF.js"
+      "_jspdf.es.min-RGOVbMFH.js"
     ],
     "css": [
       "assets/app-6GgbCwNv.css"

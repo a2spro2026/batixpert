@@ -26,6 +26,29 @@ class ClientPayment extends Model
         ];
     }
 
+    public function scopeForPortalTreasuries($query, ?array $names)
+    {
+        if ($names === null) {
+            return $query;
+        }
+
+        $names = collect($names)
+            ->map(fn ($name) => mb_strtoupper(trim((string) $name)))
+            ->filter()
+            ->unique()
+            ->values();
+
+        if ($names->isEmpty()) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query->where(function ($inner) use ($names) {
+            foreach ($names as $name) {
+                $inner->orWhereRaw('UPPER(tresorerie) = ?', [$name]);
+            }
+        });
+    }
+
     public function client(): BelongsTo
     {
         return $this->belongsTo(Client::class);

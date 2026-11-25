@@ -28,6 +28,7 @@ class PartnerApiController extends Controller
             'meta' => [
                 'clients' => $clients,
                 'sections' => PartnerMenu::sections(),
+                'tresoreries' => PartnerMenu::treasuries(),
             ],
         ]);
     }
@@ -77,6 +78,7 @@ class PartnerApiController extends Controller
             'portal_password' => null,
             'portal_enabled' => false,
             'portal_permissions' => null,
+            'portal_tresoreries' => null,
         ]);
         $client->tokens()->where('name', 'batixpert-client-portal')->delete();
 
@@ -101,6 +103,8 @@ class PartnerApiController extends Controller
             'password' => [$client ? 'nullable' : 'required', 'string', 'min:4', 'max:100'],
             'permissions' => 'array',
             'permissions.*' => 'string|in:'.implode(',', PartnerMenu::slugs()),
+            'tresoreries' => 'present|array',
+            'tresoreries.*' => ['string', Rule::in(PartnerMenu::treasuries())],
         ], [
             'client_id.unique' => 'Ce client a déjà un accès partenaire.',
             'login.unique' => 'Ce login est déjà utilisé.',
@@ -113,6 +117,7 @@ class PartnerApiController extends Controller
             'portal_login' => trim($validated['login']),
             'portal_enabled' => true,
             'portal_permissions' => array_values(array_unique($validated['permissions'] ?? [])),
+            'portal_tresoreries' => array_values(array_unique($validated['tresoreries'] ?? [])),
         ];
 
         if ($creating || filled($validated['password'] ?? null)) {
@@ -144,6 +149,9 @@ class PartnerApiController extends Controller
             'is_active' => (bool) $client->portal_enabled,
             'permissions' => $permissions,
             'access_labels' => $labels,
+            'tresoreries' => is_array($client->portal_tresoreries)
+                ? array_values($client->portal_tresoreries)
+                : null,
         ];
     }
 }

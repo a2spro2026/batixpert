@@ -45,6 +45,10 @@ class ClientReleveApiController extends Controller
                 });
             })
             ->when($tresorerie !== '', fn ($q) => $q->where('tresorerie', $tresorerie))
+            ->when(
+                $request->attributes->has('portal_tresoreries'),
+                fn ($q) => $q->forPortalTreasuries($request->attributes->get('portal_tresoreries'))
+            )
             ->orderBy('payment_date')
             ->orderBy('id')
             ->get();

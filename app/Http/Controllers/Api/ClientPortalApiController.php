@@ -50,8 +50,9 @@ class ClientPortalApiController extends Controller
 
         $sales_order->loadMissing(['paymentAllocations.payment']);
 
+        $client = $request->user();
         $payments = $sales_order->paymentAllocations
-            ->filter(fn ($a) => $a->payment)
+            ->filter(fn ($a) => $a->payment && (! $client instanceof Client || $client->seesTreasury($a->payment->tresorerie)))
             ->map(function ($allocation) {
                 $payment = $allocation->payment;
                 $statut = $payment->statut ?: 'Inst';
@@ -96,6 +97,7 @@ class ClientPortalApiController extends Controller
 
         $payments = ClientPayment::with(['client', 'allocations.saleOrder'])
             ->where('client_id', $client->id)
+            ->forPortalTreasuries($client->portalTreasuryFilter())
             ->latest('payment_date')
             ->latest('id')
             ->get()
@@ -107,7 +109,9 @@ class ClientPortalApiController extends Controller
             $payments = $payments->filter(fn ($p) => ! $this->isSolded($p['statut']))->values();
         }
 
-        $all = ClientPayment::where('client_id', $client->id)->get(['statut', 'montant']);
+        $all = ClientPayment::where('client_id', $client->id)
+            ->forPortalTreasuries($client->portalTreasuryFilter())
+            ->get(['statut', 'montant']);
         $soldesCount = $all->filter(fn ($p) => $this->isSolded($p->statut))->count();
 
         return response()->json([
@@ -135,6 +139,7 @@ class ClientPortalApiController extends Controller
     {
         $client = $this->partner($request, 'portal.balance');
         $request->merge(['client_id' => $client->id]);
+        $this->shareTreasuries($request, $client);
 
         return app(ClientOrderApiController::class)->balance($request);
     }
@@ -143,6 +148,7 @@ class ClientPortalApiController extends Controller
     {
         $client = $this->partner($request, 'portal.releve');
         $request->merge(['client_id' => $client->id]);
+        $this->shareTreasuries($request, $client);
 
         return app(ClientReleveApiController::class)->index($request);
     }
@@ -157,6 +163,14 @@ class ClientPortalApiController extends Controller
         return $client;
     }
 
+    private function shareTreasuries(Request $request, Client $client): void
+    {
+        $filter = $client->portalTreasuryFilter();
+        if ($filter !== null) {
+            $request->attributes->set('portal_tresoreries', $filter);
+        }
+    }
+
     private function assertOwnsOrder(Request $request, SaleOrder $order): void
     {
         if ((int) $order->client_id !== (int) $request->user()->id || $order->status === 'annule') {
@@ -166,7 +180,11 @@ class ClientPortalApiController extends Controller
 
     private function assertOwnsPayment(Request $request, ClientPayment $payment): void
     {
-        if ((int) $payment->client_id !== (int) $request->user()->id) {
+        $client = $request->user();
+        if ((int) $payment->client_id !== (int) $client->id) {
+            abort(404);
+        }
+        if ($client instanceof Client && ! $client->seesTreasury($payment->tresorerie)) {
             abort(404);
         }
     }

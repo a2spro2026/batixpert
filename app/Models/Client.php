@@ -11,7 +11,7 @@ class Client extends Authenticatable
     use HasApiTokens;
 
     protected $fillable = [
-        'name', 'contact_person', 'email', 'phone', 'portal_login', 'portal_password', 'portal_enabled', 'portal_permissions',
+        'name', 'contact_person', 'email', 'phone', 'portal_login', 'portal_password', 'portal_enabled', 'portal_permissions', 'portal_tresoreries',
         'address', 'city', 'ice', 'status', 'notes',
         'chantier_type', 'reglement', 'chantier_address', 'budget', 'work_delay',
     ];
@@ -26,6 +26,7 @@ class Client extends Authenticatable
             'budget' => 'decimal:2',
             'portal_enabled' => 'boolean',
             'portal_permissions' => 'array',
+            'portal_tresoreries' => 'array',
         ];
     }
 
@@ -72,6 +73,38 @@ class Client extends Authenticatable
     public function portalAllows(string $slug): bool
     {
         return in_array($slug, $this->portal_permissions ?? [], true);
+    }
+
+    /**
+     * null = aucune limite (accès créé avant le choix des trésoreries).
+     * tableau = seules ces trésoreries sont visibles.
+     *
+     * @return array<int, string>|null
+     */
+    public function portalTreasuryFilter(): ?array
+    {
+        if (! is_array($this->portal_tresoreries)) {
+            return null;
+        }
+
+        return collect($this->portal_tresoreries)
+            ->map(fn ($name) => mb_strtoupper(trim((string) $name)))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    public function seesTreasury(?string $name): bool
+    {
+        $allowed = $this->portalTreasuryFilter();
+        if ($allowed === null) {
+            return true;
+        }
+
+        $needle = mb_strtoupper(trim((string) $name));
+
+        return $needle !== '' && in_array($needle, $allowed, true);
     }
 
     public function phoneMatches(string $input): bool

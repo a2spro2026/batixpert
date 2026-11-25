@@ -60,7 +60,11 @@ class ClientOrderApiController extends Controller
             ->when($monthFilter, function ($q) use ($mois) {
                 [$year, $month] = explode('-', $mois);
                 $q->whereYear('payment_date', $year)->whereMonth('payment_date', $month);
-            });
+            })
+            ->when(
+                $request->attributes->has('portal_tresoreries'),
+                fn ($q) => $q->forPortalTreasuries($request->attributes->get('portal_tresoreries'))
+            );
 
         $paiementsByClient = $paiementsQuery
             ->selectRaw('client_id, SUM(montant) as montant_paye, MAX(payment_date) as dernier_paiement')
