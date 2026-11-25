@@ -9,7 +9,6 @@ const STATUT_OPTIONS = [
     { value: 'Assistant', label: 'Assistant(e)' },
     { value: 'Commercial', label: 'Commercial' },
     { value: 'Facturation', label: 'Facturation' },
-    { value: 'Client', label: 'Client' },
 ];
 
 const TEXT_SECURITY_SUPPORTED = typeof CSS !== 'undefined' && CSS.supports?.('-webkit-text-security', 'disc');
@@ -394,13 +393,11 @@ export default function Login() {
                                         placeholder="Votre mot de passe"
                                     />
 
-                                    {statut !== 'Client' && (
                                     <div className="flex justify-end text-sm pt-1">
                                         <button type="button" className="text-brand-orange text-sm font-medium hover:underline underline-offset-2">
                                             Mot de passe oublié ?
                                         </button>
                                     </div>
-                                    )}
 
                                     <motion.button
                                         type="submit"

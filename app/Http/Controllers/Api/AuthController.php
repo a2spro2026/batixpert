@@ -16,7 +16,6 @@ class AuthController extends Controller
         'Assistant' => 'Assistant(e)',
         'Commercial' => 'Commercial',
         'Facturation' => 'Facturation',
-        'Client' => 'Client',
     ];
 
     public function login(Request $request)
@@ -27,10 +26,6 @@ class AuthController extends Controller
             'password' => 'required|string',
             'statut' => 'required|in:'.implode(',', array_keys(self::STATUTS)),
         ]);
-
-        if ($request->statut === 'Client') {
-            return $this->loginClient($request);
-        }
 
         $login = trim((string) $request->input('login', $request->email));
 
@@ -90,54 +85,6 @@ class AuthController extends Controller
         $statutLabel = $statut ? (self::STATUTS[$statut] ?? $statut) : null;
 
         return response()->json($this->formatUser($user, $statut, $statutLabel));
-    }
-
-    private function loginClient(Request $request)
-    {
-        $login = trim((string) $request->input('login', $request->email));
-        $password = (string) $request->password;
-        $loginLower = mb_strtolower($login);
-
-        $client = Client::query()
-            ->where('portal_enabled', true)
-            ->whereNotNull('portal_login')
-            ->whereRaw('LOWER(portal_login) = ?', [$loginLower])
-            ->first();
-
-        $authenticated = $client
-            && filled($client->portal_password)
-            && Hash::check($password, $client->portal_password);
-
-        // Fallback legacy: nom société + téléphone (clients sans login portail)
-        if (! $authenticated) {
-            $client = Client::query()
-                ->get()
-                ->first(function (Client $c) use ($loginLower) {
-                    return mb_strtolower(trim((string) $c->name)) === $loginLower;
-                });
-
-            $authenticated = $client && $client->phoneMatches($password);
-        }
-
-        if (! $authenticated || ! $client) {
-            throw ValidationException::withMessages([
-                'login' => ['Statut, login ou mot de passe incorrect.'],
-            ]);
-        }
-
-        if (($client->status ?? 'actif') === 'inactif' || ($client->status ?? '') === 'suspendu') {
-            throw ValidationException::withMessages([
-                'login' => ['Compte client suspendu.'],
-            ]);
-        }
-
-        $client->tokens()->where('name', 'batixpert-client-portal')->delete();
-        $token = $client->createToken('batixpert-client-portal')->plainTextToken;
-
-        return response()->json([
-            'token' => $token,
-            'user' => $this->formatClient($client),
-        ]);
     }
 
     private function formatClient(Client $client): array
