@@ -696,7 +696,7 @@ export default function ReglementFournisseurPage() {
     /* ───────────── LIST VIEW ───────────── */
     if (view === 'list') {
         return (
-            <div className="flex flex-col gap-3 lg:h-[calc(100dvh-11rem)] lg:min-h-[360px]">
+            <div className="flex flex-col flex-1 min-h-0 h-full overflow-hidden gap-3">
                 {error && (
                     <div className="shrink-0 p-3 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm border border-red-100 dark:border-red-800">{error}</div>
                 )}
@@ -804,14 +804,14 @@ export default function ReglementFournisseurPage() {
                     </div>
                 </form>
 
-                <div className="lg:flex-1 lg:min-h-0 glass-card flex flex-col overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60">
+                <div className="flex-1 min-h-0 glass-card flex flex-col overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60">
                     <div className="shrink-0 px-4 sm:px-5 py-3 sm:py-3.5 bg-gradient-to-r from-blue-600 via-blue-700 to-slate-800 border-b border-white/10">
                         <h3 className="text-sm font-bold text-white uppercase tracking-wide">
                             Tableau de consultation
                             <span className="lg:hidden font-semibold text-white/70"> ({payments.length})</span>
                         </h3>
                     </div>
-                    <div className="lg:hidden">
+                    <div className="lg:hidden flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y">
                         <MobileCardList loading={loadingList} empty="Aucun règlement enregistré">
                             {payments.map((row) => (
                                 <MobileRecordCard

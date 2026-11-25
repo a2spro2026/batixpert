@@ -11,7 +11,7 @@ class Client extends Authenticatable
     use HasApiTokens;
 
     protected $fillable = [
-        'name', 'contact_person', 'email', 'phone', 'portal_login', 'portal_password', 'portal_enabled',
+        'name', 'contact_person', 'email', 'phone', 'portal_login', 'portal_password', 'portal_enabled', 'portal_permissions',
         'address', 'city', 'ice', 'status', 'notes',
         'chantier_type', 'reglement', 'chantier_address', 'budget', 'work_delay',
     ];
@@ -25,6 +25,7 @@ class Client extends Authenticatable
         return [
             'budget' => 'decimal:2',
             'portal_enabled' => 'boolean',
+            'portal_permissions' => 'array',
         ];
     }
 
@@ -66,6 +67,11 @@ class Client extends Authenticatable
     public static function normalizePhone(?string $phone): string
     {
         return preg_replace('/\D+/', '', (string) $phone) ?? '';
+    }
+
+    public function portalAllows(string $slug): bool
+    {
+        return in_array($slug, $this->portal_permissions ?? [], true);
     }
 
     public function phoneMatches(string $input): bool

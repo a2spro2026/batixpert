@@ -99,6 +99,7 @@ class AuthorizationMenu
                 'perm' => 'nav.configuration',
                 'children' => [
                     ['label' => 'Utilisateur', 'perm' => 'nav.configuration.utilisateurs'],
+                    ['label' => 'Partenaire', 'perm' => 'nav.configuration.partenaires'],
                     ['label' => 'Autorisations', 'perm' => 'nav.configuration.autorisations'],
                     ['label' => 'Chauffeur', 'perm' => 'nav.configuration.chauffeurs'],
                 ],

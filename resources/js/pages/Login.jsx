@@ -9,6 +9,7 @@ const STATUT_OPTIONS = [
     { value: 'Assistant', label: 'Assistant(e)' },
     { value: 'Commercial', label: 'Commercial' },
     { value: 'Facturation', label: 'Facturation' },
+    { value: 'Partenaire', label: 'Partenaire' },
 ];
 
 const TEXT_SECURITY_SUPPORTED = typeof CSS !== 'undefined' && CSS.supports?.('-webkit-text-security', 'disc');

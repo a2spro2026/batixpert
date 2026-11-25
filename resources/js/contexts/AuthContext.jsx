@@ -9,7 +9,7 @@ const STATUT_LABELS = {
     Assistant: 'Assistant(e)',
     Commercial: 'Commercial',
     Facturation: 'Facturation',
-    Client: 'Client',
+    Partenaire: 'Partenaire',
 };
 
 function mergeUserWithStatut(userData) {

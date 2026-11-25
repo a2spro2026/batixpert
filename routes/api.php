@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\ClientPaymentApiController;
 use App\Http\Controllers\Api\ClientReleveApiController;
 use App\Http\Controllers\Api\ClientRelanceApiController;
 use App\Http\Controllers\Api\ClientPortalApiController;
+use App\Http\Controllers\Api\PartnerApiController;
 use App\Http\Controllers\Api\ClientApiController;
 use App\Http\Controllers\Api\DashboardApiController;
 use App\Http\Controllers\Api\DocumentApiController;
@@ -44,6 +45,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/orders/{sales_order}', [ClientPortalApiController::class, 'showOrder']);
         Route::get('/payments', [ClientPortalApiController::class, 'payments']);
         Route::get('/payments/{client_payment}', [ClientPortalApiController::class, 'showPayment']);
+        Route::get('/balance', [ClientPortalApiController::class, 'balance']);
+        Route::get('/releve', [ClientPortalApiController::class, 'releve']);
     });
 
     Route::middleware('staff')->group(function () {
@@ -122,6 +125,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('user-authorizations/menu', [UserAuthorizationApiController::class, 'menu']);
     Route::put('users/{user}/authorizations', [UserAuthorizationApiController::class, 'update']);
     Route::patch('users/{user}/suspend', [UserApiController::class, 'suspend']);
+    Route::get('partners', [PartnerApiController::class, 'index']);
+    Route::post('partners', [PartnerApiController::class, 'store']);
+    Route::put('partners/{client}', [PartnerApiController::class, 'update']);
+    Route::patch('partners/{client}/suspend', [PartnerApiController::class, 'suspend']);
+    Route::delete('partners/{client}', [PartnerApiController::class, 'destroy']);
     Route::apiResource('users', UserApiController::class);
     Route::get('chauffeurs', [ChauffeurApiController::class, 'index']);
 

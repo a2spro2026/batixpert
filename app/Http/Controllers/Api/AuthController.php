@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Client;
 use App\Models\User;
+use App\Support\PartnerMenu;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
@@ -16,6 +17,7 @@ class AuthController extends Controller
         'Assistant' => 'Assistant(e)',
         'Commercial' => 'Commercial',
         'Facturation' => 'Facturation',
+        'Partenaire' => 'Partenaire',
     ];
 
     public function login(Request $request)
@@ -26,6 +28,10 @@ class AuthController extends Controller
             'password' => 'required|string',
             'statut' => 'required|in:'.implode(',', array_keys(self::STATUTS)),
         ]);
+
+        if ($request->statut === 'Partenaire') {
+            return $this->loginPartner($request);
+        }
 
         $login = trim((string) $request->input('login', $request->email));
 
@@ -87,8 +93,44 @@ class AuthController extends Controller
         return response()->json($this->formatUser($user, $statut, $statutLabel));
     }
 
+    private function loginPartner(Request $request)
+    {
+        $login = mb_strtolower(trim((string) $request->input('login', $request->email)));
+
+        $client = Client::query()
+            ->where('portal_enabled', true)
+            ->whereNotNull('portal_login')
+            ->whereRaw('LOWER(portal_login) = ?', [$login])
+            ->first();
+
+        if (! $client || ! filled($client->portal_password) || ! Hash::check($request->password, $client->portal_password)) {
+            throw ValidationException::withMessages([
+                'login' => ['Statut, login ou mot de passe incorrect.'],
+            ]);
+        }
+
+        if (in_array($client->status ?? 'actif', ['inactif', 'suspendu'], true)) {
+            throw ValidationException::withMessages([
+                'login' => ['Compte partenaire suspendu.'],
+            ]);
+        }
+
+        $client->tokens()->where('name', 'batixpert-client-portal')->delete();
+        $token = $client->createToken('batixpert-client-portal')->plainTextToken;
+
+        return response()->json([
+            'token' => $token,
+            'user' => $this->formatClient($client),
+        ]);
+    }
+
     private function formatClient(Client $client): array
     {
+        $permissions = array_values(array_intersect(
+            $client->portal_permissions ?? [],
+            PartnerMenu::slugs()
+        ));
+
         return [
             'id' => $client->id,
             'client_id' => $client->id,
@@ -97,13 +139,13 @@ class AuthController extends Controller
             'login' => $client->portal_login ?: $client->name,
             'phone' => $client->phone,
             'city' => $client->city,
-            'statut' => 'Client',
-            'statut_label' => 'Client',
+            'statut' => 'Partenaire',
+            'statut_label' => 'Partenaire',
             'role' => null,
-            'permissions' => [],
+            'permissions' => $permissions,
             'is_admin' => false,
             'is_client_portal' => true,
-            'title' => 'Client',
+            'title' => 'Partenaire',
         ];
     }
 

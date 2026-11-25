@@ -13,7 +13,7 @@ class ClientPortalApiController extends Controller
     public function orders(Request $request)
     {
         /** @var Client $client */
-        $client = $request->user();
+        $client = $this->partner($request, 'portal.orders');
 
         $orders = SaleOrder::with(['client', 'items', 'paymentAllocations.payment'])
             ->where('client_id', $client->id)
@@ -35,6 +35,7 @@ class ClientPortalApiController extends Controller
 
     public function showOrder(Request $request, SaleOrder $sales_order)
     {
+        $this->partner($request, 'portal.orders');
         $this->assertOwnsOrder($request, $sales_order);
 
         return response()->json($this->formatOrder(
@@ -44,6 +45,7 @@ class ClientPortalApiController extends Controller
 
     public function orderPayments(Request $request, SaleOrder $sales_order)
     {
+        $this->partner($request, 'portal.orders');
         $this->assertOwnsOrder($request, $sales_order);
 
         $sales_order->loadMissing(['paymentAllocations.payment']);
@@ -89,7 +91,7 @@ class ClientPortalApiController extends Controller
     public function payments(Request $request)
     {
         /** @var Client $client */
-        $client = $request->user();
+        $client = $this->partner($request, 'portal.payments');
         $filter = (string) $request->input('solde', ''); // soldes | non_soldes | ''
 
         $payments = ClientPayment::with(['client', 'allocations.saleOrder'])
@@ -121,11 +123,38 @@ class ClientPortalApiController extends Controller
 
     public function showPayment(Request $request, ClientPayment $client_payment)
     {
+        $this->partner($request, 'portal.payments');
         $this->assertOwnsPayment($request, $client_payment);
 
         return response()->json($this->formatPayment(
             $client_payment->load(['client', 'allocations.saleOrder'])
         ));
+    }
+
+    public function balance(Request $request)
+    {
+        $client = $this->partner($request, 'portal.balance');
+        $request->merge(['client_id' => $client->id]);
+
+        return app(ClientOrderApiController::class)->balance($request);
+    }
+
+    public function releve(Request $request)
+    {
+        $client = $this->partner($request, 'portal.releve');
+        $request->merge(['client_id' => $client->id]);
+
+        return app(ClientReleveApiController::class)->index($request);
+    }
+
+    private function partner(Request $request, string $permission): Client
+    {
+        $client = $request->user();
+        if (! $client instanceof Client || ! $client->portal_enabled || ! $client->portalAllows($permission)) {
+            abort(403, 'Accès non autorisé.');
+        }
+
+        return $client;
     }
 
     private function assertOwnsOrder(Request $request, SaleOrder $order): void

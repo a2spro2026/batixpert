@@ -9,6 +9,7 @@ import {
     Settings,
     CarFront,
     Shield,
+    Handshake,
     // Fournisseur
     Contact,
     ClipboardList,
@@ -145,6 +146,7 @@ export const navigation = [
         perm: 'nav.configuration',
         children: [
             { to: '/configuration/utilisateurs', label: 'Utilisateur', icon: UserCog, perm: 'nav.configuration.utilisateurs' },
+            { to: '/configuration/partenaires', label: 'Partenaire', icon: Handshake, perm: 'nav.configuration.partenaires' },
             { to: '/configuration/autorisations', label: 'Autorisations', icon: Shield, perm: 'nav.configuration.autorisations' },
             { to: '/configuration/chauffeurs', label: 'Chauffeur', icon: CarFront, perm: 'nav.configuration.chauffeurs' },
         ],

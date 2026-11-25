@@ -29,11 +29,14 @@ import SupplierReliquatPage from './pages/SupplierReliquatPage';
 import ClientRelevePage from './pages/ClientRelevePage';
 import ClientRelancePage from './pages/ClientRelancePage';
 import UsersPage from './pages/UsersPage';
+import PartnersPage from './pages/PartnersPage';
 import UserAuthorizationsPage from './pages/UserAuthorizationsPage';
 import ChauffeursPage from './pages/ChauffeursPage';
 import ClientPortalLayout from './components/layout/ClientPortalLayout';
 import PortalOrdersPage from './pages/portal/PortalOrdersPage';
 import PortalPaymentsPage from './pages/portal/PortalPaymentsPage';
+import PortalBalancePage from './pages/portal/PortalBalancePage';
+import PortalRelevePage from './pages/portal/PortalRelevePage';
 
 function AuthSpinner() {
     return (
@@ -49,6 +52,16 @@ function ProtectedRoute({ children }) {
     if (!user) return <Navigate to="/login" replace />;
     if (isClientPortal) return <Navigate to="/portal" replace />;
     return children;
+}
+
+function PortalScreen({ perm, children }) {
+    const { user } = useAuth();
+    if (user?.permissions?.includes(perm)) return children;
+    return (
+        <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 text-sm text-slate-500">
+            Cette section n&apos;est pas autorisée pour ce partenaire.
+        </div>
+    );
 }
 
 function ClientPortalRoute({ children }) {
@@ -72,8 +85,10 @@ function AppRoutes() {
         <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/portal" element={<ClientPortalRoute><ClientPortalLayout /></ClientPortalRoute>}>
-                <Route index element={<PortalOrdersPage />} />
-                <Route path="reglements" element={<PortalPaymentsPage />} />
+                <Route index element={<PortalScreen perm="portal.orders"><PortalOrdersPage /></PortalScreen>} />
+                <Route path="reglements" element={<PortalScreen perm="portal.payments"><PortalPaymentsPage /></PortalScreen>} />
+                <Route path="balance" element={<PortalScreen perm="portal.balance"><PortalBalancePage /></PortalScreen>} />
+                <Route path="releve" element={<PortalScreen perm="portal.releve"><PortalRelevePage /></PortalScreen>} />
             </Route>
             <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
                 <Route index element={<Dashboard />} />
@@ -132,6 +147,7 @@ function AppRoutes() {
 
                 {/* Configuration */}
                 <Route path="configuration/utilisateurs" element={<UsersPage />} />
+                <Route path="configuration/partenaires" element={<PartnersPage />} />
                 <Route path="configuration/autorisations" element={<UserAuthorizationsPage />} />
                 <Route path="configuration/chauffeurs" element={<ChauffeursPage />} />
 

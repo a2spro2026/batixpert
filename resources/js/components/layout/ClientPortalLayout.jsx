@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { ClipboardList, Banknote, LogOut, Moon, Sun, RefreshCw } from 'lucide-react';
+import { ClipboardList, Banknote, Scale, ScrollText, LogOut, Moon, Sun, RefreshCw } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 
 const tabs = [
-    { to: '/portal', end: true, label: 'Mes bons de vente', icon: ClipboardList },
-    { to: '/portal/reglements', end: false, label: 'Mes règlements', icon: Banknote },
+    { to: '/portal', end: true, label: 'Mes bons de vente', icon: ClipboardList, perm: 'portal.orders' },
+    { to: '/portal/reglements', end: false, label: 'Mes règlements', icon: Banknote, perm: 'portal.payments' },
+    { to: '/portal/balance', end: false, label: 'Ma balance', icon: Scale, perm: 'portal.balance' },
+    { to: '/portal/releve', end: false, label: 'Mon relevé', icon: ScrollText, perm: 'portal.releve' },
 ];
 
 export default function ClientPortalLayout() {
@@ -79,7 +81,7 @@ export default function ClientPortalLayout() {
             <header className="shrink-0 z-40 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
                 <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
                     <div className="min-w-0">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-brand-orange">Portail Client</p>
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-brand-orange">Espace partenaire</p>
                         <h1 className="text-sm sm:text-base font-bold text-brand-navy dark:text-white truncate">{user?.name || 'Client'}</h1>
                         {(user?.city || user?.phone) && (
                             <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">{[user.city, user.phone].filter(Boolean).join(' · ')}</p>
@@ -116,7 +118,7 @@ export default function ClientPortalLayout() {
                     </div>
                 </div>
                 <nav className="max-w-6xl mx-auto px-4 pb-3 flex gap-2 overflow-x-auto overscroll-x-contain">
-                    {tabs.map(({ to, end, label, icon: Icon }) => (
+                    {tabs.filter((tab) => user?.permissions?.includes(tab.perm)).map(({ to, end, label, icon: Icon }) => (
                         <NavLink
                             key={to}
                             to={to}
