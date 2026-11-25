@@ -232,7 +232,7 @@ export default function PartnersPage() {
                                     <td className="px-4 py-2.5 text-center tracking-widest text-slate-400">{row.password_mask}</td>
                                     <td className="px-4 py-2.5 text-center text-xs text-slate-600 dark:text-slate-300">
                                         <div>{row.access_labels?.length ? row.access_labels.join(' · ') : 'Aucun'}</div>
-                                        <div className="mt-1 text-[11px] normal-case text-slate-500">
+                                        <div className="mt-1 text-[11px] normal-case text-slate-500 dark:text-slate-300">
                                             {row.tresoreries === null
                                                 ? 'Trésorerie : toutes'
                                                 : row.tresoreries.length
@@ -292,7 +292,7 @@ export default function PartnersPage() {
                                 <p className="field-label field-label-compact mb-2">Ce qu&apos;il peut voir côté client</p>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                     {sections.map((section) => (
-                                        <label key={section.slug} className="flex items-center gap-2 rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2 text-sm normal-case cursor-pointer">
+                                        <label key={section.slug} className="flex items-center gap-2 rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2 text-sm normal-case text-slate-800 dark:text-slate-100 cursor-pointer">
                                             <input
                                                 type="checkbox"
                                                 checked={form.permissions.includes(section.slug)}
@@ -313,7 +313,7 @@ export default function PartnersPage() {
                                 />
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                     {tresoreries.map((name) => (
-                                        <label key={name} className="flex items-center gap-2 rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2 text-sm normal-case cursor-pointer">
+                                        <label key={name} className="flex items-center gap-2 rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2 text-sm normal-case text-slate-800 dark:text-slate-100 cursor-pointer">
                                             <input
                                                 type="checkbox"
                                                 checked={form.tresoreries.includes(name)}
@@ -324,7 +324,7 @@ export default function PartnersPage() {
                                         </label>
                                     ))}
                                 </div>
-                                <p className="mt-2 text-[11px] normal-case text-slate-400">
+                                <p className="mt-2 text-[11px] normal-case text-slate-500 dark:text-slate-300">
                                     Le partenaire ne voit que les règlements des trésoreries cochées. Si aucune n&apos;est cochée, il ne voit aucun règlement.
                                 </p>
                             </div>
