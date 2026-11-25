@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Handshake, Plus, Pencil, Trash2, PauseCircle, PlayCircle, RefreshCw, X, Ban } from 'lucide-react';
 import api from '../lib/api';
 
@@ -25,6 +25,40 @@ function Field({ label, children, required = false }) {
 
 const inputClass =
     'w-full rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-2.5 py-2 text-xs outline-none focus:ring-2 focus:ring-brand-navy/30 focus:border-brand-navy';
+
+const TREASURY_LABELS = {
+    CAISSE: 'Caisse',
+    'CMPT PERS': 'Compte personnel',
+    'CMPT STE': 'Compte société',
+};
+
+function treasuryLabel(name) {
+    const key = String(name || '').trim().toLocaleUpperCase('fr-FR');
+    if (TREASURY_LABELS[key]) return TREASURY_LABELS[key];
+    return key
+        .toLocaleLowerCase('fr-FR')
+        .replace(/(^|[\s-])(\p{L})/gu, (match, sep, letter) => sep + letter.toLocaleUpperCase('fr-FR'));
+}
+
+function CheckAll({ checked, indeterminate, onChange }) {
+    const ref = useRef(null);
+    useEffect(() => {
+        if (ref.current) ref.current.indeterminate = indeterminate;
+    }, [indeterminate]);
+
+    return (
+        <label className="inline-flex items-center gap-2 mb-2 text-sm normal-case font-medium text-slate-700 dark:text-slate-200 cursor-pointer">
+            <input
+                ref={ref}
+                type="checkbox"
+                checked={checked}
+                onChange={onChange}
+                className="rounded border-slate-300 text-brand-navy"
+            />
+            Tout cocher
+        </label>
+    );
+}
 
 export default function PartnersPage() {
     const [rows, setRows] = useState([]);
@@ -92,6 +126,16 @@ export default function PartnersPage() {
         });
     };
 
+    const allTreasuriesChecked = tresoreries.length > 0 && tresoreries.every((name) => form.tresoreries.includes(name));
+    const someTreasuriesChecked = form.tresoreries.length > 0 && !allTreasuriesChecked;
+
+    const toggleAllTreasuries = () => {
+        setForm((current) => ({
+            ...current,
+            tresoreries: tresoreries.every((name) => current.tresoreries.includes(name)) ? [] : [...tresoreries],
+        }));
+    };
+
     const onSubmit = async (e) => {
         e.preventDefault();
         setSaving(true);
@@ -150,7 +194,7 @@ export default function PartnersPage() {
                     <h1 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
                         <Handshake className="w-5 h-5 text-brand-navy" /> Partenaire
                     </h1>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                    <p className="text-sm normal-case text-slate-500 dark:text-slate-400">
                         Choisir un client, lui donner un accès, et cocher ce qu&apos;il voit dans son espace.
                     </p>
                 </div>
@@ -188,11 +232,11 @@ export default function PartnersPage() {
                                     <td className="px-4 py-2.5 text-center tracking-widest text-slate-400">{row.password_mask}</td>
                                     <td className="px-4 py-2.5 text-center text-xs text-slate-600 dark:text-slate-300">
                                         <div>{row.access_labels?.length ? row.access_labels.join(' · ') : 'Aucun'}</div>
-                                        <div className="mt-1 text-[11px] text-slate-500">
+                                        <div className="mt-1 text-[11px] normal-case text-slate-500">
                                             {row.tresoreries === null
                                                 ? 'Trésorerie : toutes'
                                                 : row.tresoreries.length
-                                                    ? `Trésorerie : ${row.tresoreries.join(' · ')}`
+                                                    ? `Trésorerie : ${row.tresoreries.map(treasuryLabel).join(' · ')}`
                                                     : 'Trésorerie : aucune'}
                                         </div>
                                         {!row.is_active && (
@@ -248,7 +292,7 @@ export default function PartnersPage() {
                                 <p className="field-label field-label-compact mb-2">Ce qu&apos;il peut voir côté client</p>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                     {sections.map((section) => (
-                                        <label key={section.slug} className="flex items-center gap-2 rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2 text-sm cursor-pointer">
+                                        <label key={section.slug} className="flex items-center gap-2 rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2 text-sm normal-case cursor-pointer">
                                             <input
                                                 type="checkbox"
                                                 checked={form.permissions.includes(section.slug)}
@@ -262,21 +306,26 @@ export default function PartnersPage() {
                             </div>
                             <div>
                                 <p className="field-label field-label-compact mb-2">Trésoreries qu&apos;il peut voir</p>
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                <CheckAll
+                                    checked={allTreasuriesChecked}
+                                    indeterminate={someTreasuriesChecked}
+                                    onChange={toggleAllTreasuries}
+                                />
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                     {tresoreries.map((name) => (
-                                        <label key={name} className="flex items-center gap-2 rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2 text-sm cursor-pointer">
+                                        <label key={name} className="flex items-center gap-2 rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2 text-sm normal-case cursor-pointer">
                                             <input
                                                 type="checkbox"
                                                 checked={form.tresoreries.includes(name)}
                                                 onChange={() => toggleList('tresoreries', name)}
-                                                className="rounded border-slate-300 text-brand-navy"
+                                                className="rounded border-slate-300 text-brand-navy shrink-0"
                                             />
-                                            {name}
+                                            <span className="min-w-0 break-words">{treasuryLabel(name)}</span>
                                         </label>
                                     ))}
                                 </div>
-                                <p className="mt-2 text-[11px] text-slate-400">
-                                    Seuls les règlements de ces trésoreries apparaissent dans son espace. Aucune case : il n&apos;en voit aucun.
+                                <p className="mt-2 text-[11px] normal-case text-slate-400">
+                                    Le partenaire ne voit que les règlements des trésoreries cochées. Si aucune n&apos;est cochée, il ne voit aucun règlement.
                                 </p>
                             </div>
                             <div className="flex justify-end gap-2">
