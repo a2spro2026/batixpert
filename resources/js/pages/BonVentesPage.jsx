@@ -1,11 +1,12 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { CheckCircle2, Plus, PlusCircle, XCircle, Eye, Pencil, Trash2, Printer, FileText, X, Package, Wallet, Download } from 'lucide-react';
 import api from '../lib/api';
 import { openPrintPreview } from '../lib/printDocument';
 import { useChauffeurs } from '../hooks/useChauffeurs';
 import { useAuth } from '../contexts/AuthContext';
 import MobileRecordCard, { MobileCardList } from '../components/MobileRecordCard';
+import { usePageVisibility, PageVisibilityToggles } from '../components/PageVisibility';
 
 const UNIT_OPTIONS = ['', 'Kg', 'U', 'Sac', 'ML', 'M²', 'M³', 'Tn', 'M'];
 const REGLEMENT_OPTIONS = ['', 'Esp', 'Chq', 'Eff', 'Vir', 'Vers'];
@@ -192,7 +193,7 @@ function ViewModal({ row, onClose }) {
                     </div>
 
                     <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-                        <div className="overflow-x-auto">
+                        <div className="min-w-0 overflow-x-auto">
                             <table className="w-full text-sm min-w-[640px]">
                                 <thead>
                                     <tr className="bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
@@ -327,7 +328,10 @@ function ImportPurchaseModal({ open, rows, loading, onClose, onSelect }) {
 }
 
 export default function BonVentesPage() {
+    const visibility = usePageVisibility({ actions: true, kpi: true, filters: true });
     const navigate = useNavigate();
+    const [params, setParams] = useSearchParams();
+    const openedNew = useRef(false);
     const { user } = useAuth();
     const [form, setForm] = useState(emptyHeader);
     const [lines, setLines] = useState([emptyLine()]);
@@ -388,6 +392,20 @@ export default function BonVentesPage() {
     }, []);
 
     const { chauffeurs, resolveMatricule, reloadChauffeurs } = useChauffeurs();
+
+    useEffect(() => {
+        const apply = (event) => {
+            const detail = event.detail || {};
+            if (!detail.client_id || String(detail.client_id) !== String(form.client_id)) return;
+            setCredit({
+                plafond: detail.plafond,
+                solde: detail.solde,
+                reste: detail.reste,
+            });
+        };
+        window.addEventListener('ghita:client', apply);
+        return () => window.removeEventListener('ghita:client', apply);
+    }, [form.client_id]);
 
     useEffect(() => {
         if (!form.client_id) {
@@ -471,6 +489,15 @@ export default function BonVentesPage() {
         reloadChauffeurs();
         setFormOpen(true);
     };
+
+    useEffect(() => {
+        if (openedNew.current || params.get('nouveau') !== '1') return;
+        openedNew.current = true;
+        handleNewBon();
+        const next = new URLSearchParams(params);
+        next.delete('nouveau');
+        setParams(next, { replace: true });
+    }, [params, setParams]);
 
     const handleClose = () => {
         resetForm(false);
@@ -657,7 +684,7 @@ export default function BonVentesPage() {
         : meta.next_ref;
 
     return (
-        <div className="flex flex-col flex-1 min-h-0 h-full overflow-hidden gap-3 sm:gap-4">
+        <div className="flex flex-col flex-1 min-h-0 min-w-0 h-full overflow-hidden gap-3 sm:gap-4">
             <ViewModal row={viewRow} onClose={() => setViewRow(null)} />
 
             <ImportPurchaseModal
@@ -812,7 +839,7 @@ export default function BonVentesPage() {
                                         </div>
                                     ))}
                                 </div>
-                                <div className="hidden md:block overflow-x-auto">
+                                <div className="hidden min-w-0 overflow-x-auto md:block">
                                     <table className="w-full text-sm min-w-[860px]">
                                         <thead>
                                             <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700">
@@ -880,64 +907,83 @@ export default function BonVentesPage() {
             )}
 
             <div className="flex flex-wrap items-center gap-2.5 shrink-0">
-                <button type="button" onClick={handleNewBon} className="btn-primary">
-                    <Plus className="w-4 h-4" /> Nouveau
-                </button>
-                <button type="button" onClick={handleClose} className="btn-secondary">
-                    <XCircle className="w-4 h-4" /> Fermer
-                </button>
+                <PageVisibilityToggles
+                    hasActions={visibility.hasActions}
+                    hasKpi={visibility.hasKpi}
+                    hasFilters={visibility.hasFilters}
+                    showActions={visibility.showActions}
+                    showKpi={visibility.showKpi}
+                    showFilters={visibility.showFilters}
+                    onToggleActions={visibility.toggleActions}
+                    onToggleKpi={visibility.toggleKpi}
+                    onToggleFilters={visibility.toggleFilters}
+                />
+                {visibility.showActions && (
+                    <>
+                        <button type="button" onClick={handleNewBon} className="btn-primary">
+                            <Plus className="w-4 h-4" /> Nouveau
+                        </button>
+                        <button type="button" onClick={handleClose} className="btn-secondary">
+                            <XCircle className="w-4 h-4" /> Fermer
+                        </button>
+                    </>
+                )}
 
-                <div className="w-full sm:w-auto sm:ml-auto grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:gap-2.5">
-                    <div className="min-w-0 flex items-center gap-3 px-2.5 sm:px-4 py-2 rounded-xl border shadow-sm bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/40 dark:to-teal-950/40 border-emerald-200 dark:border-emerald-800">
-                        <div className="hidden sm:block p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300">
-                            <Package className="w-4 h-4" />
+                {visibility.showKpi && (
+                    <div className="w-full sm:w-auto sm:ml-auto grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:gap-2.5">
+                        <div className="min-w-0 flex items-center gap-3 px-2.5 sm:px-4 py-2 rounded-xl border shadow-sm bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/40 dark:to-teal-950/40 border-emerald-200 dark:border-emerald-800">
+                            <div className="hidden sm:block p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300">
+                                <Package className="w-4 h-4" />
+                            </div>
+                            <div className="text-right min-w-0 flex-1 sm:flex-none">
+                                <p className="text-[8px] sm:text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Total Qté</p>
+                                <p className="text-xs sm:text-base font-bold tabular-nums leading-tight truncate text-emerald-700 dark:text-emerald-300">
+                                    {totalQteBons.toLocaleString('fr-FR', { maximumFractionDigits: 3 })}
+                                </p>
+                            </div>
                         </div>
-                        <div className="text-right min-w-0 flex-1 sm:flex-none">
-                            <p className="text-[8px] sm:text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Total Qté</p>
-                            <p className="text-xs sm:text-base font-bold tabular-nums leading-tight truncate text-emerald-700 dark:text-emerald-300">
-                                {totalQteBons.toLocaleString('fr-FR', { maximumFractionDigits: 3 })}
-                            </p>
+                        <div className="min-w-0 flex items-center gap-3 px-2.5 sm:px-4 py-2 rounded-xl border shadow-sm bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/40 dark:to-orange-950/40 border-amber-200 dark:border-amber-800">
+                            <div className="hidden sm:block p-2 rounded-lg bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300">
+                                <Wallet className="w-4 h-4" />
+                            </div>
+                            <div className="text-right min-w-0 flex-1 sm:flex-none">
+                                <p className="text-[8px] sm:text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Total Montant</p>
+                                <p className="text-xs sm:text-base font-bold tabular-nums leading-tight truncate text-brand-navy dark:text-orange-300">
+                                    {formatMontantDisplay(totalMontantBons)}
+                                </p>
+                            </div>
                         </div>
                     </div>
-                    <div className="min-w-0 flex items-center gap-3 px-2.5 sm:px-4 py-2 rounded-xl border shadow-sm bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/40 dark:to-orange-950/40 border-amber-200 dark:border-amber-800">
-                        <div className="hidden sm:block p-2 rounded-lg bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300">
-                            <Wallet className="w-4 h-4" />
-                        </div>
-                        <div className="text-right min-w-0 flex-1 sm:flex-none">
-                            <p className="text-[8px] sm:text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Total Montant</p>
-                            <p className="text-xs sm:text-base font-bold tabular-nums leading-tight truncate text-brand-navy dark:text-orange-300">
-                                {formatMontantDisplay(totalMontantBons)}
-                            </p>
-                        </div>
-                    </div>
-                </div>
+                )}
             </div>
 
-            <div className="glass-card overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60 flex flex-col flex-1 min-h-0">
+            <div className="glass-card min-w-0 max-w-full overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60 flex flex-col flex-1 min-h-0">
                 <div className="px-3 sm:px-5 py-3 sm:py-3.5 bg-gradient-to-r from-amber-500 via-orange-500 to-orange-700 border-b border-white/10 space-y-2 shrink-0">
                     <h3 className="text-sm font-bold text-white uppercase tracking-wide">
                         Tableau des Bons de Vente
                         <span className="lg:hidden ml-1.5 text-white/80 font-semibold">({filteredRows.length})</span>
                     </h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-w-xl">
-                        <input
-                            type="month"
-                            value={tableFilters.month}
-                            onChange={(e) => setTableFilters((f) => ({ ...f, month: e.target.value }))}
-                            className={tableFilterClass}
-                            title="Mois"
-                        />
-                        <select
-                            value={tableFilters.client_id}
-                            onChange={(e) => setTableFilters((f) => ({ ...f, client_id: e.target.value }))}
-                            className={tableFilterClass}
-                        >
-                            <option value="" className="text-slate-900">Tous les clients</option>
-                            {clients.map((c) => (
-                                <option key={c.id} value={c.id} className="text-slate-900">{c.name}</option>
-                            ))}
-                        </select>
-                    </div>
+                    {visibility.showFilters && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-w-xl">
+                            <input
+                                type="month"
+                                value={tableFilters.month}
+                                onChange={(e) => setTableFilters((f) => ({ ...f, month: e.target.value }))}
+                                className={tableFilterClass}
+                                title="Mois"
+                            />
+                            <select
+                                value={tableFilters.client_id}
+                                onChange={(e) => setTableFilters((f) => ({ ...f, client_id: e.target.value }))}
+                                className={tableFilterClass}
+                            >
+                                <option value="" className="text-slate-900">Tous les clients</option>
+                                {clients.map((c) => (
+                                    <option key={c.id} value={c.id} className="text-slate-900">{c.name}</option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
                 </div>
                 <div className="lg:hidden flex-1 min-h-0 overflow-y-auto overscroll-contain">
                     <MobileCardList
@@ -973,7 +1019,7 @@ export default function BonVentesPage() {
                         ))}
                     </MobileCardList>
                 </div>
-                <div className="hidden lg:block flex-1 min-h-0 overflow-auto overscroll-contain">
+                <div className="hidden lg:block flex-1 min-h-0 min-w-0 overflow-x-auto overflow-y-auto overscroll-contain">
                     <table className="w-full text-sm min-w-[1100px]">
                         <thead className="sticky top-0 z-10">
                             <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700">

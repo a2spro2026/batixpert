@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Pencil, Printer, FileText, RefreshCw, Search, Plus, Trash2 } from 'lucide-react';
 import api from '../../lib/api';
+import { PageVisibilityHeader, usePageVisibility } from '../../components/PageVisibility';
 import {
     STATUT_FILTER_OPTIONS,
     emptyFilters,
@@ -48,6 +49,7 @@ function ActionBtn({ title, onClick, icon: Icon, color = 'slate' }) {
 
 export default function DevisListPage() {
     const navigate = useNavigate();
+    const visibility = usePageVisibility({ actions: true, kpi: false, filters: true });
     const [filters, setFilters] = useState(emptyFilters);
     const [rows, setRows] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -79,6 +81,18 @@ export default function DevisListPage() {
 
     return (
         <div className="flex flex-col flex-1 min-h-0 h-full overflow-y-auto overscroll-contain gap-4">
+            <PageVisibilityHeader title="Devis" subtitle="Liste et recherche des devis clients" visibility={visibility} />
+
+            {visibility.showActions && (
+                <div className="flex flex-wrap items-center gap-2">
+                    <button type="button" onClick={() => navigate('/clients/devis/nouveau')} className="btn-primary text-sm">
+                        <Plus className="w-4 h-4" />
+                        Nouveau Devis
+                    </button>
+                </div>
+            )}
+
+            {visibility.showFilters && (
             <div className="flex flex-wrap items-end justify-between gap-3">
                 <div className="glass-card p-4 shadow-card border border-slate-200/60 dark:border-slate-700/60 flex-1 min-w-0">
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-[1fr_1fr_1.2fr_0.9fr_0.9fr_auto] gap-2.5 items-end">
@@ -106,13 +120,10 @@ export default function DevisListPage() {
                         </button>
                     </div>
                 </div>
-                <button type="button" onClick={() => navigate('/clients/devis/nouveau')} className="btn-primary text-sm shrink-0">
-                    <Plus className="w-4 h-4" />
-                    Nouveau Devis
-                </button>
             </div>
+            )}
 
-            <div className="glass-card overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60">
+            <div className="glass-card min-w-0 max-w-full overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60">
                 <div className="px-5 py-3.5 bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-700 border-b border-white/10 flex items-center justify-between">
                     <h3 className="text-sm font-bold text-white uppercase tracking-wide">Liste des devis</h3>
                     <button type="button" onClick={load} disabled={loading} className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors" title="Actualiser">
@@ -120,7 +131,7 @@ export default function DevisListPage() {
                     </button>
                 </div>
 
-                <div className="overflow-x-auto">
+                <div className="min-w-0 overflow-x-auto">
                     <table className="w-full text-sm min-w-[1100px]">
                         <thead>
                             <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700">

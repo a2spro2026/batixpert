@@ -4,6 +4,7 @@ import api from '../../lib/api';
 import { formatMontant } from './bonExecutionUtils';
 import { formatSoldePlain, soldeTone, SoldeCell } from './clientAmountUtils';
 import { openPaymentPrintable } from './etatPaiementUtils';
+import { usePageVisibility, PageVisibilityHeader } from '../../components/PageVisibility';
 
 const REGLEMENT_OPTIONS = ['', 'Esp', 'Chq', 'Eff', 'Vir', 'Vers'];
 const CHANTIER_TYPE_OPTIONS = ['', 'Public', 'Privé'];
@@ -113,6 +114,7 @@ export default function EtatPaiementPage() {
     const [error, setError] = useState('');
     const [viewPayment, setViewPayment] = useState(null);
     const [editingPaymentId, setEditingPaymentId] = useState(null);
+    const visibility = usePageVisibility({ actions: true, kpi: false, filters: false });
 
     const selectedRows = useMemo(
         () => rows.filter((r) => selectedIds.has(r.id)),
@@ -383,6 +385,13 @@ export default function EtatPaiementPage() {
 
     return (
         <div className="space-y-4">
+            <PageVisibilityHeader
+                title="État de paiement"
+                subtitle="Saisie et suivi des règlements clients"
+                visibility={visibility}
+            />
+
+            {visibility.showActions && (
             <form onSubmit={handleSubmit} className="glass-card p-4 shadow-card border border-slate-200/60 dark:border-slate-700/60">
                 {error && (
                     <div className="mb-3 p-3 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm border border-red-100 dark:border-red-800">
@@ -390,7 +399,7 @@ export default function EtatPaiementPage() {
                     </div>
                 )}
 
-                <div className="overflow-x-auto space-y-2">
+                <div className="min-w-0 overflow-x-auto space-y-2">
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 xl:grid-cols-[110px_80px_minmax(105px,0.85fr)_minmax(88px,0.75fr)_96px_88px] gap-2 items-end min-w-[900px]">
                         <Field label="Date" compact>
                             <input type="date" required value={form.payment_date} onChange={(e) => set('payment_date', e.target.value)} className={inputCompact} />
@@ -480,14 +489,15 @@ export default function EtatPaiementPage() {
                     </button>
                 </div>
             </form>
+            )}
 
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-                <div className="glass-card overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60 min-w-0">
+                <div className="glass-card min-w-0 max-w-full overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60 min-w-0">
                     <div className="px-5 py-3.5 bg-gradient-to-r from-blue-600 via-brand-navy to-indigo-800 border-b border-white/10">
                         <h3 className="text-sm font-bold text-white uppercase tracking-wide">État d'exécution</h3>
                     </div>
 
-                    <div className="overflow-x-auto">
+                    <div className="min-w-0 overflow-x-auto">
                         <table className="w-full text-sm table-fixed">
                             <thead>
                                 <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700">
@@ -564,12 +574,12 @@ export default function EtatPaiementPage() {
                     </div>
                 </div>
 
-                <div className="glass-card overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60 min-w-0">
+                <div className="glass-card min-w-0 max-w-full overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60 min-w-0">
                     <div className="px-5 py-3.5 bg-gradient-to-r from-blue-600 via-brand-navy to-indigo-800 border-b border-white/10">
                         <h3 className="text-sm font-bold text-white uppercase tracking-wide">Etat Règlement</h3>
                     </div>
 
-                    <div className="overflow-x-auto">
+                    <div className="min-w-0 overflow-x-auto">
                         <table className="w-full text-sm">
                             <thead>
                                 <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700">

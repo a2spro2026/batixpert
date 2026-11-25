@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
     CheckCircle2, XCircle, Receipt, Scale, Plus, Eye, Pencil, Trash2, Printer,
-    Banknote, Wallet, AlertCircle, Search, X, RefreshCw, Download, SlidersHorizontal,
+    Banknote, Wallet, AlertCircle, Search, X, RefreshCw, Download,
 } from 'lucide-react';
 import api from '../lib/api';
 import { openPrintPreview } from '../lib/printDocument';
 import MobileRecordCard, { MobileCardList } from '../components/MobileRecordCard';
+import { PageVisibilityHeader, usePageVisibility } from '../components/PageVisibility';
 
 const REGLEMENT_OPTIONS = ['', 'Esp', 'Chq', 'Eff', 'Vir', 'Vers'];
 const BANQUE_OPTIONS = ['', 'Attijariwafa', 'BMCE', 'Banque Populaire', 'CIH', 'SGMB', 'Crédit Agricole', 'CDM', 'Al Barid Bank', 'Autre'];
@@ -294,6 +295,7 @@ function ImportReglModal({ open, rows, selected, loading, onToggle, onToggleAll,
 }
 
 export default function ReglementFournisseurPage() {
+    const visibility = usePageVisibility({ actions: true, kpi: true, filters: true });
     const [view, setView] = useState('list'); // list | form
     const [editingId, setEditingId] = useState(null);
     const [form, setForm] = useState(emptyForm);
@@ -312,7 +314,6 @@ export default function ReglementFournisseurPage() {
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
     const [viewRow, setViewRow] = useState(null);
-    const [showFilters, setShowFilters] = useState(false);
     const [importOpen, setImportOpen] = useState(false);
     const [importRows, setImportRows] = useState([]);
     const [importSelected, setImportSelected] = useState({});
@@ -696,22 +697,27 @@ export default function ReglementFournisseurPage() {
     /* ───────────── LIST VIEW ───────────── */
     if (view === 'list') {
         return (
-            <div className="flex flex-col flex-1 min-h-0 h-full overflow-hidden gap-3">
+            <div className="flex h-full min-h-0 min-w-0 w-full flex-1 flex-col overflow-hidden gap-3">
                 {error && (
                     <div className="shrink-0 p-3 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm border border-red-100 dark:border-red-800">{error}</div>
                 )}
 
-                <div className="shrink-0 flex flex-wrap items-center gap-2.5">
-                    <button type="button" onClick={openNew} className="btn-primary">
-                        <Plus className="w-4 h-4" />
-                        Nouveau Règlement
-                    </button>
-                    <button type="button" onClick={() => setShowFilters((v) => !v)} className="btn-secondary lg:hidden">
-                        <SlidersHorizontal className="w-4 h-4" />
-                        Filtres
-                    </button>
+                <PageVisibilityHeader
+                    title="Règlement Fournisseur"
+                    visibility={visibility}
+                />
 
-                    <div className="w-full sm:w-auto sm:ml-auto grid grid-cols-3 gap-2 sm:flex sm:flex-wrap sm:items-center sm:gap-3">
+                {visibility.showActions && (
+                    <div className="shrink-0 flex flex-wrap items-center gap-2">
+                        <button type="button" onClick={openNew} className="btn-primary">
+                            <Plus className="w-4 h-4" />
+                            Nouveau Règlement
+                        </button>
+                    </div>
+                )}
+
+                {visibility.showKpi && (
+                    <div className="shrink-0 w-full grid grid-cols-3 gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-end sm:gap-3">
                         <div className="relative overflow-hidden min-w-0 sm:min-w-[150px] rounded-xl sm:rounded-2xl bg-gradient-to-br from-blue-500 via-blue-600 to-blue-800 shadow-lg shadow-blue-500/25 border border-white/10">
                             <div className="absolute -top-6 -right-6 w-20 h-20 rounded-full bg-white/10 blur-xl pointer-events-none" />
                             <div className="relative flex items-center gap-3 px-2.5 py-2 sm:px-4 sm:py-3">
@@ -755,9 +761,10 @@ export default function ReglementFournisseurPage() {
                             </div>
                         </div>
                     </div>
-                </div>
+                )}
 
-                <form onSubmit={handleSearch} className={`shrink-0 glass-card p-3 shadow-card border border-slate-200/60 dark:border-slate-700/60 ${showFilters ? '' : 'hidden lg:block'}`}>
+                {visibility.showFilters && (
+                <form onSubmit={handleSearch} className="shrink-0 glass-card p-3 shadow-card border border-slate-200/60 dark:border-slate-700/60">
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-[repeat(5,minmax(0,1fr))_auto] gap-2 items-end">
                         <Field label="Statut">
                             <select value={filters.statut} onChange={(e) => setFilter('statut', e.target.value)} className={filterClass}>
@@ -803,8 +810,9 @@ export default function ReglementFournisseurPage() {
                         </div>
                     </div>
                 </form>
+                )}
 
-                <div className="flex-1 min-h-0 glass-card flex flex-col overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60">
+                <div className="flex min-h-0 min-w-0 w-full flex-1 flex-col overflow-hidden glass-card shadow-card border border-slate-200/60 dark:border-slate-700/60">
                     <div className="shrink-0 px-4 sm:px-5 py-3 sm:py-3.5 bg-gradient-to-r from-blue-600 via-blue-700 to-slate-800 border-b border-white/10">
                         <h3 className="text-sm font-bold text-white uppercase tracking-wide">
                             Tableau de consultation
@@ -849,7 +857,7 @@ export default function ReglementFournisseurPage() {
                             ))}
                         </MobileCardList>
                     </div>
-                    <div className="hidden lg:block lg:flex-1 lg:min-h-0 overflow-auto">
+                    <div className="hidden min-w-0 overflow-x-auto overflow-y-auto lg:block lg:flex-1 lg:min-h-0">
                         <table className="w-full text-sm min-w-[1100px]">
                             <thead className="sticky top-0 z-10">
                                 <tr className="bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 shadow-sm">
@@ -979,7 +987,7 @@ export default function ReglementFournisseurPage() {
                     </div>
                 </div>
 
-                <div className="glass-card p-2.5 shadow-card border border-slate-200/60 dark:border-slate-700/60 lg:overflow-x-auto">
+                <div className="glass-card p-2.5 shadow-card border border-slate-200/60 dark:border-slate-700/60 min-w-0 lg:overflow-x-auto">
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-[100px_88px_minmax(140px,1.3fr)_72px_90px_minmax(110px,1fr)_minmax(110px,1fr)_95px_100px_minmax(120px,1fr)] gap-x-2 gap-y-2.5 lg:gap-1.5 items-end lg:min-w-[1280px]">
                         <Field label="Date">
                             <input type="date" required value={form.payment_date} onChange={(e) => set('payment_date', e.target.value)} className={inputClass} />
@@ -1053,7 +1061,7 @@ export default function ReglementFournisseurPage() {
             </form>
 
             {!editingId && (
-                <div className="glass-card overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60">
+                <div className="glass-card min-w-0 max-w-full overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60">
                     <div className="px-5 py-3.5 bg-gradient-to-r from-amber-500 via-orange-500 to-orange-700 border-b border-white/10">
                         <h3 className="text-sm font-bold text-white uppercase tracking-wide">Commande à Payer :</h3>
                     </div>
@@ -1119,7 +1127,7 @@ export default function ReglementFournisseurPage() {
                             </div>
                         )}
                     </div>
-                    <div className="hidden lg:block overflow-x-auto">
+                    <div className="hidden min-w-0 overflow-x-auto lg:block">
                         <table className="w-full text-sm min-w-[1100px]">
                             <thead>
                                 <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700">

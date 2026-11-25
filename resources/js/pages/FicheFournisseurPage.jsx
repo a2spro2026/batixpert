@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Save, RotateCcw, Eye, Pencil, Trash2, Printer, FileText, X, RefreshCw, Wallet } from 'lucide-react';
+import { Check, Eye, Pencil, Plus, Trash2, Printer, FileText, X, Wallet } from 'lucide-react';
 import api from '../lib/api';
 import { downloadPdf, openPrintPreview } from '../lib/printDocument';
+import DraggableFormPanel, { FicheField, ficheBarClass, ficheBarReadOnlyClass } from '../components/forms/DraggableFormPanel';
+import { PageVisibilityHeader, usePageVisibility } from '../components/PageVisibility';
 
 const REGLEMENT_OPTIONS = [
     { value: '', label: '—' },
@@ -30,23 +32,6 @@ const emptyForm = {
     echeance: '',
     initial_balance: '',
 };
-
-function Field({ label, children, className = '' }) {
-    return (
-        <div className={className}>
-            <label className="field-label">
-                {label}
-            </label>
-            {children}
-        </div>
-    );
-}
-
-const inputClass =
-    'w-full rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-2.5 py-1.5 text-xs text-center outline-none focus:ring-2 focus:ring-brand-navy/30 focus:border-brand-navy transition-all';
-
-const readOnlyClass =
-    'w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 px-2.5 py-1.5 text-xs text-center cursor-not-allowed';
 
 function formatSolde(value) {
     const n = Number(String(value ?? '').replace(',', '.')) || 0;
@@ -174,6 +159,7 @@ function ViewModal({ row, onClose }) {
 }
 
 export default function FicheFournisseurPage() {
+    const visibility = usePageVisibility({ actions: true, kpi: true, filters: false });
     const [form, setForm] = useState(emptyForm);
     const [rows, setRows] = useState([]);
     const [meta, setMeta] = useState({ next_id: '—', date: '—' });
@@ -182,6 +168,7 @@ export default function FicheFournisseurPage() {
     const [error, setError] = useState('');
     const [editingId, setEditingId] = useState(null);
     const [viewRow, setViewRow] = useState(null);
+    const [panelOpen, setPanelOpen] = useState(false);
 
     const load = useCallback(() => {
         setLoading(true);
@@ -205,11 +192,18 @@ export default function FicheFournisseurPage() {
 
     const set = (key, value) => setForm((f) => ({ ...f, [key]: value }));
 
-    const resetForm = () => {
+    const closePanel = () => {
+        setPanelOpen(false);
         setForm(emptyForm);
         setEditingId(null);
         setError('');
-        load();
+    };
+
+    const openCreate = () => {
+        setForm(emptyForm);
+        setEditingId(null);
+        setError('');
+        setPanelOpen(true);
     };
 
     const fillForm = (row) => {
@@ -225,14 +219,14 @@ export default function FicheFournisseurPage() {
         });
         setEditingId(row.id);
         setError('');
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        setPanelOpen(true);
     };
 
     const handleDelete = async (row) => {
         if (!window.confirm(`Supprimer le fournisseur « ${row.name} » ?`)) return;
         try {
             await api.delete(`/suppliers/${row.id}`);
-            if (editingId === row.id) resetForm();
+            if (editingId === row.id) closePanel();
             load();
         } catch {
             setError('Impossible de supprimer ce fournisseur');
@@ -259,7 +253,8 @@ export default function FicheFournisseurPage() {
             } else {
                 await api.post('/suppliers', payload);
             }
-            resetForm();
+            closePanel();
+            load();
         } catch (err) {
             setError(err.response?.data?.message || 'Erreur lors de l\'enregistrement');
         } finally {
@@ -268,98 +263,37 @@ export default function FicheFournisseurPage() {
     };
 
     return (
-        <div className="flex flex-col flex-1 min-h-0 h-full overflow-y-auto overscroll-contain gap-6">
+        <div className="flex flex-col flex-1 min-h-0 h-full overflow-y-auto overscroll-contain gap-4">
             <ViewModal row={viewRow} onClose={() => setViewRow(null)} />
 
-            <form onSubmit={handleSubmit} className="glass-card p-5 lg:p-6 shadow-card border border-slate-200/60 dark:border-slate-700/60">
-                {error && (
-                    <div className="mb-4 p-3 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm border border-red-100 dark:border-red-800">
-                        {error}
-                    </div>
-                )}
+            <PageVisibilityHeader
+                title="Fiche fournisseur"
+                subtitle="Annuaire et soldes fournisseurs"
+                visibility={visibility}
+            />
 
-                <div className="grid grid-cols-2 sm:grid-cols-5 xl:grid-cols-[70px_70px_1.1fr_0.8fr_1fr_1fr_0.65fr_0.7fr_0.75fr_0.85fr] gap-2.5 items-end">
-                    <Field label="Date">
-                        <input type="text" readOnly value={meta.date} className={readOnlyClass} />
-                    </Field>
-                    <Field label="ID">
-                        <input type="text" readOnly value={editingId ? rows.find((r) => r.id === editingId)?.code ?? meta.next_id : meta.next_id} className={readOnlyClass} />
-                    </Field>
-                    <Field label="Nom Fournisseur">
-                        <input type="text" required value={form.name} onChange={(e) => set('name', e.target.value)} placeholder="Raison sociale" className={inputClass} />
-                    </Field>
-                    <Field label="N° Téléphone">
-                        <input type="tel" value={form.phone} onChange={(e) => set('phone', e.target.value)} placeholder="06 XX XX XX XX" className={inputClass} />
-                    </Field>
-                    <Field label="E-mail">
-                        <input type="email" value={form.email} onChange={(e) => set('email', e.target.value)} placeholder="contact@..." className={inputClass} />
-                    </Field>
-                    <Field label="Adresse">
-                        <input type="text" value={form.address} onChange={(e) => set('address', e.target.value)} placeholder="Adresse" className={inputClass} />
-                    </Field>
-                    <Field label="Ville">
-                        <input type="text" value={form.city} onChange={(e) => set('city', e.target.value)} placeholder="Ville" className={inputClass} />
-                    </Field>
-                    <Field label="Règlement">
-                        <select value={form.reglement} onChange={(e) => set('reglement', e.target.value)} className={inputClass}>
-                            {REGLEMENT_OPTIONS.map((opt) => (
-                                <option key={opt.value || 'empty'} value={opt.value}>{opt.label}</option>
-                            ))}
-                        </select>
-                    </Field>
-                    <Field label="Échéance">
-                        <select value={form.echeance} onChange={(e) => set('echeance', e.target.value)} className={inputClass}>
-                            {ECHEANCE_OPTIONS.map((opt) => (
-                                <option key={opt.value || 'echeance-empty'} value={opt.value}>{opt.label}</option>
-                            ))}
-                        </select>
-                    </Field>
-                    <Field label="Solde Initial">
-                        <input
-                            type="text"
-                            inputMode="decimal"
-                            value={form.initial_balance}
-                            onChange={(e) => set('initial_balance', e.target.value.replace(/[^\d.,\-]/g, ''))}
-                            onBlur={() => set('initial_balance', parseSoldeInput(form.initial_balance))}
-                            placeholder="0.00"
-                            className={`${inputClass} ${hasSoldeInitial(form.initial_balance) ? 'border-red-400 text-red-600 dark:text-red-400 font-bold bg-red-50 dark:bg-red-950/30 focus:ring-red-400/40 focus:border-red-500' : ''}`}
-                        />
-                    </Field>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-3 mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
-                    <button type="submit" disabled={saving} className="btn-primary text-sm">
-                        <Save className="w-4 h-4" />
-                        {saving ? 'Enregistrement...' : editingId ? 'Mettre à jour' : 'Enregistrer'}
+            {visibility.showActions && (
+                <div className="flex flex-wrap items-center gap-2">
+                    <button type="button" onClick={openCreate} className="inline-flex items-center gap-1.5 rounded-lg bg-brand-orange px-3 py-2 text-xs font-bold uppercase tracking-wide text-white hover:bg-orange-500">
+                        <Plus className="w-4 h-4" />
+                        Ajouter
                     </button>
-                    <button type="button" onClick={resetForm} className="btn-muted">
-                        <RotateCcw className="w-4 h-4" />
-                        {editingId ? 'Annuler' : 'Nouveau'}
-                    </button>
-                    <button type="button" onClick={load} disabled={loading} className="btn-secondary text-sm" title="Actualiser">
-                        <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                        Actualiser
-                    </button>
-
-                    <div className={`ml-auto flex items-center gap-3 px-4 py-2 rounded-xl border shadow-sm ${totalSoldes !== 0 ? 'bg-gradient-to-r from-red-50 to-rose-50 dark:from-red-950/40 dark:to-rose-950/40 border-red-200 dark:border-red-800' : 'bg-gradient-to-r from-slate-50 to-blue-50 dark:from-slate-800/60 dark:to-blue-950/40 border-slate-200 dark:border-slate-700'}`}>
-                        <div className={`p-2 rounded-lg ${totalSoldes !== 0 ? 'bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400' : 'bg-blue-100 dark:bg-blue-900/50 text-brand-navy dark:text-blue-300'}`}>
-                            <Wallet className="w-4 h-4" />
-                        </div>
-                        <div className="text-right">
-                            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Total Soldes Fournisseurs</p>
-                            <p className={`text-base font-bold tabular-nums leading-tight ${totalSoldes !== 0 ? 'text-red-600 dark:text-red-400' : 'text-brand-navy dark:text-blue-300'}`}>
-                                {formatSolde(totalSoldes)}
-                            </p>
-                        </div>
-                    </div>
                 </div>
-            </form>
+            )}
 
-            <div className="glass-card overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60">
-                <div className="px-5 py-3.5 bg-gradient-to-r from-brand-navy via-blue-800 to-blue-900 border-b border-white/10">
-                    <h3 className="text-sm font-bold text-white uppercase tracking-wide">Liste des fournisseurs</h3>
+            {visibility.showKpi && (
+                <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border self-start ${totalSoldes !== 0 ? 'bg-red-50 border-red-200 text-red-700 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300' : 'bg-slate-50 border-slate-200 text-slate-700 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200'}`}>
+                    <Wallet className="w-3.5 h-3.5" />
+                    <span className="text-[10px] font-semibold uppercase tracking-wider opacity-80">Total soldes</span>
+                    <span className="text-sm font-bold tabular-nums">{formatSolde(totalSoldes)}</span>
                 </div>
-                <div className="overflow-x-auto">
+            )}
+
+            <div className="glass-card min-w-0 max-w-full overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60">
+                <div className="flex flex-wrap items-center gap-3 px-5 py-3.5 bg-gradient-to-r from-brand-navy via-blue-800 to-blue-900 border-b border-white/10">
+                    <h3 className="text-sm font-bold text-white uppercase tracking-wide">Fiche fournisseur</h3>
+                </div>
+                <div className="min-w-0 overflow-x-auto">
                     <table className="w-full text-sm min-w-[960px]">
                         <thead>
                             <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700">
@@ -423,7 +357,7 @@ export default function FicheFournisseurPage() {
                             ) : (
                                 <tr>
                                     <td colSpan={9} className="px-4 py-12 text-center text-slate-400">
-                                        Aucun fournisseur enregistré
+                                        Aucun fournisseur. Cliquez sur Ajouter pour saisir une fiche.
                                     </td>
                                 </tr>
                             )}
@@ -431,6 +365,80 @@ export default function FicheFournisseurPage() {
                     </table>
                 </div>
             </div>
+
+            {panelOpen && (
+                <DraggableFormPanel
+                    title={editingId ? 'Modifier la fiche fournisseur' : 'Nouvelle fiche fournisseur'}
+                    onClose={closePanel}
+                >
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                        {error && (
+                            <div className="p-3 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm border border-red-100 dark:border-red-800">
+                                {error}
+                            </div>
+                        )}
+                        <div className="min-w-0 overflow-x-auto pb-1">
+                            <div className="flex w-full flex-nowrap items-end gap-2.5 min-w-[72rem]">
+                                <FicheField label="Date" className="min-w-[7.5rem] flex-1">
+                                    <input type="text" readOnly value={meta.date} className={ficheBarReadOnlyClass} />
+                                </FicheField>
+                                <FicheField label="ID" className="min-w-[6rem] flex-1">
+                                    <input type="text" readOnly value={editingId ? rows.find((r) => r.id === editingId)?.code ?? meta.next_id : meta.next_id} className={ficheBarReadOnlyClass} />
+                                </FicheField>
+                                <FicheField label="Nom Fournisseur" className="min-w-[12rem] flex-[1.6]">
+                                    <input type="text" required autoFocus value={form.name} onChange={(e) => set('name', e.target.value)} placeholder="Raison sociale" className={ficheBarClass} />
+                                </FicheField>
+                                <FicheField label="Contact" className="min-w-[9rem] flex-1">
+                                    <input type="tel" value={form.phone} onChange={(e) => set('phone', e.target.value)} placeholder="06 XX XX XX XX" className={ficheBarClass} />
+                                </FicheField>
+                                <FicheField label="E-mail" className="min-w-[11rem] flex-[1.2]">
+                                    <input type="email" value={form.email} onChange={(e) => set('email', e.target.value)} placeholder="contact@..." className={ficheBarClass} />
+                                </FicheField>
+                                <FicheField label="Adresse" className="min-w-[11rem] flex-[1.2]">
+                                    <input type="text" value={form.address} onChange={(e) => set('address', e.target.value)} placeholder="Adresse" className={ficheBarClass} />
+                                </FicheField>
+                                <FicheField label="Ville" className="min-w-[7rem] flex-1">
+                                    <input type="text" value={form.city} onChange={(e) => set('city', e.target.value)} placeholder="Ville" className={ficheBarClass} />
+                                </FicheField>
+                                <FicheField label="Régl" className="min-w-[5.5rem] flex-1">
+                                    <select value={form.reglement} onChange={(e) => set('reglement', e.target.value)} className={ficheBarClass}>
+                                        {REGLEMENT_OPTIONS.map((opt) => (
+                                            <option key={opt.value || 'empty'} value={opt.value}>{opt.label}</option>
+                                        ))}
+                                    </select>
+                                </FicheField>
+                                <FicheField label="Échéance" className="min-w-[6.5rem] flex-1">
+                                    <select value={form.echeance} onChange={(e) => set('echeance', e.target.value)} className={ficheBarClass}>
+                                        {ECHEANCE_OPTIONS.map((opt) => (
+                                            <option key={opt.value || 'echeance-empty'} value={opt.value}>{opt.label}</option>
+                                        ))}
+                                    </select>
+                                </FicheField>
+                                <FicheField label="Solde Initial" className="min-w-[7.5rem] flex-1">
+                                    <input
+                                        type="text"
+                                        inputMode="decimal"
+                                        value={form.initial_balance}
+                                        onChange={(e) => set('initial_balance', e.target.value.replace(/[^\d.,\-]/g, ''))}
+                                        onBlur={() => set('initial_balance', parseSoldeInput(form.initial_balance))}
+                                        placeholder="0.00"
+                                        className={`${ficheBarClass} ${hasSoldeInitial(form.initial_balance) ? 'border-red-400 text-red-600 dark:text-red-400 font-bold bg-red-50 dark:bg-red-950/30 focus:ring-red-400/40 focus:border-red-500' : ''}`}
+                                    />
+                                </FicheField>
+                            </div>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-3 pt-2 border-t border-slate-200 dark:border-slate-700">
+                            <button type="submit" disabled={saving} className="btn-primary text-sm">
+                                <Check className="w-4 h-4" />
+                                {saving ? 'Validation...' : 'Valider'}
+                            </button>
+                            <button type="button" onClick={closePanel} className="btn-muted text-sm">
+                                Annuler
+                            </button>
+                        </div>
+                    </form>
+                </DraggableFormPanel>
+            )}
         </div>
     );
 }

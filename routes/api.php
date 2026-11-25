@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\DashboardApiController;
 use App\Http\Controllers\Api\DocumentApiController;
 use App\Http\Controllers\Api\EmployeeApiController;
 use App\Http\Controllers\Api\ExpenseApiController;
+use App\Http\Controllers\Api\GhitaApiController;
 use App\Http\Controllers\Api\InvoicePaymentApiController;
 use App\Http\Controllers\Api\ProductApiController;
 use App\Http\Controllers\Api\PurchaseOrderApiController;
@@ -50,6 +51,9 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     Route::middleware('staff')->group(function () {
+    Route::get('/ghita', [GhitaApiController::class, 'intro']);
+    Route::post('/ghita', [GhitaApiController::class, 'ask']);
+
     Route::get('/dashboard', [DashboardApiController::class, 'index']);
     Route::get('/dashboard/chart', [DashboardApiController::class, 'chart']);
 

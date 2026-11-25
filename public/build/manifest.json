@@ -1,6 +1,6 @@
 {
-  "_jspdf.es.min-DtrHXAyl.js": {
-    "file": "assets/jspdf.es.min-DtrHXAyl.js",
+  "_jspdf.es.min-Dp7sj6OV.js": {
+    "file": "assets/jspdf.es.min-Dp7sj6OV.js",
     "name": "jspdf.es.min",
     "isDynamicEntry": true,
     "imports": [
@@ -13,16 +13,16 @@
     ]
   },
   "node_modules/canvg/lib/index.es.js": {
-    "file": "assets/index.es-BcvQmei7.js",
+    "file": "assets/index.es-C0PvzPLB.js",
     "name": "index.es",
     "src": "node_modules/canvg/lib/index.es.js",
     "isDynamicEntry": true,
     "imports": [
-      "_jspdf.es.min-DtrHXAyl.js",
+      "_jspdf.es.min-Dp7sj6OV.js",
       "resources/js/main.jsx"
     ],
     "css": [
-      "assets/app-Dg6ZzcIY.css"
+      "assets/app-D0_D_Gjp.css"
     ]
   },
   "node_modules/dompurify/dist/purify.es.mjs": {
@@ -37,8 +37,12 @@
     "src": "node_modules/html2canvas/dist/html2canvas.esm.js",
     "isDynamicEntry": true
   },
+  "node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.jsep.wasm": {
+    "file": "assets/ort-wasm-simd-threaded.jsep-B0T3yYHD.wasm",
+    "src": "node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.jsep.wasm"
+  },
   "resources/css/app.css": {
-    "file": "assets/app-Dg6ZzcIY.css",
+    "file": "assets/app-D0_D_Gjp.css",
     "src": "resources/css/app.css",
     "isEntry": true,
     "name": "app",
@@ -46,17 +50,27 @@
       "app.css"
     ]
   },
+  "resources/js/lib/ghitaMic.js": {
+    "file": "assets/ghitaMic-C6jq9sXy.js",
+    "name": "ghitaMic",
+    "src": "resources/js/lib/ghitaMic.js",
+    "isDynamicEntry": true,
+    "assets": [
+      "assets/ort-wasm-simd-threaded.jsep-B0T3yYHD.wasm"
+    ]
+  },
   "resources/js/main.jsx": {
-    "file": "assets/main-BzYVtFVV.js",
+    "file": "assets/main-DElufYpx.js",
     "name": "main",
     "src": "resources/js/main.jsx",
     "isEntry": true,
     "dynamicImports": [
+      "resources/js/lib/ghitaMic.js",
       "node_modules/html2canvas/dist/html2canvas.esm.js",
-      "_jspdf.es.min-DtrHXAyl.js"
+      "_jspdf.es.min-Dp7sj6OV.js"
     ],
     "css": [
-      "assets/app-Dg6ZzcIY.css"
+      "assets/app-D0_D_Gjp.css"
     ]
   }
 }

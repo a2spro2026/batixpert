@@ -4,6 +4,7 @@ import {
 } from 'lucide-react';
 import api from '../lib/api';
 import MobileRecordCard, { MobileCardList } from '../components/MobileRecordCard';
+import { PageVisibilityHeader, usePageVisibility } from '../components/PageVisibility';
 
 function todayISO() {
     const d = new Date();
@@ -170,6 +171,7 @@ function ClientAutocomplete({ clients, value, onChangeText, onSelect, placeholde
 }
 
 export default function ClientRelancePage() {
+    const visibility = usePageVisibility({ actions: true, kpi: false, filters: true });
     const [rows, setRows] = useState([]);
     const [clients, setClients] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -413,13 +415,21 @@ export default function ClientRelancePage() {
 
     return (
         <div className="flex flex-col flex-1 min-h-0 h-full overflow-y-auto overscroll-contain gap-4">
-            <div>
-                <h1 className="text-xl font-bold text-slate-900 dark:text-white">Relance Clients</h1>
-                <p className="text-sm text-slate-500 dark:text-slate-400">
-                Cliquez sur Ajouter pour noter un appel. Le solde se remplit dès que le client est reconnu.
-                </p>
-            </div>
+            <PageVisibilityHeader
+                title="Relance Clients"
+                subtitle="Cliquez sur Ajouter pour noter un appel. Le solde se remplit dès que le client est reconnu."
+                visibility={visibility}
+            />
 
+            {visibility.showActions && (
+                <div className="flex flex-wrap items-center gap-2">
+                    <button type="button" onClick={openPanel} className="btn-primary text-xs h-[34px] px-4">
+                        <Plus className="w-3.5 h-3.5" /> Ajouter
+                    </button>
+                </div>
+            )}
+
+            {visibility.showFilters && (
             <div className="glass-card relative z-40 p-4 shadow-card border border-slate-200/60 dark:border-slate-700/60">
                 <div className="grid grid-cols-2 lg:grid-cols-[1.6fr_1fr_1fr_auto] gap-2.5 items-end">
                     <Field label="Client / Ville">
@@ -444,12 +454,10 @@ export default function ClientRelancePage() {
                         <button type="button" onClick={resetAll} className="btn-secondary text-xs h-[34px] px-3" title="Réinitialiser les filtres">
                             <X className="w-3.5 h-3.5" />
                         </button>
-                        <button type="button" onClick={openPanel} className="btn-primary text-xs h-[34px] px-4">
-                            <Plus className="w-3.5 h-3.5" /> Ajouter
-                        </button>
                     </div>
                 </div>
             </div>
+            )}
 
             {applied.client && (
                 <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 px-4 py-3">
@@ -504,7 +512,7 @@ export default function ClientRelancePage() {
                 </div>
 
                 {/* Ordinateur : tableau d'affichage */}
-                <div className="hidden md:block overflow-x-auto">
+                <div className="hidden min-w-0 overflow-x-auto md:block">
                     <table className="w-full text-sm min-w-[900px]">
                         <thead>
                             <tr className="bg-gradient-to-r from-slate-100 via-slate-200/90 to-slate-100 dark:from-slate-800 dark:via-slate-700/80 dark:to-slate-800 border-b-2 border-slate-300 dark:border-slate-600">

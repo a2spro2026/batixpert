@@ -1,7 +1,10 @@
-import { useCallback, useEffect, useState } from 'react';
-import { RefreshCw, Search, Scale, Wallet, Receipt, X } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { Printer, RefreshCw, Search, Scale, Wallet, Receipt, X } from 'lucide-react';
 import api from '../lib/api';
+import { printBalance } from '../lib/printBalance';
 import { ReliquatCell } from './clients/clientAmountUtils';
+import { PageVisibilityHeader, usePageVisibility } from '../components/PageVisibility';
 
 const emptyFilters = {
     mois: '',
@@ -154,6 +157,8 @@ function ClientDetailModal({ open, supplierName, rows, loading, onClose }) {
 }
 
 export default function SupplierBalancePage() {
+    const visibility = usePageVisibility({ actions: false, kpi: true, filters: true });
+    const [params, setParams] = useSearchParams();
     const [filters, setFilters] = useState(emptyFilters);
     const [appliedFilters, setAppliedFilters] = useState(emptyFilters);
     const [rows, setRows] = useState([]);
@@ -165,15 +170,20 @@ export default function SupplierBalancePage() {
     const [detailRows, setDetailRows] = useState([]);
     const [detailLoading, setDetailLoading] = useState(false);
     const months = monthOptions();
+    const autoPrint = useRef(params.get('print') === '1');
+    const bootstrapped = useRef(false);
+    const requestRef = useRef(0);
 
     const load = useCallback(() => {
+        const token = ++requestRef.current;
         setLoading(true);
-        const params = {};
-        if (appliedFilters.mois) params.mois = appliedFilters.mois;
-        if (appliedFilters.supplier_id) params.supplier_id = appliedFilters.supplier_id;
+        const query = {};
+        if (appliedFilters.mois) query.mois = appliedFilters.mois;
+        if (appliedFilters.supplier_id) query.supplier_id = appliedFilters.supplier_id;
 
-        api.get('/purchase-orders/balance', { params })
+        api.get('/purchase-orders/balance', { params: query })
             .then((res) => {
+                if (token !== requestRef.current) return;
                 setRows(res.data.data ?? []);
                 setSummary({
                     total_achats: Number(res.data.meta?.total_achats) || 0,
@@ -182,10 +192,13 @@ export default function SupplierBalancePage() {
                 });
             })
             .catch(() => {
+                if (token !== requestRef.current) return;
                 setRows([]);
                 setSummary({ total_achats: 0, solde_total: 0, reliquat_total: 0 });
             })
-            .finally(() => setLoading(false));
+            .finally(() => {
+                if (token === requestRef.current) setLoading(false);
+            });
     }, [appliedFilters]);
 
     useEffect(() => {
@@ -197,6 +210,50 @@ export default function SupplierBalancePage() {
     useEffect(() => {
         load();
     }, [load]);
+
+    useEffect(() => {
+        if (bootstrapped.current) return;
+        bootstrapped.current = true;
+        const supplierId = params.get('supplier_id') || '';
+        if (!supplierId && !autoPrint.current) return;
+        const next = { mois: params.get('mois') || '', supplier_id: supplierId };
+        setFilters(next);
+        setAppliedFilters(next);
+    }, [params]);
+
+    const printCurrent = () => {
+        const supplierName = suppliers.find((supplier) => String(supplier.id) === String(appliedFilters.supplier_id))?.name
+            || (appliedFilters.supplier_id ? rows[0]?.fournisseur : '');
+        printBalance({
+            title: 'Balance fournisseur',
+            subtitle: supplierName || 'Tous les fournisseurs',
+            columns,
+            rows: rows.map((row) => [
+                row.date || '—',
+                row.fournisseur || '—',
+                formatMontant(row.total_achats),
+                formatMontant(row.montant_paye),
+                formatMontant(row.solde),
+                formatMontant(row.reliquat),
+            ]),
+            summary: [
+                `Total achats : ${formatMontant(summary.total_achats)}`,
+                `Solde total : ${formatMontant(summary.solde_total)}`,
+                `Reliquat : ${formatMontant(summary.reliquat_total)}`,
+            ],
+        });
+    };
+
+    useEffect(() => {
+        if (!autoPrint.current || loading) return;
+        const wanted = params.get('supplier_id') || '';
+        if ((appliedFilters.supplier_id || '') !== wanted) return;
+        autoPrint.current = false;
+        printCurrent();
+        const next = new URLSearchParams(params);
+        next.delete('print');
+        setParams(next, { replace: true });
+    }, [loading, appliedFilters, rows, params, setParams]);
 
     const setFilter = (key, value) => setFilters((f) => ({ ...f, [key]: value }));
 
@@ -232,11 +289,13 @@ export default function SupplierBalancePage() {
                 loading={detailLoading}
                 onClose={() => setDetailOpen(false)}
             />
-            <div>
-                <h1 className="text-xl font-bold text-slate-900 dark:text-white">Balance Fournisseur</h1>
-                <p className="text-sm text-slate-500 dark:text-slate-400">Situation consolidée par fournisseur</p>
-            </div>
+            <PageVisibilityHeader
+                title="Balance Fournisseur"
+                subtitle="Situation consolidée par fournisseur"
+                visibility={visibility}
+            />
 
+            {visibility.showKpi && (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <SummaryCard
                     label="Total Achats"
@@ -260,7 +319,9 @@ export default function SupplierBalancePage() {
                     icon={Wallet}
                 />
             </div>
+            )}
 
+            {visibility.showFilters && (
             <div className="glass-card p-4 shadow-card border border-slate-200/60 dark:border-slate-700/60">
                 <div className="grid grid-cols-1 sm:grid-cols-[1fr_1.2fr_auto] gap-2.5 items-end max-w-3xl">
                     <Field label="Mois">
@@ -283,16 +344,22 @@ export default function SupplierBalancePage() {
                     </button>
                 </div>
             </div>
+            )}
 
-            <div className="glass-card overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60">
+            <div className="glass-card min-w-0 max-w-full overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60">
                 <div className="px-5 py-3.5 bg-gradient-to-r from-orange-600 via-amber-600 to-orange-700 border-b border-white/10 flex items-center justify-between">
                     <h3 className="text-sm font-bold text-white uppercase tracking-wide">Balance fournisseurs</h3>
-                    <button type="button" onClick={load} disabled={loading} className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors" title="Actualiser">
-                        <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                    </button>
+                    <div className="flex items-center gap-1">
+                        <button type="button" onClick={printCurrent} className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors" title="Imprimer">
+                            <Printer className="w-4 h-4" />
+                        </button>
+                        <button type="button" onClick={load} disabled={loading} className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors" title="Actualiser">
+                            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                        </button>
+                    </div>
                 </div>
 
-                <div className="overflow-x-auto">
+                <div className="min-w-0 overflow-x-auto">
                     <table className="w-full text-sm min-w-[800px]">
                         <thead>
                             <tr className="bg-gradient-to-r from-slate-100 via-slate-200/90 to-slate-100 dark:from-slate-800 dark:via-slate-700/80 dark:to-slate-800 border-b-2 border-slate-300 dark:border-slate-600">

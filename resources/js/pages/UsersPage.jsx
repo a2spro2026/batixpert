@@ -4,6 +4,7 @@ import {
     Plus, Eye, Pencil, Trash2, Ban, RefreshCw, X, UserCog, PauseCircle, PlayCircle, Shield,
 } from 'lucide-react';
 import api from '../lib/api';
+import { PageVisibilityHeader, usePageVisibility } from '../components/PageVisibility';
 
 const STATUT_OPTIONS = [
     { value: 'Gerant', label: 'Gérant' },
@@ -311,16 +312,22 @@ export default function UsersPage() {
         }
     };
 
+    const visibility = usePageVisibility({ actions: true, kpi: false, filters: false });
+
     return (
         <div className="flex flex-col flex-1 min-h-0 h-full overflow-y-auto overscroll-contain gap-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                    <h1 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <PageVisibilityHeader
+                title={(
+                    <h1 className="text-base sm:text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
                         <UserCog className="w-5 h-5 text-brand-navy" /> Utilisateur
                     </h1>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">Configuration des comptes d&apos;accès au système</p>
-                </div>
-                <div className="flex items-center gap-2">
+                )}
+                subtitle="Configuration des comptes d'accès au système"
+                visibility={visibility}
+            />
+
+            {visibility.showActions && (
+                <div className="flex flex-wrap items-center gap-2">
                     <button type="button" onClick={openCreate} className="btn-primary text-xs px-4">
                         <Plus className="w-3.5 h-3.5" /> Ajouter
                     </button>
@@ -328,9 +335,9 @@ export default function UsersPage() {
                         Fermer
                     </button>
                 </div>
-            </div>
+            )}
 
-            <div className="glass-card overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60">
+            <div className="glass-card min-w-0 max-w-full overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60">
                 <div className="px-5 py-3.5 bg-gradient-to-r from-slate-700 via-slate-800 to-brand-navy border-b border-white/10 flex items-center justify-between">
                     <h3 className="text-sm font-bold text-white uppercase tracking-wide">Tableau Utilisateurs</h3>
                     <button type="button" onClick={load} disabled={loading} className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors" title="Actualiser">
@@ -338,7 +345,7 @@ export default function UsersPage() {
                     </button>
                 </div>
 
-                <div className="overflow-x-auto">
+                <div className="min-w-0 overflow-x-auto">
                     <table className="w-full text-sm min-w-[900px]">
                         <thead>
                             <tr className="bg-gradient-to-r from-slate-100 via-slate-200/90 to-slate-100 dark:from-slate-800 dark:via-slate-700/80 dark:to-slate-800 border-b-2 border-slate-300 dark:border-slate-600">

@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, LogOut } from 'lucide-react';
+import { ChevronDown, LogOut, Plus } from 'lucide-react';
 import { navigation } from '../../config/navigation';
 import { useAuth } from '../../contexts/AuthContext';
+import { useWorkspace } from '../../contexts/WorkspaceContext';
 import { SidebarBrand } from '../Logo';
 import { getPageTitle } from '../../lib/pageMeta';
-import { useNavigate } from 'react-router-dom';
 
 const DEFAULT_OPEN_SECTIONS = new Set(['fournisseurs', 'clients']);
 
@@ -39,6 +39,10 @@ function NavIcon({ icon: Icon, active, size = 'md' }) {
 }
 
 function NavChildItem({ child, onClose, index }) {
+    const { panes, openSide, canAddPane } = useWorkspace();
+    const sideActive = panes.some((pane) => pane.path.split('?')[0] === child.to);
+    const canOpen = canAddPane && !sideActive;
+
     if (child.disabled) {
         return (
             <motion.div
@@ -62,43 +66,82 @@ function NavChildItem({ child, onClose, index }) {
             initial={{ opacity: 0, x: -8 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: index * 0.04, duration: 0.25 }}
+            className="group/nav"
         >
-            <NavLink
-                to={child.to}
-                onClick={onClose}
-                className={({ isActive }) =>
-                    `sidebar-child-item group relative flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] font-medium transition-all duration-300 ${
-                        isActive
-                            ? 'sidebar-child-active text-white'
-                            : 'text-blue-200/90 hover:bg-white/5 hover:text-white hover:pl-3'
-                    }`
-                }
+            <div
+                className={`relative flex items-stretch overflow-hidden rounded-lg transition-all duration-300 ${
+                    sideActive ? 'bg-brand-orange/15 ring-1 ring-brand-orange/40' : 'hover:bg-white/5'
+                }`}
             >
-                {({ isActive }) => (
-                    <>
-                        {isActive && (
-                            <motion.span
-                                layoutId="sidebar-child-indicator"
-                                className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-full bg-brand-orange sidebar-active-indicator"
+                <NavLink
+                    to={child.to}
+                    onClick={() => onClose?.()}
+                    className={({ isActive }) =>
+                        `sidebar-child-item group relative flex min-w-0 flex-1 items-center gap-2.5 px-2.5 py-2 text-[13px] font-medium transition-all duration-300 ${
+                            isActive
+                                ? 'sidebar-child-active text-white'
+                                : 'text-blue-200/90 hover:text-white'
+                        }`
+                    }
+                    title={child.label}
+                >
+                    {({ isActive }) => (
+                        <>
+                            {(isActive || sideActive) && (
+                                <motion.span
+                                    layoutId="sidebar-child-indicator"
+                                    className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-full bg-brand-orange sidebar-active-indicator"
+                                />
+                            )}
+                            <child.icon
+                                className={`sidebar-child-icon w-4 h-4 shrink-0 ${
+                                    isActive || sideActive ? 'text-brand-orange' : 'opacity-70 group-hover:opacity-100'
+                                }`}
+                                strokeWidth={1.75}
                             />
-                        )}
-                        <child.icon
-                            className={`sidebar-child-icon w-4 h-4 shrink-0 ${
-                                isActive ? 'text-brand-orange' : 'opacity-70 group-hover:opacity-100'
-                            }`}
-                            strokeWidth={1.75}
-                        />
-                        <span className="truncate">{child.label}</span>
-                        {isActive && (
-                            <motion.span
-                                initial={{ scale: 0 }}
-                                animate={{ scale: 1 }}
-                                className="ml-auto w-1.5 h-1.5 rounded-full bg-brand-orange shrink-0"
-                            />
-                        )}
-                    </>
-                )}
-            </NavLink>
+                            <span className="truncate">{child.label}</span>
+                            {isActive && !sideActive && (
+                                <motion.span
+                                    initial={{ scale: 0 }}
+                                    animate={{ scale: 1 }}
+                                    className="ml-auto w-1.5 h-1.5 rounded-full bg-brand-orange shrink-0"
+                                />
+                            )}
+                        </>
+                    )}
+                </NavLink>
+                <button
+                    type="button"
+                    disabled={!canOpen && !sideActive}
+                    onClick={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        if (!canOpen) return;
+                        openSide(child.to);
+                    }}
+                    className={`flex w-8 shrink-0 items-center justify-center border-l border-white/10 transition ${
+                        sideActive
+                            ? 'bg-brand-orange text-white'
+                            : canOpen
+                                ? 'text-blue-100/80 hover:bg-brand-orange hover:text-white'
+                                : 'cursor-not-allowed text-blue-200/30'
+                    }`}
+                    title={
+                        sideActive
+                            ? 'Déjà ouverte en fenêtre'
+                            : canOpen
+                                ? `Ouvrir « ${child.label} » dans une nouvelle fenêtre`
+                                : 'Maximum 4 fenêtres'
+                    }
+                    aria-label={`Ouvrir ${child.label} en fenêtre`}
+                >
+                    {sideActive ? (
+                        <span className="text-[9px] font-bold uppercase">OK</span>
+                    ) : (
+                        <Plus className="h-4 w-4" strokeWidth={2.5} />
+                    )}
+                </button>
+            </div>
         </motion.div>
     );
 }
@@ -108,7 +151,7 @@ function DashboardLink({ item, onClose }) {
         <NavLink
             to={item.to}
             end
-            onClick={onClose}
+            onClick={() => onClose?.()}
             className={({ isActive }) =>
                 `sidebar-nav-item relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-300 ${
                     isActive

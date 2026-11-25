@@ -1,13 +1,13 @@
-import { useCallback, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
     FileText, Printer, X, RefreshCw, Search, AlertTriangle, Ban, Clock,
     ArrowDownCircle, ArrowUpCircle, BadgeCheck, Vault, Scale, Package,
-    Eye, EyeOff, LayoutGrid, MousePointerClick,
 } from 'lucide-react';
 import api from '../lib/api';
 import { downloadPdf, openPrintPreview } from '../lib/printDocument';
 import MobileRecordCard, { MobileCardList } from '../components/MobileRecordCard';
+import { usePageVisibility, PageVisibilityHeader } from '../components/PageVisibility';
 
 const emptyFilters = {
     mois: '',
@@ -164,6 +164,8 @@ function exportPdf(rows, summary, filtersLabel) {
 
 export default function ClientRelevePage() {
     const navigate = useNavigate();
+    const [params] = useSearchParams();
+    const bootstrapped = useRef(false);
     const [filters, setFilters] = useState(emptyFilters);
     const [applied, setApplied] = useState(emptyFilters);
     const [clients, setClients] = useState([]);
@@ -176,9 +178,7 @@ export default function ClientRelevePage() {
     const [tresoreries, setTresoreries] = useState([]);
     const [loading, setLoading] = useState(true);
     const [pdfBusy, setPdfBusy] = useState(false);
-    const [showActions, setShowActions] = useState(false);
-    const [showKpi, setShowKpi] = useState(false);
-    const [showFilters, setShowFilters] = useState(false);
+    const visibility = usePageVisibility();
 
     const setFilter = (key, value) => setFilters((f) => ({ ...f, [key]: value }));
 
@@ -228,6 +228,19 @@ export default function ClientRelevePage() {
         load();
     }, [load]);
 
+    useEffect(() => {
+        if (bootstrapped.current) return;
+        const next = {
+            mois: params.get('mois') || '',
+            client_id: params.get('client_id') || '',
+            tresorerie: params.get('tresorerie') || '',
+        };
+        if (!next.mois && !next.client_id && !next.tresorerie) return;
+        bootstrapped.current = true;
+        setFilters(next);
+        setApplied(next);
+    }, [params]);
+
     const handleSearch = () => setApplied({ ...filters });
     const handleReset = () => {
         setFilters(emptyFilters);
@@ -242,40 +255,16 @@ export default function ClientRelevePage() {
         applied.tresorerie ? `Trésorerie : ${applied.tresorerie}` : null,
     ].filter(Boolean).join(' · ');
 
-    const toggleBtnClass = (active) =>
-        `inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-[10px] font-bold uppercase tracking-wide ${
-            active
-                ? 'bg-brand-navy text-white border-brand-navy'
-                : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'
-        }`;
-
     return (
-        <div className="flex flex-col flex-1 min-h-0 h-full overflow-hidden gap-2.5 sm:gap-3">
+        <div className="flex flex-col flex-1 min-h-0 min-w-0 h-full overflow-hidden gap-2.5 sm:gap-3">
             <div className="shrink-0 space-y-2.5 lg:space-y-3 bg-slate-50 dark:bg-slate-950">
-                <div className="lg:hidden flex items-center justify-between gap-2">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Afficher</p>
-                    <div className="flex items-center gap-1.5">
-                        <button type="button" onClick={() => setShowActions((v) => !v)} className={toggleBtnClass(showActions)} title={showActions ? 'Masquer les boutons' : 'Afficher les boutons'} aria-label={showActions ? 'Masquer les boutons' : 'Afficher les boutons'}>
-                            {showActions ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                            <MousePointerClick className="w-3.5 h-3.5" />
-                        </button>
-                        <button type="button" onClick={() => setShowKpi((v) => !v)} className={toggleBtnClass(showKpi)} title={showKpi ? 'Masquer les KPI' : 'Afficher les KPI'} aria-label={showKpi ? 'Masquer les KPI' : 'Afficher les KPI'}>
-                            {showKpi ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                            <LayoutGrid className="w-3.5 h-3.5" />
-                        </button>
-                        <button type="button" onClick={() => setShowFilters((v) => !v)} className={toggleBtnClass(showFilters)} title={showFilters ? 'Masquer la recherche' : 'Afficher la recherche'} aria-label={showFilters ? 'Masquer la recherche' : 'Afficher la recherche'}>
-                            {showFilters ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                            <Search className="w-3.5 h-3.5" />
-                        </button>
-                    </div>
-                </div>
+                <PageVisibilityHeader
+                    title="Relevé de compte client"
+                    visibility={visibility}
+                />
 
-                <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-2.5">
-                    <div className="min-w-0 hidden xl:block">
-                        <h1 className="text-xl font-bold text-slate-900 dark:text-white">Relevé de compte client</h1>
-                        <p className="text-sm text-slate-500 dark:text-slate-400">Ventes et règlements consolidés</p>
-                    </div>
-                    <div className={`flex-col gap-2 w-full xl:w-auto ${showActions ? 'flex' : 'hidden'} lg:flex`}>
+                {visibility.showActions && (
+                    <div className="flex-col gap-2 w-full flex">
                         <div className="grid grid-cols-3 gap-1.5 sm:flex sm:flex-wrap sm:items-center">
                             <button
                                 type="button"
@@ -298,9 +287,10 @@ export default function ClientRelevePage() {
                             </button>
                         </div>
                     </div>
-                </div>
+                )}
 
-                <div className={`space-y-2.5 ${showKpi ? 'block' : 'hidden'} lg:block`}>
+                {visibility.showKpi && (
+                <div className="space-y-2.5">
                     <div className="grid grid-cols-3 gap-1.5 w-full sm:max-w-[360px] sm:ml-auto xl:ml-auto">
                         <SummaryCard
                             compact
@@ -373,8 +363,10 @@ export default function ClientRelevePage() {
                         />
                     </div>
                 </div>
+                )}
 
-                <div className={`${showFilters ? 'block' : 'hidden'} lg:block glass-card p-2.5 sm:p-3 shadow-card border border-slate-200/60 dark:border-slate-700/60`}>
+                {visibility.showFilters && (
+                <div className="glass-card p-2.5 sm:p-3 shadow-card border border-slate-200/60 dark:border-slate-700/60">
                     <div className="grid grid-cols-2 xl:grid-cols-[1fr_1.3fr_1fr_auto] gap-2 sm:gap-2.5 items-end">
                         <Field label="Mois">
                             <select value={filters.mois} onChange={(e) => setFilter('mois', e.target.value)} className={filterClass}>
@@ -418,14 +410,15 @@ export default function ClientRelevePage() {
                         </div>
                     </div>
                 </div>
+                )}
             </div>
 
-            <div className="flex-1 min-h-0 glass-card overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60 flex flex-col">
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden glass-card shadow-card border border-slate-200/60 dark:border-slate-700/60">
                 <div className="px-4 sm:px-5 py-2.5 bg-gradient-to-r from-brand-navy via-blue-800 to-slate-800 border-b border-white/10 shrink-0">
                     <h3 className="text-sm font-bold text-white uppercase tracking-wide">Relevé de compte</h3>
                 </div>
 
-                <div className="lg:hidden flex-1 min-h-0 overflow-y-auto overscroll-contain">
+                <div className="lg:hidden flex-1 min-h-0 min-w-0 overflow-y-auto overscroll-contain">
                     <MobileCardList loading={loading} empty="Aucune opération pour ces critères">
                         {rows.map((row, idx) => {
                             const flags = [
@@ -467,8 +460,8 @@ export default function ClientRelevePage() {
                     </MobileCardList>
                 </div>
 
-                <div className="hidden lg:block flex-1 min-h-0 overflow-x-auto overflow-y-auto overscroll-contain">
-                    <table className="w-full text-sm min-w-[1500px]">
+                <div className="hidden min-h-0 min-w-0 flex-1 overflow-x-auto overflow-y-auto overscroll-contain lg:block">
+                    <table className="w-full text-sm">
                         <thead className="sticky top-0 z-20">
                             <tr className="bg-gradient-to-r from-slate-100 via-slate-200/90 to-slate-100 dark:from-slate-800 dark:via-slate-700/80 dark:to-slate-800 border-b-2 border-slate-300 dark:border-slate-600 shadow-sm">
                                 {columns.map((h) => (

@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Shield, X, Ban, CheckCircle2, RefreshCw } from 'lucide-react';
 import api from '../lib/api';
 import { authorizationSections, allAuthorizationPerms } from '../config/authorizationMenu';
+import { usePageVisibility, PageVisibilityHeader } from '../components/PageVisibility';
 
 const ALL_PERMS = allAuthorizationPerms();
 
@@ -62,6 +63,7 @@ export default function UserAuthorizationsPage() {
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState('');
     const [error, setError] = useState('');
+    const visibility = usePageVisibility({ actions: true, kpi: false, filters: false });
 
     const load = useCallback(() => {
         setLoading(true);
@@ -227,19 +229,25 @@ export default function UserAuthorizationsPage() {
 
     return (
         <div className="flex flex-col flex-1 h-full min-h-0 overflow-hidden gap-3">
-            <div className="shrink-0 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div>
+            <PageVisibilityHeader
+                title={(
                     <h1 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
                         <Shield className="w-5 h-5 text-brand-navy dark:text-orange-400" />
                         Autorisations utilisateurs
                     </h1>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">Gestion des accès par section et sous-menu</p>
+                )}
+                subtitle="Gestion des accès par section et sous-menu"
+                visibility={visibility}
+            />
+
+            {visibility.showActions && (
+                <div className="shrink-0 flex flex-wrap gap-2">
+                    <button type="button" onClick={load} disabled={loading} className="btn-secondary text-xs">
+                        <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+                        Actualiser
+                    </button>
                 </div>
-                <button type="button" onClick={load} disabled={loading} className="btn-secondary text-xs self-start">
-                    <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-                    Actualiser
-                </button>
-            </div>
+            )}
 
             {(message || error) && (
                 <div className={`shrink-0 px-4 py-2.5 rounded-xl text-sm border ${error ? 'bg-red-50 text-red-700 border-red-100' : 'bg-emerald-50 text-emerald-700 border-emerald-100'}`}>
@@ -247,7 +255,7 @@ export default function UserAuthorizationsPage() {
                 </div>
             )}
 
-            <div className="shrink-0 glass-card overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60">
+            <div className="shrink-0 min-w-0 glass-card max-w-full overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60">
                 <div className="px-5 py-3 bg-gradient-to-r from-slate-700 via-slate-800 to-brand-navy border-b border-white/10 flex items-center justify-between gap-3">
                     <h3 className="text-sm font-bold text-white uppercase tracking-wide">Utilisateurs</h3>
                     {checkedUsers.length > 0 && (
@@ -256,7 +264,7 @@ export default function UserAuthorizationsPage() {
                         </span>
                     )}
                 </div>
-                <div className="overflow-x-auto">
+                <div className="min-w-0 overflow-x-auto">
                     <table className="w-full text-sm min-w-[780px]">
                         <thead>
                             <tr className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
@@ -348,6 +356,7 @@ export default function UserAuthorizationsPage() {
                             ))}
                         </div>
                     </div>
+                    {visibility.showActions && (
                     <div className="shrink-0 flex flex-wrap items-center justify-end gap-2 px-4 py-3 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
                         <button type="button" onClick={handleValidate} disabled={saving} className="btn-primary text-xs">
                             <CheckCircle2 className="w-3.5 h-3.5" />
@@ -366,6 +375,7 @@ export default function UserAuthorizationsPage() {
                             Fermer
                         </button>
                     </div>
+                    )}
                 </div>
             )}
         </div>

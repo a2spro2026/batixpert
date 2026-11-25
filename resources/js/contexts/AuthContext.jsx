@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import api from '../lib/api';
 import { authStorage } from '../lib/authStorage';
 
-const AuthContext = createContext();
+export const AuthContext = createContext();
 
 const STATUT_LABELS = {
     Gerant: 'Gérant',

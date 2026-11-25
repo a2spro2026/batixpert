@@ -1,7 +1,9 @@
-import { useCallback, useEffect, useState } from 'react';
-import { Save, RotateCcw, Eye, Pencil, Trash2, Printer, FileText, X, RefreshCw } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Check, Eye, Pencil, Plus, Trash2, Printer, FileText, X, Wallet } from 'lucide-react';
 import api from '../lib/api';
 import { openPrintPreview } from '../lib/printDocument';
+import DraggableFormPanel, { FicheField, ficheBarClass, ficheBarReadOnlyClass } from '../components/forms/DraggableFormPanel';
+import { PageVisibilityHeader, usePageVisibility } from '../components/PageVisibility';
 
 const REGLEMENT_OPTIONS = [
     { value: '', label: '—' },
@@ -39,26 +41,6 @@ const emptyForm = {
     portal_login: '',
     portal_password: '',
 };
-
-function Field({ label, children, className = '' }) {
-    return (
-        <div className={className}>
-            <label className="field-label !overflow-visible !text-clip">
-                {label}
-            </label>
-            {children}
-        </div>
-    );
-}
-
-const inputClass =
-    'w-full rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-2.5 py-1.5 text-xs text-center outline-none focus:ring-2 focus:ring-brand-navy/30 focus:border-brand-navy transition-all';
-
-const readOnlyClass =
-    'w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 px-2.5 py-1.5 text-xs text-center cursor-not-allowed';
-
-const barClass = `${inputClass} !h-10 !text-sm`;
-const barReadOnlyClass = `${readOnlyClass} !h-10 !text-sm`;
 
 function formatSolde(value) {
     const n = Number(String(value ?? '').replace(',', '.')) || 0;
@@ -186,6 +168,7 @@ function ViewModal({ row, onClose }) {
 }
 
 export default function FicheClientPage() {
+    const visibility = usePageVisibility({ actions: true, kpi: true, filters: false });
     const [form, setForm] = useState(emptyForm);
     const [rows, setRows] = useState([]);
     const [meta, setMeta] = useState({ next_id: '—', date: '—' });
@@ -194,6 +177,7 @@ export default function FicheClientPage() {
     const [error, setError] = useState('');
     const [editingId, setEditingId] = useState(null);
     const [viewRow, setViewRow] = useState(null);
+    const [panelOpen, setPanelOpen] = useState(false);
 
     const load = useCallback(() => {
         setLoading(true);
@@ -210,13 +194,46 @@ export default function FicheClientPage() {
         load();
     }, [load]);
 
+    useEffect(() => {
+        const apply = (event) => {
+            const detail = event.detail || {};
+            if (!detail.client_id) return;
+            const plafond = detail.plafond == null ? null : detail.plafond;
+            setRows((current) => current.map((row) => (
+                String(row.id) === String(detail.client_id) ? { ...row, plafond } : row
+            )));
+            setViewRow((current) => (
+                current && String(current.id) === String(detail.client_id) ? { ...current, plafond } : current
+            ));
+            setForm((current) => (
+                String(editingId) === String(detail.client_id)
+                    ? { ...current, plafond: plafond == null ? '' : parseSoldeInput(plafond) }
+                    : current
+            ));
+        };
+        window.addEventListener('ghita:client', apply);
+        return () => window.removeEventListener('ghita:client', apply);
+    }, [editingId]);
+
+    const totalSoldes = useMemo(
+        () => rows.reduce((sum, r) => sum + (Number(r.budget ?? r.initial_balance) || 0), 0),
+        [rows],
+    );
+
     const set = (key, value) => setForm((f) => ({ ...f, [key]: value }));
 
-    const resetForm = () => {
+    const closePanel = () => {
+        setPanelOpen(false);
         setForm(emptyForm);
         setEditingId(null);
         setError('');
-        load();
+    };
+
+    const openCreate = () => {
+        setForm(emptyForm);
+        setEditingId(null);
+        setError('');
+        setPanelOpen(true);
     };
 
     const fillForm = (row) => {
@@ -234,14 +251,14 @@ export default function FicheClientPage() {
         });
         setEditingId(row.id);
         setError('');
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        setPanelOpen(true);
     };
 
     const handleDelete = async (row) => {
         if (!window.confirm(`Supprimer le client « ${row.name} » ?`)) return;
         try {
             await api.delete(`/clients/${row.id}`);
-            if (editingId === row.id) resetForm();
+            if (editingId === row.id) closePanel();
             load();
         } catch {
             setError('Impossible de supprimer ce client');
@@ -272,7 +289,8 @@ export default function FicheClientPage() {
             } else {
                 await api.post('/clients', payload);
             }
-            resetForm();
+            closePanel();
+            load();
         } catch (err) {
             setError(err.response?.data?.message || 'Erreur lors de l\'enregistrement');
         } finally {
@@ -281,125 +299,37 @@ export default function FicheClientPage() {
     };
 
     return (
-        <div className="flex flex-col flex-1 min-h-0 h-full overflow-y-auto overscroll-contain gap-6">
+        <div className="flex flex-col flex-1 min-h-0 h-full overflow-y-auto overscroll-contain gap-4">
             <ViewModal row={viewRow} onClose={() => setViewRow(null)} />
 
-            <form onSubmit={handleSubmit} className="glass-card p-5 lg:p-6 shadow-card border border-slate-200/60 dark:border-slate-700/60">
-                {error && (
-                    <div className="mb-4 p-3 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm border border-red-100 dark:border-red-800">
-                        {error}
-                    </div>
-                )}
+            <PageVisibilityHeader
+                title="Fiche client"
+                subtitle="Annuaire et soldes clients"
+                visibility={visibility}
+            />
 
-                <div className="overflow-x-auto">
-                    <div className="flex w-full flex-nowrap items-end gap-2 min-w-[78rem]">
-                        <Field label="Date" className="min-w-[7.5rem] flex-1">
-                            <input type="text" readOnly value={meta.date} className={barReadOnlyClass} />
-                        </Field>
-                        <Field label="CR" className="min-w-[6rem] flex-1">
-                            <input type="text" readOnly value={editingId ? rows.find((r) => r.id === editingId)?.code ?? meta.next_id : meta.next_id} className={barReadOnlyClass} />
-                        </Field>
-                        <Field label="Nom Client" className="min-w-[12rem] flex-[1.6]">
-                            <input type="text" required value={form.name} onChange={(e) => set('name', e.target.value)} placeholder="Raison sociale" className={barClass} />
-                        </Field>
-                        <Field label="Contact" className="min-w-[9rem] flex-1">
-                            <input type="tel" value={form.phone} onChange={(e) => set('phone', e.target.value)} placeholder="06 XX XX XX XX" className={barClass} />
-                        </Field>
-                        <Field label="Ville" className="min-w-[7rem] flex-1">
-                            <input type="text" value={form.city} onChange={(e) => set('city', e.target.value)} placeholder="Ville" className={barClass} />
-                        </Field>
-                        <Field label="Type" className="min-w-[5.5rem] flex-1">
-                            <select value={form.chantier_type} onChange={(e) => set('chantier_type', e.target.value)} className={barClass}>
-                                {TYPE_OPTIONS.map((opt) => (
-                                    <option key={opt.value || 'empty'} value={opt.value}>{opt.label}</option>
-                                ))}
-                            </select>
-                        </Field>
-                        <Field label="Régl" className="min-w-[5.5rem] flex-1">
-                            <select value={form.reglement} onChange={(e) => set('reglement', e.target.value)} className={barClass}>
-                                {REGLEMENT_OPTIONS.map((opt) => (
-                                    <option key={opt.value || 'empty'} value={opt.value}>{opt.label}</option>
-                                ))}
-                            </select>
-                        </Field>
-                        <Field label="Échéance" className="min-w-[6.5rem] flex-1">
-                            <select value={form.work_delay} onChange={(e) => set('work_delay', e.target.value)} className={barClass}>
-                                {ECHEANCE_OPTIONS.map((opt) => (
-                                    <option key={opt.value || 'echeance-empty'} value={opt.value}>{opt.label}</option>
-                                ))}
-                            </select>
-                        </Field>
-                        <Field label="Solde Initial" className="min-w-[7.5rem] flex-1">
-                            <input
-                                type="text"
-                                inputMode="decimal"
-                                value={form.budget}
-                                onChange={(e) => set('budget', e.target.value.replace(/[^\d.,\-]/g, ''))}
-                                onBlur={() => set('budget', parseSoldeInput(form.budget))}
-                                placeholder="0.00"
-                                className={`${barClass} ${hasSoldeInitial(form.budget) ? 'border-red-400 text-red-600 dark:text-red-400 font-bold bg-red-50 dark:bg-red-950/30 focus:ring-red-400/40 focus:border-red-500' : ''}`}
-                            />
-                        </Field>
-                        <Field label="Plafond" className="min-w-[8rem] flex-1">
-                            <input
-                                type="text"
-                                inputMode="decimal"
-                                value={form.plafond}
-                                onChange={(e) => set('plafond', e.target.value.replace(/[^\d.,]/g, ''))}
-                                onBlur={() => set('plafond', form.plafond === '' ? '' : parseSoldeInput(form.plafond))}
-                                placeholder="Sans limite"
-                                title="Vide = sans limite. Le client ne peut pas commander au-delà de ce montant moins son solde."
-                                className={barClass}
-                            />
-                        </Field>
-                        <Field label="Login portail" className="min-w-[9rem] flex-1">
-                            <input
-                                type="text"
-                                value={form.portal_login}
-                                onChange={(e) => set('portal_login', e.target.value)}
-                                placeholder="Identifiant"
-                                autoComplete="off"
-                                data-lpignore="true"
-                                data-1p-ignore
-                                className={barClass}
-                            />
-                        </Field>
-                        <Field label="Mot de passe" className="min-w-[9rem] flex-1">
-                            <input
-                                type="password"
-                                value={form.portal_password}
-                                onChange={(e) => set('portal_password', e.target.value)}
-                                placeholder={editingId ? 'Inchangé' : 'Mot de passe'}
-                                autoComplete="new-password"
-                                data-lpignore="true"
-                                data-1p-ignore
-                                className={barClass}
-                            />
-                        </Field>
-                    </div>
-                </div>
-
-                <div className="flex flex-wrap gap-3 mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
-                    <button type="submit" disabled={saving} className="btn-primary text-sm">
-                        <Save className="w-4 h-4" />
-                        {saving ? 'Enregistrement...' : editingId ? 'Mettre à jour' : 'Enregistrer'}
-                    </button>
-                    <button type="button" onClick={resetForm} className="btn-muted">
-                        <RotateCcw className="w-4 h-4" />
-                        {editingId ? 'Annuler' : 'Nouveau'}
-                    </button>
-                    <button type="button" onClick={load} disabled={loading} className="btn-secondary text-sm" title="Actualiser">
-                        <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                        Actualiser
+            {visibility.showActions && (
+                <div className="flex flex-wrap items-center gap-2">
+                    <button type="button" onClick={openCreate} className="inline-flex items-center gap-1.5 rounded-lg bg-brand-orange px-3 py-2 text-xs font-bold uppercase tracking-wide text-white hover:bg-orange-500">
+                        <Plus className="w-4 h-4" />
+                        Ajouter
                     </button>
                 </div>
-            </form>
+            )}
 
-            <div className="glass-card overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60">
-                <div className="px-5 py-3.5 bg-gradient-to-r from-brand-navy via-blue-800 to-blue-900 border-b border-white/10">
-                    <h3 className="text-sm font-bold text-white uppercase tracking-wide">Liste des clients</h3>
+            {visibility.showKpi && (
+                <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border self-start ${totalSoldes !== 0 ? 'bg-red-50 border-red-200 text-red-700 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300' : 'bg-slate-50 border-slate-200 text-slate-700 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200'}`}>
+                    <Wallet className="w-3.5 h-3.5" />
+                    <span className="text-[10px] font-semibold uppercase tracking-wider opacity-80">Total soldes</span>
+                    <span className="text-sm font-bold tabular-nums">{formatSolde(totalSoldes)}</span>
                 </div>
-                <div className="overflow-x-auto">
+            )}
+
+            <div className="glass-card min-w-0 max-w-full overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60">
+                <div className="flex flex-wrap items-center gap-3 px-5 py-3.5 bg-gradient-to-r from-brand-navy via-blue-800 to-blue-900 border-b border-white/10">
+                    <h3 className="text-sm font-bold text-white uppercase tracking-wide">Fiche client</h3>
+                </div>
+                <div className="min-w-0 overflow-x-auto">
                     <table className="w-full text-sm min-w-[1050px]">
                         <thead>
                             <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700">
@@ -475,7 +405,7 @@ export default function FicheClientPage() {
                             ) : (
                                 <tr>
                                     <td colSpan={10} className="px-4 py-12 text-center text-slate-400">
-                                        Aucun client enregistré
+                                        Aucun client. Cliquez sur Ajouter pour saisir une fiche.
                                     </td>
                                 </tr>
                             )}
@@ -483,6 +413,117 @@ export default function FicheClientPage() {
                     </table>
                 </div>
             </div>
+
+            {panelOpen && (
+                <DraggableFormPanel
+                    title={editingId ? 'Modifier la fiche client' : 'Nouvelle fiche client'}
+                    onClose={closePanel}
+                >
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                        {error && (
+                            <div className="p-3 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm border border-red-100 dark:border-red-800">
+                                {error}
+                            </div>
+                        )}
+                        <div className="min-w-0 overflow-x-auto pb-1">
+                            <div className="flex w-full flex-nowrap items-end gap-2.5 min-w-[78rem]">
+                                <FicheField label="Date" className="min-w-[7.5rem] flex-1">
+                                    <input type="text" readOnly value={meta.date} className={ficheBarReadOnlyClass} />
+                                </FicheField>
+                                <FicheField label="CR" className="min-w-[6rem] flex-1">
+                                    <input type="text" readOnly value={editingId ? rows.find((r) => r.id === editingId)?.code ?? meta.next_id : meta.next_id} className={ficheBarReadOnlyClass} />
+                                </FicheField>
+                                <FicheField label="Nom Client" className="min-w-[12rem] flex-[1.6]">
+                                    <input type="text" required autoFocus value={form.name} onChange={(e) => set('name', e.target.value)} placeholder="Raison sociale" className={ficheBarClass} />
+                                </FicheField>
+                                <FicheField label="Contact" className="min-w-[9rem] flex-1">
+                                    <input type="tel" value={form.phone} onChange={(e) => set('phone', e.target.value)} placeholder="06 XX XX XX XX" className={ficheBarClass} />
+                                </FicheField>
+                                <FicheField label="Ville" className="min-w-[7rem] flex-1">
+                                    <input type="text" value={form.city} onChange={(e) => set('city', e.target.value)} placeholder="Ville" className={ficheBarClass} />
+                                </FicheField>
+                                <FicheField label="Type" className="min-w-[5.5rem] flex-1">
+                                    <select value={form.chantier_type} onChange={(e) => set('chantier_type', e.target.value)} className={ficheBarClass}>
+                                        {TYPE_OPTIONS.map((opt) => (
+                                            <option key={opt.value || 'empty'} value={opt.value}>{opt.label}</option>
+                                        ))}
+                                    </select>
+                                </FicheField>
+                                <FicheField label="Régl" className="min-w-[5.5rem] flex-1">
+                                    <select value={form.reglement} onChange={(e) => set('reglement', e.target.value)} className={ficheBarClass}>
+                                        {REGLEMENT_OPTIONS.map((opt) => (
+                                            <option key={opt.value || 'empty'} value={opt.value}>{opt.label}</option>
+                                        ))}
+                                    </select>
+                                </FicheField>
+                                <FicheField label="Échéance" className="min-w-[6.5rem] flex-1">
+                                    <select value={form.work_delay} onChange={(e) => set('work_delay', e.target.value)} className={ficheBarClass}>
+                                        {ECHEANCE_OPTIONS.map((opt) => (
+                                            <option key={opt.value || 'echeance-empty'} value={opt.value}>{opt.label}</option>
+                                        ))}
+                                    </select>
+                                </FicheField>
+                                <FicheField label="Solde Initial" className="min-w-[7.5rem] flex-1">
+                                    <input
+                                        type="text"
+                                        inputMode="decimal"
+                                        value={form.budget}
+                                        onChange={(e) => set('budget', e.target.value.replace(/[^\d.,\-]/g, ''))}
+                                        onBlur={() => set('budget', parseSoldeInput(form.budget))}
+                                        placeholder="0.00"
+                                        className={`${ficheBarClass} ${hasSoldeInitial(form.budget) ? 'border-red-400 text-red-600 dark:text-red-400 font-bold bg-red-50 dark:bg-red-950/30 focus:ring-red-400/40 focus:border-red-500' : ''}`}
+                                    />
+                                </FicheField>
+                                <FicheField label="Plafond" className="min-w-[8rem] flex-1">
+                                    <input
+                                        type="text"
+                                        inputMode="decimal"
+                                        value={form.plafond}
+                                        onChange={(e) => set('plafond', e.target.value.replace(/[^\d.,]/g, ''))}
+                                        onBlur={() => set('plafond', form.plafond === '' ? '' : parseSoldeInput(form.plafond))}
+                                        placeholder="Sans limite"
+                                        title="Vide = sans limite. Le client ne peut pas commander au-delà de ce montant moins son solde."
+                                        className={ficheBarClass}
+                                    />
+                                </FicheField>
+                                <FicheField label="Login portail" className="min-w-[9rem] flex-1">
+                                    <input
+                                        type="text"
+                                        value={form.portal_login}
+                                        onChange={(e) => set('portal_login', e.target.value)}
+                                        placeholder="Identifiant"
+                                        autoComplete="off"
+                                        data-lpignore="true"
+                                        data-1p-ignore
+                                        className={ficheBarClass}
+                                    />
+                                </FicheField>
+                                <FicheField label="Mot de passe" className="min-w-[9rem] flex-1">
+                                    <input
+                                        type="password"
+                                        value={form.portal_password}
+                                        onChange={(e) => set('portal_password', e.target.value)}
+                                        placeholder={editingId ? 'Inchangé' : 'Mot de passe'}
+                                        autoComplete="new-password"
+                                        data-lpignore="true"
+                                        data-1p-ignore
+                                        className={ficheBarClass}
+                                    />
+                                </FicheField>
+                            </div>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-3 pt-2 border-t border-slate-200 dark:border-slate-700">
+                            <button type="submit" disabled={saving} className="btn-primary text-sm">
+                                <Check className="w-4 h-4" />
+                                {saving ? 'Validation...' : 'Valider'}
+                            </button>
+                            <button type="button" onClick={closePanel} className="btn-muted text-sm">
+                                Annuler
+                            </button>
+                        </div>
+                    </form>
+                </DraggableFormPanel>
+            )}
         </div>
     );
 }

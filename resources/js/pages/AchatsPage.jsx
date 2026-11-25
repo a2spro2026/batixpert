@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Plus, CheckCircle } from 'lucide-react';
 import api from '../lib/api';
+import { usePageVisibility, PageVisibilityHeader } from '../components/PageVisibility';
 
 const formatMontant = (n) => new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(n) || 0);
 
 export default function AchatsPage() {
     const [orders, setOrders] = useState({ data: [] });
+    const visibility = usePageVisibility({ actions: true, kpi: false, filters: false });
 
     useEffect(() => {
         api.get('/purchase-orders').then((r) => setOrders(r.data));
@@ -18,15 +20,19 @@ export default function AchatsPage() {
 
     return (
         <div className="space-y-6">
-            <div className="flex justify-between items-center">
-                <div>
-                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Gestion des achats</h1>
-                    <p className="text-slate-500 text-sm">Bons d'achat et historique fournisseurs</p>
-                </div>
-                <button className="btn-primary"><Plus className="w-4 h-4" /> Nouveau bon d'achat</button>
-            </div>
+            <PageVisibilityHeader
+                title="Gestion des achats"
+                subtitle="Bons d'achat et historique fournisseurs"
+                visibility={visibility}
+            />
 
-            <div className="glass-card overflow-hidden shadow-card">
+            {visibility.showActions && (
+                <div className="flex flex-wrap gap-2">
+                    <button className="btn-primary"><Plus className="w-4 h-4" /> Nouveau bon d'achat</button>
+                </div>
+            )}
+
+            <div className="glass-card min-w-0 max-w-full overflow-hidden shadow-card">
                 <table className="w-full text-sm">
                     <thead className="bg-slate-50 dark:bg-slate-800/50 text-xs font-bold uppercase text-slate-500">
                         <tr>

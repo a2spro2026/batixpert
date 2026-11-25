@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState, Fragment } from 'react';
 import { FileText, Printer, RefreshCw } from 'lucide-react';
 import api from '../lib/api';
 import { openPrintPreview } from '../lib/printDocument';
+import { usePageVisibility, PageVisibilityHeader } from '../components/PageVisibility';
 
 function formatQty(value) {
     const n = Number(value) || 0;
@@ -93,6 +94,7 @@ function FragmentMonthSubHeads({ even }) {
 }
 
 export default function StockMouvementsPage() {
+    const visibility = usePageVisibility({ actions: false, kpi: false, filters: true });
     const currentYear = new Date().getFullYear();
     const [year, setYear] = useState(currentYear);
     const [rows, setRows] = useState([]);
@@ -127,14 +129,14 @@ export default function StockMouvementsPage() {
 
     return (
         <div className="flex flex-col flex-1 h-full min-h-0 overflow-hidden gap-4">
-            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 shrink-0">
-                <div>
-                    <h1 className="text-xl font-bold text-slate-900 dark:text-white">Mouvement Stock</h1>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">
-                        Achats et ventes mensuels par produit — {year}
-                    </p>
-                </div>
-                <div className="flex items-center gap-2">
+            <PageVisibilityHeader
+                title="Mouvement Stock"
+                subtitle={`Achats et ventes mensuels par produit — ${year}`}
+                visibility={visibility}
+            />
+
+            {visibility.showFilters && (
+                <div className="flex flex-wrap items-center gap-2 shrink-0">
                     <div className="hidden sm:flex items-center gap-3 mr-2 text-[11px]">
                         <span className="inline-flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400 font-semibold">
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Achat
@@ -163,16 +165,16 @@ export default function StockMouvementsPage() {
                         <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
                     </button>
                 </div>
-            </div>
+            )}
 
-            <div className="flex-1 min-h-0 glass-card overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60 flex flex-col">
+            <div className="flex-1 min-h-0 min-w-0 glass-card max-w-full overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60 flex flex-col">
                 <div className="shrink-0 px-5 py-3 bg-gradient-to-r from-brand-navy via-blue-900 to-slate-800 border-b border-white/10">
                     <h3 className="text-sm font-bold text-white uppercase tracking-wide">
                         Tableau des mouvements
                     </h3>
                 </div>
 
-                <div className="flex-1 min-h-0 overflow-auto">
+                <div className="min-h-0 min-w-0 flex-1 overflow-x-auto overflow-y-auto">
                     <table className="w-full text-sm border-collapse min-w-[1280px]">
                         <thead className="sticky top-0 z-20">
                             <tr className="bg-slate-100 dark:bg-slate-800">

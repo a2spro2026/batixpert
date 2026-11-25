@@ -330,7 +330,7 @@ export default function DevisFormPage() {
                     <div className="mb-3 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 text-sm border border-emerald-100 dark:border-emerald-800 shrink-0">{success}</div>
                 )}
 
-                <div className="overflow-x-auto shrink-0">
+                <div className="min-w-0 overflow-x-auto shrink-0">
                     <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid xl:grid-cols-[92px_72px_minmax(100px,0.9fr)_minmax(68px,0.6fr)_0.75fr_96px_0.75fr_80px] gap-2 items-end min-w-[900px]">
                         <Field label="Date" compact>
                             <input type="text" readOnly value={meta.date} className={readOnlyCompact} />

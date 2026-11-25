@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import api from '../lib/api';
 import { openPrintPreview } from '../lib/printDocument';
+import { usePageVisibility, PageVisibilityHeader } from '../components/PageVisibility';
 
 const COFFRE_OPTIONS = ['', 'Caisse', 'Cmpt Pers', 'Cmpt Ste'];
 const STATUT_OPTIONS = ['', 'Sortie', 'Entrée'];
@@ -260,6 +261,7 @@ function ViewModal({ row, onClose }) {
 }
 
 export default function TransactionsPage() {
+    const visibility = usePageVisibility({ actions: false, kpi: true, filters: true });
     const [form, setForm] = useState(emptyForm);
     const [filters, setFilters] = useState(emptyFilters);
     const [rows, setRows] = useState([]);
@@ -374,6 +376,13 @@ export default function TransactionsPage() {
         <div className="flex flex-col flex-1 min-h-0 h-full overflow-y-auto overscroll-contain gap-4">
             <ViewModal row={viewRow} onClose={() => setViewRow(null)} />
 
+            <PageVisibilityHeader
+                title="Transactions"
+                subtitle="Mouvements de caisse et coffres"
+                visibility={visibility}
+            />
+
+            {visibility.showKpi && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
                 {SUMMARY_CARDS.map((card) => {
                     const gradient = card.dynamic
@@ -397,13 +406,14 @@ export default function TransactionsPage() {
                     );
                 })}
             </div>
+            )}
 
             <form onSubmit={handleSubmit} className="glass-card p-4 lg:p-5 shadow-card border border-slate-200/60 dark:border-slate-700/60">
                 {error && (
                     <div className="mb-3 p-3 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm border border-red-100 dark:border-red-800">{error}</div>
                 )}
 
-                <div className="overflow-x-auto">
+                <div className="min-w-0 overflow-x-auto">
                     <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid xl:grid-cols-[112px_0.55fr_0.32fr_0.3fr_0.42fr_0.95fr_2.65fr_auto_auto] gap-2 items-end min-w-[980px]">
                         <Field label="Date" compact>
                             <input type="date" required value={form.transaction_date} onChange={(e) => set('transaction_date', e.target.value)} className={`${inputCompact} text-[12px] py-1.5`} />
@@ -443,6 +453,7 @@ export default function TransactionsPage() {
                 </div>
             </form>
 
+            {visibility.showFilters && (
             <div className="glass-card p-4 shadow-card border border-slate-200/60 dark:border-slate-700/60">
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-[1fr_1fr_0.9fr_0.9fr_auto_auto] gap-2.5 items-end">
                     <Field label="Date du">
@@ -473,8 +484,9 @@ export default function TransactionsPage() {
                     </button>
                 </div>
             </div>
+            )}
 
-            <div className="glass-card overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60">
+            <div className="glass-card min-w-0 max-w-full overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60">
                 <div className="px-5 py-3.5 bg-gradient-to-r from-brand-navy via-blue-800 to-indigo-900 border-b border-white/10 flex items-center justify-between">
                     <h3 className="text-sm font-bold text-white uppercase tracking-wide">Transaction et Charges</h3>
                     <button type="button" onClick={load} disabled={loading} className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors" title="Actualiser">
@@ -482,7 +494,7 @@ export default function TransactionsPage() {
                     </button>
                 </div>
 
-                <div className="overflow-x-auto">
+                <div className="min-w-0 overflow-x-auto">
                     <table className="w-full text-sm min-w-[900px]">
                         <thead>
                             <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700">

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Banknote, CircleDollarSign, FileCheck, Pencil, Plus, RefreshCw, Trash2, X } from 'lucide-react';
 import api from '../lib/api';
+import { usePageVisibility, PageVisibilityHeader } from '../components/PageVisibility';
 
 const METHODS = [
     ['especes', 'Espèces'],
@@ -118,6 +119,7 @@ function PaymentModal({ open, form, invoices, editingId, saving, error, onChange
 }
 
 export default function ReglementFactureVentePage() {
+    const visibility = usePageVisibility({ actions: true, kpi: true, filters: true });
     const [rows, setRows] = useState([]);
     const [invoices, setInvoices] = useState([]);
     const [summary, setSummary] = useState({ count: 0, total_paid: 0, invoice_total: 0, remaining_total: 0 });
@@ -212,21 +214,28 @@ export default function ReglementFactureVentePage() {
         <div className="flex flex-col flex-1 min-h-0 h-full overflow-y-auto overscroll-contain gap-4">
             <PaymentModal open={modalOpen} form={form} invoices={invoices} editingId={editingId} saving={saving} error={error} onChange={onChange} onClose={() => setModalOpen(false)} onSubmit={submit} />
 
-            <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
-                <div>
-                    <h1 className="text-xl font-extrabold text-slate-900 dark:text-white">Règlements Factures Ventes</h1>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">Paiements liés uniquement aux factures de vente — indépendants des règlements clients sur bons de vente.</p>
-                </div>
-                <button type="button" onClick={openNew} className="btn-primary self-start text-sm"><Plus className="h-4 w-4" /> Nouveau</button>
-            </div>
+            <PageVisibilityHeader
+                title="Règlements Factures Ventes"
+                subtitle="Paiements liés uniquement aux factures de vente — indépendants des règlements clients sur bons de vente."
+                visibility={visibility}
+            />
 
+            {visibility.showActions && (
+                <div className="flex flex-wrap items-center gap-2">
+                    <button type="button" onClick={openNew} className="btn-primary text-sm"><Plus className="h-4 w-4" /> Nouveau</button>
+                </div>
+            )}
+
+            {visibility.showKpi && (
             <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
                 <SummaryCard label="Factures TTC" value={summary.invoice_total} icon={FileCheck} gradient="from-blue-600 to-brand-navy" />
                 <SummaryCard label="Total réglé" value={summary.total_paid} icon={CircleDollarSign} gradient="from-emerald-500 to-teal-800" />
                 <SummaryCard label="Solde factures" value={summary.remaining_total} icon={Banknote} gradient="from-orange-500 to-rose-700" />
                 <SummaryCard label="Nb règlements" value={summary.count || 0} icon={Banknote} gradient="from-violet-600 to-indigo-900" money={false} />
             </div>
+            )}
 
+            {visibility.showFilters && (
             <div className="glass-card p-3">
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-4">
                     <input value={filters.reference} onChange={(event) => setFilters({ ...filters, reference: event.target.value })} className={inputClass} placeholder="N° facture / référence" />
@@ -242,13 +251,14 @@ export default function ReglementFactureVentePage() {
                 </div>
                 {clients.length > 0 && <p className="mt-2 text-[10px] text-slate-400">{clients.length} client(s) dans la liste affichée</p>}
             </div>
+            )}
 
-            <div className="glass-card overflow-hidden border border-slate-200/70 shadow-card dark:border-slate-700/70">
+            <div className="glass-card min-w-0 max-w-full overflow-hidden border border-slate-200/70 shadow-card dark:border-slate-700/70">
                 <div className="bg-gradient-to-r from-blue-700 via-brand-navy to-slate-900 px-5 py-3.5">
                     <h2 className="flex items-center gap-2 text-sm font-extrabold uppercase tracking-wide text-white"><Banknote className="h-4 w-4" /> Liste des règlements de factures</h2>
                 </div>
-                <div className="overflow-x-auto">
-                    <table className="w-full min-w-[900px] text-sm">
+                <div className="min-w-0 overflow-x-auto">
+                    <table className="w-full text-sm min-w-[900px] text-sm">
                         <thead>
                             <tr>
                                 {['Date', 'N° Règlement', 'N° Facture', 'Client', 'Mode', 'Référence', 'Montant', 'Solde Facture', 'Actions'].map((heading) => (

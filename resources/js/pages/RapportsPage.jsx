@@ -3,11 +3,13 @@ import { Bar } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Tooltip, Legend } from 'chart.js';
 import api from '../lib/api';
 import { formatMontant } from './devis/devisUtils';
+import { usePageVisibility, PageVisibilityHeader } from '../components/PageVisibility';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
 export default function RapportsPage() {
     const [data, setData] = useState(null);
+    const visibility = usePageVisibility({ actions: true, kpi: false, filters: false });
 
     useEffect(() => {
         api.get('/reports/financial').then((r) => setData(r.data));
@@ -24,20 +26,24 @@ export default function RapportsPage() {
 
     return (
         <div className="space-y-6">
-            <div className="flex justify-between items-center">
-                <div>
-                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Rapports & Statistiques</h1>
-                    <p className="text-slate-500 text-sm">Rentabilité et analyses financières</p>
+            <PageVisibilityHeader
+                title="Rapports & Statistiques"
+                subtitle="Rentabilité et analyses financières"
+                visibility={visibility}
+            />
+
+            {visibility.showActions && (
+                <div className="flex flex-wrap items-center gap-2">
+                    <a href="/api/reports/export/chantiers?format=csv" className="btn-secondary text-sm">Export CSV</a>
                 </div>
-                <a href="/api/reports/export/chantiers?format=csv" className="btn-secondary text-sm">Export CSV</a>
-            </div>
+            )}
 
             <div className="glass-card p-5 h-80 shadow-card">
                 <h3 className="font-semibold mb-4">Rentabilité par chantier</h3>
                 <Bar data={chartData} options={{ responsive: true, maintainAspectRatio: false }} />
             </div>
 
-            <div className="glass-card overflow-hidden shadow-card">
+            <div className="glass-card min-w-0 max-w-full overflow-hidden shadow-card">
                 <table className="w-full text-sm">
                     <thead className="bg-slate-50 dark:bg-slate-800/50 text-xs font-bold uppercase text-slate-500">
                         <tr>

@@ -4,6 +4,7 @@ import {
 } from 'lucide-react';
 import api from '../lib/api';
 import { openPrintPreview } from '../lib/printDocument';
+import { PageVisibilityHeader, usePageVisibility } from '../components/PageVisibility';
 
 const TYPE_OPTIONS = ['', 'Esp', 'Chq', 'Eff', 'Vir', 'Vers'];
 const BANQUE_OPTIONS = [
@@ -251,6 +252,7 @@ function FormModal({ open, form, meta, editingId, saving, error, onChange, onTyp
 }
 
 export default function ChargesPage() {
+    const visibility = usePageVisibility({ actions: true, kpi: true, filters: false });
     const [rows, setRows] = useState([]);
     const [summary, setSummary] = useState({ total_charge: 0, solde_charge: 0 });
     const [meta, setMeta] = useState({ next_ref: 'CH-0001', date_raw: '' });
@@ -397,16 +399,21 @@ export default function ChargesPage() {
                 onSubmit={handleSubmit}
             />
 
-            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
-                <div>
-                    <h1 className="text-xl font-bold text-slate-900 dark:text-white">Charge</h1>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">Bons de charge et décaissements</p>
-                </div>
-                <button type="button" onClick={openNouveau} className="btn-primary text-sm self-start sm:self-auto">
-                    <Plus className="w-4 h-4" /> Nouveau
-                </button>
-            </div>
+            <PageVisibilityHeader
+                title="Charge"
+                subtitle="Bons de charge et décaissements"
+                visibility={visibility}
+            />
 
+            {visibility.showActions && (
+                <div className="flex flex-wrap items-center gap-2">
+                    <button type="button" onClick={openNouveau} className="btn-primary text-sm">
+                        <Plus className="w-4 h-4" /> Nouveau
+                    </button>
+                </div>
+            )}
+
+            {visibility.showKpi && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-2xl">
                 <SummaryCard
                     label="Total Charge"
@@ -423,8 +430,9 @@ export default function ChargesPage() {
                     icon={Scale}
                 />
             </div>
+            )}
 
-            <div className="glass-card overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60">
+            <div className="glass-card min-w-0 max-w-full overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60">
                 <div className="px-5 py-3.5 bg-gradient-to-r from-teal-600 via-cyan-700 to-slate-800 border-b border-white/10 flex items-center justify-between">
                     <h3 className="text-sm font-bold text-white uppercase tracking-wide">Liste des Charges</h3>
                     <button type="button" onClick={load} disabled={loading} className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors" title="Actualiser">
@@ -432,7 +440,7 @@ export default function ChargesPage() {
                     </button>
                 </div>
 
-                <div className="overflow-x-auto">
+                <div className="min-w-0 overflow-x-auto">
                     <table className="w-full text-sm min-w-[1200px]">
                         <thead>
                             <tr className="bg-gradient-to-r from-slate-100 via-slate-200/90 to-slate-100 dark:from-slate-800 dark:via-slate-700/80 dark:to-slate-800 border-b-2 border-slate-300 dark:border-slate-600">

@@ -32,7 +32,7 @@ export default function GenericListPage({ title, subtitle, endpoint, columns }) 
                     <div className="w-8 h-8 border-4 border-brand-navy border-t-transparent rounded-full animate-spin" />
                 </div>
             ) : (
-                <div className="glass-card overflow-hidden shadow-card flex-1 min-h-0 flex flex-col">
+                <div className="glass-card min-w-0 max-w-full overflow-hidden shadow-card flex-1 min-h-0 flex flex-col">
                     <div className="flex-1 min-h-0 overflow-auto overscroll-contain">
                         <table className="w-full text-sm">
                             <thead className="sticky top-0 z-10 bg-slate-50 dark:bg-slate-800/95 text-xs font-bold uppercase text-slate-500">

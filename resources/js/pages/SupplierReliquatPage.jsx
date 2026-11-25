@@ -4,6 +4,7 @@ import { Printer, X, RefreshCw, FileText } from 'lucide-react';
 import api from '../lib/api';
 import { downloadPdf, openPrintPreview } from '../lib/printDocument';
 import { useAuth } from '../contexts/AuthContext';
+import { PageVisibilityHeader, usePageVisibility } from '../components/PageVisibility';
 
 const emptyFilters = {
     mois: '',
@@ -198,6 +199,7 @@ function printOptions(filters) {
 }
 
 export default function SupplierReliquatPage() {
+    const visibility = usePageVisibility({ actions: true, kpi: false, filters: true });
     const navigate = useNavigate();
     const { user } = useAuth();
     const [filters, setFilters] = useState(emptyFilters);
@@ -276,11 +278,13 @@ export default function SupplierReliquatPage() {
     return (
         <div className="flex flex-col flex-1 h-full min-h-0 overflow-hidden gap-3">
             <div className="shrink-0 space-y-3">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div className="min-w-0">
-                        <h1 className="text-xl font-bold text-slate-900 dark:text-white">Etat reliquat fournisseur</h1>
-                        <p className="text-sm text-slate-500 dark:text-slate-400">Bons d&apos;achat réglés dont le règlement dépasse le montant du bon</p>
-                    </div>
+                <PageVisibilityHeader
+                    title="Etat reliquat fournisseur"
+                    subtitle="Bons d'achat réglés dont le règlement dépasse le montant du bon"
+                    visibility={visibility}
+                />
+
+                {visibility.showActions && (
                     <div className="flex flex-wrap items-center gap-2">
                         <button type="button" onClick={handlePdf} disabled={loading || pdfBusy} className="btn-danger text-xs">
                             <FileText className="w-3.5 h-3.5" /> {pdfBusy ? 'PDF…' : 'PDF'}
@@ -292,7 +296,7 @@ export default function SupplierReliquatPage() {
                             <X className="w-3.5 h-3.5" /> Fermer
                         </button>
                     </div>
-                </div>
+                )}
 
                 {error && (
                     <div className="px-4 py-2.5 rounded-xl text-sm border bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800">
@@ -300,6 +304,7 @@ export default function SupplierReliquatPage() {
                     </div>
                 )}
 
+                {visibility.showFilters && (
                 <div className="glass-card p-3 shadow-card border border-slate-200/60 dark:border-slate-700/60">
                     <div className="grid grid-cols-1 sm:grid-cols-[1fr_1.3fr_1.3fr_auto] gap-2.5 items-end">
                         <Field label="Mois">
@@ -331,9 +336,10 @@ export default function SupplierReliquatPage() {
                         </div>
                     </div>
                 </div>
+                )}
             </div>
 
-            <div className="flex-1 min-h-0 glass-card overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60 flex flex-col">
+            <div className="flex-1 min-h-0 min-w-0 glass-card max-w-full overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60 flex flex-col">
                 <div className="px-5 py-2.5 bg-gradient-to-r from-amber-500 via-orange-500 to-orange-700 border-b border-white/10 shrink-0 flex items-center justify-between">
                     <h3 className="text-sm font-bold text-white uppercase tracking-wide">Tableau Etat Reliquat</h3>
                     <span className="text-[11px] font-semibold text-white/85 tabular-nums">{totals.count} bon(s)</span>

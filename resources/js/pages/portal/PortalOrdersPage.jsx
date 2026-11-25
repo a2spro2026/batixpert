@@ -112,7 +112,7 @@ function ViewModal({ row, onClose }) {
                             </p>
                         </div>
                     </div>
-                    <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700">
+                    <div className="min-w-0 overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700">
                         <table className="w-full text-xs">
                             <thead className="bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
                                 <tr>
@@ -329,7 +329,7 @@ export default function PortalOrdersPage() {
     });
 
     return (
-        <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+        <div className="flex flex-col flex-1 min-h-0 min-w-0 overflow-hidden">
             <ViewModal row={view} onClose={() => setView(null)} />
             <PaymentsPanel order={paymentsFor} onClose={() => setPaymentsFor(null)} />
 
@@ -352,7 +352,7 @@ export default function PortalOrdersPage() {
                 </div>
             </div>
 
-            <div className="flex-1 min-h-0 glass-card overflow-hidden border border-slate-200/60 dark:border-slate-700/60 bg-white/80 dark:bg-slate-900/60 flex flex-col">
+            <div className="flex-1 min-h-0 min-w-0 glass-card max-w-full overflow-hidden border border-slate-200/60 dark:border-slate-700/60 bg-white/80 dark:bg-slate-900/60 flex flex-col">
                 <div className="md:hidden flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y">
                     <MobileCardList loading={loading} empty="Aucun bon de vente">
                         {rows.map((row) => (

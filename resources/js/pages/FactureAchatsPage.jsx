@@ -4,6 +4,7 @@ import {
 } from 'lucide-react';
 import api from '../lib/api';
 import { openPrintPreview } from '../lib/printDocument';
+import { usePageVisibility, PageVisibilityHeader } from '../components/PageVisibility';
 
 const DEPOT_OPTIONS = [
     { value: 'depot_a', label: 'Ste A. BOUYAHYA' },
@@ -277,7 +278,7 @@ function FormModal({ open, form, lines, meta, editingId, saving, error, supplier
                                 <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Lignes facture</p>
                                 <button type="button" onClick={onAddLine} className="text-xs text-brand-navy dark:text-orange-400 font-semibold hover:underline">+ Ligne</button>
                             </div>
-                            <div className="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-700">
+                            <div className="min-w-0 overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-700">
                                 <table className="w-full text-xs min-w-[650px]">
                                     <thead>
                                         <tr className="bg-slate-50 dark:bg-slate-800/80">
@@ -331,6 +332,7 @@ function FormModal({ open, form, lines, meta, editingId, saving, error, supplier
 }
 
 export default function FactureAchatsPage({ depotFilter = null, pageTitle = '', pageSubtitle = '' }) {
+    const visibility = usePageVisibility({ actions: true, kpi: true, filters: false });
     const [rows, setRows] = useState([]);
     const [summary, setSummary] = useState({ total_ht: 0, total_ttc: 0, count: 0 });
     const [meta, setMeta] = useState({ next_ref: 'FA-0001', date_raw: '' });
@@ -530,12 +532,14 @@ export default function FactureAchatsPage({ depotFilter = null, pageTitle = '', 
                 onSubmit={handleSubmit}
             />
 
-            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
-                <div>
-                    <h1 className="text-xl font-bold text-slate-900 dark:text-white">{pageTitle}</h1>
-                    {pageSubtitle && <p className="text-sm text-slate-500 dark:text-slate-400">{pageSubtitle}</p>}
-                </div>
-                <div className="flex items-center gap-2 self-start">
+            <PageVisibilityHeader
+                title={pageTitle}
+                subtitle={pageSubtitle || null}
+                visibility={visibility}
+            />
+
+            {visibility.showActions && (
+                <div className="flex flex-wrap items-center gap-2">
                     {depotFilter && (
                         <button type="button" onClick={toggleStock} className="btn-secondary text-sm">
                             {stockVisible ? <EyeOff className="w-4 h-4" /> : <Package className="w-4 h-4" />}
@@ -546,25 +550,27 @@ export default function FactureAchatsPage({ depotFilter = null, pageTitle = '', 
                         <Plus className="w-4 h-4" /> Nouveau
                     </button>
                 </div>
-            </div>
+            )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 max-w-3xl -mt-1">
-                <div className="rounded-xl bg-gradient-to-br from-slate-600 to-slate-800 p-4 text-white shadow-lg">
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-white/80">Nombre</p>
-                    <p className="mt-1 text-xl font-bold tabular-nums">{summary.count}</p>
+            {visibility.showKpi && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 max-w-3xl">
+                    <div className="rounded-xl bg-gradient-to-br from-slate-600 to-slate-800 p-4 text-white shadow-lg">
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-white/80">Nombre</p>
+                        <p className="mt-1 text-xl font-bold tabular-nums">{summary.count}</p>
+                    </div>
+                    <div className="rounded-xl bg-gradient-to-br from-blue-600 to-blue-800 p-4 text-white shadow-lg">
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-white/80">Total HT</p>
+                        <p className="mt-1 text-xl font-bold tabular-nums">{formatMontant(summary.total_ht)}</p>
+                    </div>
+                    <div className="rounded-xl bg-gradient-to-br from-emerald-600 to-teal-800 p-4 text-white shadow-lg">
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-white/80">Total TTC</p>
+                        <p className="mt-1 text-xl font-bold tabular-nums">{formatMontant(summary.total_ttc)}</p>
+                    </div>
                 </div>
-                <div className="rounded-xl bg-gradient-to-br from-blue-600 to-blue-800 p-4 text-white shadow-lg">
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-white/80">Total HT</p>
-                    <p className="mt-1 text-xl font-bold tabular-nums">{formatMontant(summary.total_ht)}</p>
-                </div>
-                <div className="rounded-xl bg-gradient-to-br from-emerald-600 to-teal-800 p-4 text-white shadow-lg">
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-white/80">Total TTC</p>
-                    <p className="mt-1 text-xl font-bold tabular-nums">{formatMontant(summary.total_ttc)}</p>
-                </div>
-            </div>
+            )}
 
             {stockVisible && (
-                <div className="glass-card overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60">
+                <div className="glass-card min-w-0 max-w-full overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60">
                     <div className={`px-5 py-3 bg-gradient-to-r ${accent} text-white flex items-center justify-between`}>
                         <h3 className="text-sm font-bold uppercase tracking-wide flex items-center gap-2">
                             <Package className="w-4 h-4" /> Stock - {pageTitle}
@@ -573,7 +579,7 @@ export default function FactureAchatsPage({ depotFilter = null, pageTitle = '', 
                             <EyeOff className="w-4 h-4" />
                         </button>
                     </div>
-                    <div className="overflow-x-auto max-h-[360px] overflow-y-auto">
+                    <div className="min-w-0 overflow-x-auto max-h-[360px] overflow-y-auto">
                         <table className="w-full text-sm min-w-[700px]">
                             <thead className="sticky top-0 z-10">
                                 <tr className="bg-slate-100 dark:bg-slate-800 border-b-2 border-slate-200 dark:border-slate-700">
@@ -602,7 +608,7 @@ export default function FactureAchatsPage({ depotFilter = null, pageTitle = '', 
                 </div>
             )}
 
-            <div className="glass-card overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60">
+            <div className="glass-card min-w-0 max-w-full overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60">
                 <div className={`px-5 py-3.5 bg-gradient-to-r ${accent} border-b border-white/10 flex items-center justify-between`}>
                     <h3 className="text-sm font-bold text-white uppercase tracking-wide flex items-center gap-2">
                         <Receipt className="w-4 h-4" /> Liste des factures
@@ -612,7 +618,7 @@ export default function FactureAchatsPage({ depotFilter = null, pageTitle = '', 
                     </button>
                 </div>
 
-                <div className="overflow-x-auto">
+                <div className="min-w-0 overflow-x-auto">
                     <table className="w-full text-sm min-w-[1000px]">
                         <thead>
                             <tr className="bg-gradient-to-r from-slate-100 via-slate-200/90 to-slate-100 dark:from-slate-800 dark:via-slate-700/80 dark:to-slate-800 border-b-2 border-slate-300 dark:border-slate-600">

@@ -6,8 +6,9 @@ import { NavbarBrand } from '../Logo';
 import UserAvatar from '../UserAvatar';
 import { getPageTitle } from '../../lib/pageMeta';
 import NotificationsBell from './NotificationsBell';
+import WorkspaceSwitcher from './WorkspaceSwitcher';
 
-export default function Header({ sidebarOpen, onToggleSidebar }) {
+export default function Header({ sidebarOpen, onToggleSidebar, ghitaOpen, onToggleGhita }) {
     const { dark, toggle } = useTheme();
     const { user } = useAuth();
     const { pathname } = useLocation();
@@ -35,10 +36,28 @@ export default function Header({ sidebarOpen, onToggleSidebar }) {
                     <NavbarBrand pageTitle={pageTitle} />
                 </div>
 
-                <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-                    <span className="hidden lg:block text-sm text-slate-500 dark:text-slate-400 mr-1">
+                <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                    <span className="hidden xl:block text-sm text-slate-500 dark:text-slate-400 mr-1">
                         {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
                     </span>
+
+                    <WorkspaceSwitcher />
+
+                    <button
+                        type="button"
+                        onClick={onToggleGhita}
+                        className={`ghita-nav flex items-center gap-2 rounded-full py-1 pl-1 pr-3 transition-colors ${
+                            ghitaOpen
+                                ? 'bg-brand-navy/10 ring-1 ring-brand-navy/20 dark:bg-white/10 dark:ring-white/20'
+                                : 'hover:bg-slate-100 dark:hover:bg-slate-800'
+                        }`}
+                        aria-label={ghitaOpen ? 'Masquer Ghita' : 'Ouvrir Ghita'}
+                        aria-pressed={ghitaOpen}
+                        title="Ghita"
+                    >
+                        <img src="/images/ghita.jpg" alt="" className="h-9 w-9 rounded-full object-cover ring-2 ring-brand-orange/70" />
+                        <span className="text-sm font-bold text-slate-800 dark:text-white">Ghita</span>
+                    </button>
                     <button
                         type="button"
                         onClick={toggle}

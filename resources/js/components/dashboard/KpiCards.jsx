@@ -157,7 +157,7 @@ function SectionTitle({ showToggle, visible, onToggle }) {
                 <button
                     type="button"
                     onClick={onToggle}
-                    className={`lg:hidden inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-[10px] font-bold uppercase tracking-wide shadow-sm ${
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-[10px] font-bold uppercase tracking-wide shadow-sm ${
                         visible
                             ? 'bg-brand-navy text-white border-brand-navy'
                             : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'
@@ -200,7 +200,8 @@ export default function KpiCards({ kpis, loading }) {
         return (
             <div>
                 <SectionTitle showToggle visible={showKpi} onToggle={() => setShowKpi((v) => !v)} />
-                <div className={`${showKpi ? 'grid' : 'hidden'} lg:grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-2`}>
+                {showKpi && (
+                <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-2">
                     {cards.map((card) => (
                         <div
                             key={card.key}
@@ -210,6 +211,7 @@ export default function KpiCards({ kpis, loading }) {
                         />
                     ))}
                 </div>
+                )}
             </div>
         );
     }
@@ -217,7 +219,8 @@ export default function KpiCards({ kpis, loading }) {
     return (
         <div>
             <SectionTitle showToggle visible={showKpi} onToggle={() => setShowKpi((v) => !v)} />
-            <div className={`${showKpi ? 'grid' : 'hidden'} lg:grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-2`}>
+            {showKpi && (
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-2">
                 {cards.map((card, i) => (
                     <KpiCard
                         key={card.key}
@@ -228,6 +231,7 @@ export default function KpiCards({ kpis, loading }) {
                     />
                 ))}
             </div>
+            )}
         </div>
     );
 }

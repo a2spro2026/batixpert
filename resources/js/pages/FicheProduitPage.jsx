@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Save, RotateCcw, Eye, Pencil, Trash2, Printer, FileText, X, RefreshCw } from 'lucide-react';
 import api from '../lib/api';
 import { openPrintPreview } from '../lib/printDocument';
+import { PageVisibilityHeader, usePageVisibility } from '../components/PageVisibility';
 
 const UNIT_OPTIONS = ['', 'Kg', 'U', 'Sac', 'ML', 'M²', 'M³', 'Tn', 'M'];
 const STATUT_OPTIONS = [
@@ -255,9 +256,13 @@ export default function FicheProduitPage() {
         ? rows.find((r) => r.id === editingId)?.reference ?? meta.next_ref
         : meta.next_ref;
 
+    const visibility = usePageVisibility({ actions: false, kpi: false, filters: false });
+
     return (
-        <div className="flex flex-col flex-1 min-h-0 h-full overflow-hidden gap-4">
+        <div className="flex flex-col flex-1 min-h-0 min-w-0 h-full overflow-hidden gap-4">
             <ViewModal row={viewRow} onClose={() => setViewRow(null)} />
+
+            <PageVisibilityHeader title="Fiche produit" subtitle="Création et liste des articles" visibility={visibility} />
 
             <form onSubmit={handleSubmit} className="shrink-0 glass-card p-4 lg:p-5 shadow-card border border-slate-200/60 dark:border-slate-700/60">
                 {error && (
@@ -341,7 +346,7 @@ export default function FicheProduitPage() {
                 </div>
             </form>
 
-            <div className="flex-1 min-h-0 flex flex-col glass-card overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60">
+            <div className="flex-1 min-h-0 min-w-0 flex flex-col glass-card max-w-full overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60">
                 <div className="shrink-0 px-5 py-3.5 bg-gradient-to-r from-emerald-600 via-teal-600 to-teal-700 border-b border-white/10">
                     <h3 className="text-sm font-bold text-white uppercase tracking-wide">Liste des produits</h3>
                 </div>

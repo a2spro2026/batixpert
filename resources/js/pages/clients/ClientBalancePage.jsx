@@ -1,7 +1,10 @@
-import { useCallback, useEffect, useState } from 'react';
-import { RefreshCw, Search, Scale, Wallet, Receipt } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { Printer, RefreshCw, Search, Scale, Wallet, Receipt } from 'lucide-react';
 import api from '../../lib/api';
+import { printBalance } from '../../lib/printBalance';
 import { ReliquatCell } from './clientAmountUtils';
+import { PageVisibilityHeader, usePageVisibility } from '../../components/PageVisibility';
 
 const emptyFilters = {
     mois: '',
@@ -73,6 +76,8 @@ function monthOptions() {
 const columns = ['Date', 'Client', 'Total Ventes', 'Montant Payé', 'Solde', 'Reliquat'];
 
 export default function ClientBalancePage() {
+    const visibility = usePageVisibility({ actions: false, kpi: true, filters: true });
+    const [params, setParams] = useSearchParams();
     const [filters, setFilters] = useState(emptyFilters);
     const [appliedFilters, setAppliedFilters] = useState(emptyFilters);
     const [rows, setRows] = useState([]);
@@ -80,15 +85,20 @@ export default function ClientBalancePage() {
     const [clients, setClients] = useState([]);
     const [loading, setLoading] = useState(true);
     const months = monthOptions();
+    const autoPrint = useRef(params.get('print') === '1');
+    const bootstrapped = useRef(false);
+    const requestRef = useRef(0);
 
     const load = useCallback(() => {
+        const token = ++requestRef.current;
         setLoading(true);
-        const params = {};
-        if (appliedFilters.mois) params.mois = appliedFilters.mois;
-        if (appliedFilters.client_id) params.client_id = appliedFilters.client_id;
+        const query = {};
+        if (appliedFilters.mois) query.mois = appliedFilters.mois;
+        if (appliedFilters.client_id) query.client_id = appliedFilters.client_id;
 
-        api.get('/client-orders/balance', { params })
+        api.get('/client-orders/balance', { params: query })
             .then((res) => {
+                if (token !== requestRef.current) return;
                 setRows(res.data.data ?? []);
                 setSummary({
                     total_ventes: Number(res.data.meta?.total_ventes) || 0,
@@ -97,10 +107,13 @@ export default function ClientBalancePage() {
                 });
             })
             .catch(() => {
+                if (token !== requestRef.current) return;
                 setRows([]);
                 setSummary({ total_ventes: 0, solde_total: 0, reliquat_total: 0 });
             })
-            .finally(() => setLoading(false));
+            .finally(() => {
+                if (token === requestRef.current) setLoading(false);
+            });
     }, [appliedFilters]);
 
     useEffect(() => {
@@ -113,17 +126,64 @@ export default function ClientBalancePage() {
         load();
     }, [load]);
 
+    useEffect(() => {
+        if (bootstrapped.current) return;
+        bootstrapped.current = true;
+        const clientId = params.get('client_id') || '';
+        const mois = params.get('mois') || '';
+        if (!clientId && !mois && !autoPrint.current) return;
+        const next = { mois, client_id: clientId };
+        setFilters(next);
+        setAppliedFilters(next);
+    }, [params]);
+
+    const printCurrent = () => {
+        const clientName = clients.find((client) => String(client.id) === String(appliedFilters.client_id))?.name
+            || (appliedFilters.client_id ? rows[0]?.client : '');
+        printBalance({
+            title: 'Balance client',
+            subtitle: clientName || 'Tous les clients',
+            columns,
+            rows: rows.map((row) => [
+                row.date || '—',
+                row.client || '—',
+                formatMontant(row.total_ventes),
+                formatMontant(row.montant_paye),
+                formatMontant(row.solde),
+                formatMontant(row.reliquat),
+            ]),
+            summary: [
+                `Total ventes : ${formatMontant(summary.total_ventes)}`,
+                `Solde total : ${formatMontant(summary.solde_total)}`,
+                `Reliquat : ${formatMontant(summary.reliquat_total)}`,
+            ],
+        });
+    };
+
+    useEffect(() => {
+        if (!autoPrint.current || loading) return;
+        const wanted = params.get('client_id') || '';
+        if ((appliedFilters.client_id || '') !== wanted) return;
+        autoPrint.current = false;
+        printCurrent();
+        const next = new URLSearchParams(params);
+        next.delete('print');
+        setParams(next, { replace: true });
+    }, [loading, appliedFilters, rows, params, setParams]);
+
     const setFilter = (key, value) => setFilters((f) => ({ ...f, [key]: value }));
 
     const handleSearch = () => setAppliedFilters({ ...filters });
 
     return (
         <div className="flex flex-col flex-1 min-h-0 h-full overflow-y-auto overscroll-contain gap-4">
-            <div>
-                <h1 className="text-xl font-bold text-slate-900 dark:text-white">Balance Client</h1>
-                <p className="text-sm text-slate-500 dark:text-slate-400">Situation consolidée par client</p>
-            </div>
+            <PageVisibilityHeader
+                title="Balance Client"
+                subtitle="Situation consolidée par client"
+                visibility={visibility}
+            />
 
+            {visibility.showKpi && (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <SummaryCard
                     label="Total Ventes"
@@ -147,7 +207,9 @@ export default function ClientBalancePage() {
                     icon={Wallet}
                 />
             </div>
+            )}
 
+            {visibility.showFilters && (
             <div className="glass-card p-4 shadow-card border border-slate-200/60 dark:border-slate-700/60">
                 <div className="grid grid-cols-1 sm:grid-cols-[1fr_1.2fr_auto] gap-2.5 items-end max-w-3xl">
                     <Field label="Mois">
@@ -170,16 +232,22 @@ export default function ClientBalancePage() {
                     </button>
                 </div>
             </div>
+            )}
 
-            <div className="glass-card overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60">
+            <div className="glass-card min-w-0 max-w-full overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60">
                 <div className="px-5 py-3.5 bg-gradient-to-r from-slate-700 via-slate-800 to-brand-navy border-b border-white/10 flex items-center justify-between">
                     <h3 className="text-sm font-bold text-white uppercase tracking-wide">Balance clients</h3>
-                    <button type="button" onClick={load} disabled={loading} className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors" title="Actualiser">
-                        <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                    </button>
+                    <div className="flex items-center gap-1">
+                        <button type="button" onClick={printCurrent} className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors" title="Imprimer">
+                            <Printer className="w-4 h-4" />
+                        </button>
+                        <button type="button" onClick={load} disabled={loading} className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors" title="Actualiser">
+                            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                        </button>
+                    </div>
                 </div>
 
-                <div className="overflow-x-auto">
+                <div className="min-w-0 overflow-x-auto">
                     <table className="w-full text-sm min-w-[800px]">
                         <thead>
                             <tr className="bg-gradient-to-r from-slate-100 via-slate-200/90 to-slate-100 dark:from-slate-800 dark:via-slate-700/80 dark:to-slate-800 border-b-2 border-slate-300 dark:border-slate-600">

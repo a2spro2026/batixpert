@@ -129,7 +129,7 @@ export default function PortalPaymentsPage() {
     useEffect(() => { load(); }, [load]);
 
     return (
-        <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+        <div className="flex flex-col flex-1 min-h-0 min-w-0 overflow-hidden">
             <div className="shrink-0 space-y-2.5 pb-2.5">
                 <div>
                     <h2 className="text-lg font-bold text-slate-900 dark:text-white">Mes règlements</h2>
@@ -152,7 +152,7 @@ export default function PortalPaymentsPage() {
                 </div>
             </div>
 
-            <div className="flex-1 min-h-0 glass-card overflow-hidden border border-slate-200/60 dark:border-slate-700/60 bg-white/80 dark:bg-slate-900/60 flex flex-col">
+            <div className="flex-1 min-h-0 min-w-0 glass-card max-w-full overflow-hidden border border-slate-200/60 dark:border-slate-700/60 bg-white/80 dark:bg-slate-900/60 flex flex-col">
                 <div className="md:hidden flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y">
                     <MobileCardList loading={loading} empty="Aucun règlement">
                         {rows.map((row) => (

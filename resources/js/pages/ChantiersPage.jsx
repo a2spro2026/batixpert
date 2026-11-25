@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react';
 import { Plus, Search, Archive, FileDown } from 'lucide-react';
 import api from '../lib/api';
 import { authStorage } from '../lib/authStorage';
+import { usePageVisibility, PageVisibilityHeader } from '../components/PageVisibility';
 
 const statusLabels = { planifie: 'En préparation', en_cours: 'En cours', suspendu: 'Suspendu', termine: 'Terminé', annule: 'Annulé' };
 
 export default function ChantiersPage() {
     const [data, setData] = useState({ data: [] });
     const [search, setSearch] = useState('');
+    const visibility = usePageVisibility({ actions: true, kpi: false, filters: true });
 
     const load = () => api.get('/chantiers', { params: { search } }).then((r) => setData(r.data));
     useEffect(() => { load(); }, [search]);
@@ -21,23 +23,27 @@ export default function ChantiersPage() {
 
     return (
         <div className="flex flex-col flex-1 min-h-0 h-full overflow-y-auto overscroll-contain gap-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Gestion des chantiers</h1>
-                    <p className="text-slate-500 text-sm mt-1">Suivi complet de vos projets BTP</p>
-                </div>
-                <div className="flex gap-2">
+            <PageVisibilityHeader
+                title="Gestion des chantiers"
+                subtitle="Suivi complet de vos projets BTP"
+                visibility={visibility}
+            />
+
+            {visibility.showActions && (
+                <div className="flex flex-wrap gap-2">
                     <button onClick={exportCsv} className="btn-secondary text-sm"><FileDown className="w-4 h-4" /> Export</button>
                     <button className="btn-primary text-sm"><Plus className="w-4 h-4" /> Nouveau chantier</button>
                 </div>
-            </div>
+            )}
 
+            {visibility.showFilters && (
             <div className="relative max-w-md">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Recherche avancée..." className="input-field pl-10" />
             </div>
+            )}
 
-            <div className="glass-card overflow-hidden shadow-card">
+            <div className="glass-card min-w-0 max-w-full overflow-hidden shadow-card">
                 <table className="w-full text-sm">
                     <thead className="bg-slate-50 dark:bg-slate-800/50 text-xs font-bold uppercase text-slate-500">
                         <tr>

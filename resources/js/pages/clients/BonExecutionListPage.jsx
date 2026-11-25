@@ -8,6 +8,7 @@ import {
     openPrintable,
 } from './bonExecutionUtils';
 import { SoldeCell } from './clientAmountUtils';
+import { usePageVisibility, PageVisibilityHeader } from '../../components/PageVisibility';
 
 function Field({ label, children }) {
     return (
@@ -38,6 +39,7 @@ export default function BonExecutionListPage() {
     const [filters, setFilters] = useState(emptyFilters);
     const [rows, setRows] = useState([]);
     const [loading, setLoading] = useState(true);
+    const visibility = usePageVisibility({ actions: false, kpi: false, filters: true });
 
     const load = useCallback(() => {
         setLoading(true);
@@ -81,6 +83,13 @@ export default function BonExecutionListPage() {
 
     return (
         <div className="flex flex-col flex-1 min-h-0 h-full overflow-y-auto overscroll-contain gap-4">
+            <PageVisibilityHeader
+                title="État d'exécution"
+                subtitle="Bons d'exécution validés"
+                visibility={visibility}
+            />
+
+            {visibility.showFilters && (
             <div className="glass-card p-4 shadow-card border border-slate-200/60 dark:border-slate-700/60">
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-[1fr_1fr_1.2fr_0.9fr_auto] gap-2.5 items-end">
                     <Field label="Date du">
@@ -100,8 +109,9 @@ export default function BonExecutionListPage() {
                     </button>
                 </div>
             </div>
+            )}
 
-            <div className="glass-card overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60">
+            <div className="glass-card min-w-0 max-w-full overflow-hidden shadow-card border border-slate-200/60 dark:border-slate-700/60">
                 <div className="px-5 py-3.5 bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-700 border-b border-white/10 flex items-center justify-between">
                     <h3 className="text-sm font-bold text-white uppercase tracking-wide">État d'Exécution</h3>
                     <button type="button" onClick={load} disabled={loading} className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors" title="Actualiser">
@@ -109,7 +119,7 @@ export default function BonExecutionListPage() {
                     </button>
                 </div>
 
-                <div className="overflow-x-auto">
+                <div className="min-w-0 overflow-x-auto">
                     <table className="w-full text-sm min-w-[1400px]">
                         <thead>
                             <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700">
