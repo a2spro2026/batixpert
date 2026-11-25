@@ -278,12 +278,6 @@ export default function FicheFournisseurPage() {
                     </div>
                 )}
 
-                {editingId && (
-                    <div className="mb-3 px-3 py-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 text-xs font-medium border border-amber-200 dark:border-amber-800">
-                        Mode modification — modifiez les champs puis cliquez sur Mettre à jour
-                    </div>
-                )}
-
                 <div className="grid grid-cols-2 sm:grid-cols-5 xl:grid-cols-[70px_70px_1.1fr_0.8fr_1fr_1fr_0.65fr_0.7fr_0.75fr_0.85fr] gap-2.5 items-end">
                     <Field label="Date">
                         <input type="text" readOnly value={meta.date} className={readOnlyClass} />

@@ -13,7 +13,7 @@ class Client extends Authenticatable
     protected $fillable = [
         'name', 'contact_person', 'email', 'phone', 'portal_login', 'portal_password', 'portal_enabled', 'portal_permissions', 'portal_tresoreries',
         'address', 'city', 'ice', 'status', 'notes',
-        'chantier_type', 'reglement', 'chantier_address', 'budget', 'work_delay',
+        'chantier_type', 'reglement', 'chantier_address', 'budget', 'plafond', 'work_delay',
     ];
 
     protected $hidden = [
@@ -24,6 +24,7 @@ class Client extends Authenticatable
     {
         return [
             'budget' => 'decimal:2',
+            'plafond' => 'decimal:2',
             'portal_enabled' => 'boolean',
             'portal_permissions' => 'array',
             'portal_tresoreries' => 'array',

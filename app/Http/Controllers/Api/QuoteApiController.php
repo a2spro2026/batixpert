@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\ClientOrder;
 use App\Models\Quote;
+use App\Support\ClientPlafond;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -133,7 +134,16 @@ class QuoteApiController extends Controller
             return response()->json(['message' => 'Ce devis est déjà validé'], 422);
         }
 
-        $quote->load('items');
+        $quote->load(['items', 'client']);
+
+        if ($quote->client) {
+            ClientPlafond::assert(
+                $quote->client,
+                (float) $quote->total_ttc,
+                $request->user(),
+                $request->boolean('autoriser_plafond'),
+            );
+        }
 
         $order = DB::transaction(function () use ($quote, $request) {
             $order = ClientOrder::create([

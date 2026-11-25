@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class ClientRelance extends Model
 {
     protected $fillable = [
-        'client_id', 'client_name', 'date_appel', 'remarque', 'date_rappel', 'user_id',
+        'client_id', 'client_name', 'date_appel', 'remarque', 'motif', 'reponse', 'date_rappel', 'user_id',
     ];
 
     protected function casts(): array

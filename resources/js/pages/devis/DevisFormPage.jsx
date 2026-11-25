@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Save, ArrowLeft, Send, CheckCircle, Plus, Trash2, Printer, ChevronUp, ChevronDown } from 'lucide-react';
 import api from '../../lib/api';
+import { useAuth } from '../../contexts/AuthContext';
 import DesignationPicker from '../../components/DesignationPicker';
 import {
     CONSISTANCE_OPTIONS,
@@ -37,6 +38,7 @@ const typeTravauxFilledClass = '!bg-yellow-100 dark:!bg-yellow-900/35 !border-ye
 const subtotalFrameClass = 'inline-block min-w-[72px] px-2 py-1 rounded-md border border-brand-navy/35 dark:border-blue-500/40 bg-slate-50 dark:bg-slate-800/80 font-semibold tabular-nums text-brand-navy dark:text-violet-400 text-xs';
 
 export default function DevisFormPage() {
+    const { user } = useAuth();
     const navigate = useNavigate();
     const { id } = useParams();
     const isNew = !id;
@@ -230,14 +232,25 @@ export default function DevisFormPage() {
         setSaving(true);
         try {
             const quoteId = await ensureSaved();
-            const { data } = await api.post(`/quotes/${quoteId}/validate`);
-            setSuccess(data.message);
+            const postValidate = (autoriser) => api.post(`/quotes/${quoteId}/validate`, autoriser ? { autoriser_plafond: true } : {});
+            try {
+                const { data } = await postValidate(false);
+                setSuccess(data.message);
+            } catch (err) {
+                const plafondMsg = err.response?.data?.errors?.plafond?.[0];
+                if (plafondMsg && user?.statut === 'Gerant' && window.confirm(`${plafondMsg}\n\nAutoriser ce dépassement ?`)) {
+                    const { data } = await postValidate(true);
+                    setSuccess(data.message);
+                } else {
+                    throw err;
+                }
+            }
             setTimeout(goToList, 1200);
         } catch (err) {
             if (err.message === 'no_items') {
                 setError('Ajoutez au moins une ligne produit avant de valider');
             } else {
-                setError(err.response?.data?.message || 'Impossible de valider le devis');
+                setError(err.response?.data?.errors?.plafond?.[0] || err.response?.data?.message || 'Impossible de valider le devis');
             }
         } finally {
             setSaving(false);
@@ -315,11 +328,6 @@ export default function DevisFormPage() {
                 )}
                 {success && (
                     <div className="mb-3 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 text-sm border border-emerald-100 dark:border-emerald-800 shrink-0">{success}</div>
-                )}
-                {!isNew && (
-                    <div className="mb-3 px-3 py-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 text-xs font-medium border border-amber-200 dark:border-amber-800 shrink-0">
-                        {isValidated ? 'Devis validé — consultation uniquement' : 'Mode modification — Mettez à jour puis enregistrez'}
-                    </div>
                 )}
 
                 <div className="overflow-x-auto shrink-0">

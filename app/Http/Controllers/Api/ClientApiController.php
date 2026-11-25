@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Client;
+use App\Support\ClientPlafond;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
@@ -70,6 +71,14 @@ class ClientApiController extends Controller
         return response()->json(['message' => 'Client supprimé']);
     }
 
+    public function plafond(Request $request, Client $client)
+    {
+        $exceptSale = $request->filled('except_sale_order_id') ? (int) $request->input('except_sale_order_id') : null;
+        $exceptOrder = $request->filled('except_client_order_id') ? (int) $request->input('except_client_order_id') : null;
+
+        return response()->json(ClientPlafond::snapshot($client, $exceptSale, $exceptOrder));
+    }
+
     private function validated(Request $request, bool $partial = false, ?Client $client = null): array
     {
         return $request->validate([
@@ -92,6 +101,7 @@ class ClientApiController extends Controller
             'reglement' => 'nullable|in:Esp,Chq,Eff,Vir,Vers',
             'chantier_address' => 'nullable|string',
             'budget' => 'nullable|numeric|min:0',
+            'plafond' => 'nullable|numeric|min:0',
             'work_delay' => 'nullable|string|max:100',
             'status' => 'in:actif,inactif',
         ]);
@@ -151,6 +161,7 @@ class ClientApiController extends Controller
             'reglement' => $client->reglement,
             'chantier_address' => $client->chantier_address,
             'budget' => round((float) $client->budget, 2),
+            'plafond' => $client->plafond === null ? null : round((float) $client->plafond, 2),
             'initial_balance' => number_format((float) $client->budget, 2, '.', ''),
             'work_delay' => $client->work_delay,
             'echeance' => $client->work_delay,

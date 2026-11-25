@@ -402,11 +402,6 @@ export default function TransactionsPage() {
                 {error && (
                     <div className="mb-3 p-3 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm border border-red-100 dark:border-red-800">{error}</div>
                 )}
-                {editingId && (
-                    <div className="mb-3 px-3 py-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 text-xs font-medium border border-amber-200 dark:border-amber-800">
-                        Mode modification — Mettez à jour puis validez
-                    </div>
-                )}
 
                 <div className="overflow-x-auto">
                     <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid xl:grid-cols-[112px_0.55fr_0.32fr_0.3fr_0.42fr_0.95fr_2.65fr_auto_auto] gap-2 items-end min-w-[980px]">

@@ -66,14 +66,53 @@ class ClientRelanceApiController extends Controller
             ->get(['id', 'name', 'phone', 'city'])
             ->map(fn (Client $client) => [
                 'client_id' => $client->id,
+                'code' => $client->code,
                 'name' => trim($client->name),
                 'phone' => $client->phone,
                 'city' => $client->city,
-                'solde' => $soldes[self::normalizeName($client->name)] ?? null,
+                'solde' => $soldes[self::normalizeName($client->name)] ?? 0,
             ])
             ->values();
 
-        return response()->json(['data' => $clients]);
+        $nextId = ((int) ClientRelance::query()->max('id')) + 1;
+
+        return response()->json([
+            'data' => $clients,
+            'next_code' => self::relanceCode($nextId),
+        ]);
+    }
+
+    public function notifications()
+    {
+        $today = now()->toDateString();
+        $soldes = $this->soldesParClient();
+
+        $rows = ClientRelance::with(['client:id,name,phone,city'])
+            ->whereNotNull('date_rappel')
+            ->whereDate('date_rappel', '<=', $today)
+            ->orderBy('date_rappel')
+            ->orderBy('id')
+            ->get()
+            ->map(function (ClientRelance $r) use ($soldes, $today) {
+                $formatted = $this->formatRelance($r, $soldes, $today);
+
+                return [
+                    'id' => $formatted['id'],
+                    'client_name' => $formatted['client_name'],
+                    'date_rappel' => $formatted['date_rappel'],
+                    'date_rappel_raw' => $formatted['date_rappel_raw'],
+                    'motif' => $formatted['motif'],
+                    'motif_label' => $formatted['motif_label'],
+                    'solde' => $formatted['solde'],
+                    'etat' => $formatted['etat'],
+                ];
+            })
+            ->values();
+
+        return response()->json([
+            'data' => $rows,
+            'meta' => ['count' => $rows->count()],
+        ]);
     }
 
     public function store(Request $request)
@@ -118,6 +157,8 @@ class ClientRelanceApiController extends Controller
             'client_name' => 'required|string|max:255',
             'date_appel' => 'required|date',
             'remarque' => 'nullable|string|max:2000',
+            'motif' => 'nullable|string|in:relance,imp,retard,recouv',
+            'reponse' => 'nullable|string|max:2000',
             'date_rappel' => 'nullable|date',
         ]);
     }
@@ -191,6 +232,7 @@ class ClientRelanceApiController extends Controller
 
         return [
             'id' => $r->id,
+            'code' => self::relanceCode((int) $r->id),
             'client_id' => $r->client_id,
             'client_name' => $r->client_name,
             'phone' => $r->client?->phone,
@@ -199,6 +241,9 @@ class ClientRelanceApiController extends Controller
             'date_appel_raw' => $r->date_appel?->toDateString(),
             'date_appel_ts' => $r->date_appel?->timestamp ?? 0,
             'remarque' => $r->remarque,
+            'motif' => $r->motif,
+            'motif_label' => self::motifLabel($r->motif),
+            'reponse' => $r->reponse,
             'date_rappel' => $rappel ? \Carbon\Carbon::parse($rappel)->format('d/m/Y') : null,
             'date_rappel_raw' => $rappel,
             'solde' => $soldes[$key] ?? null,
@@ -206,6 +251,22 @@ class ClientRelanceApiController extends Controller
             'etat_ordre' => $ordre,
             'appele_par' => $r->user?->name,
         ];
+    }
+
+    private static function relanceCode(int $id): string
+    {
+        return 'RL'.str_pad((string) $id, 4, '0', STR_PAD_LEFT);
+    }
+
+    private static function motifLabel(?string $motif): ?string
+    {
+        return match ($motif) {
+            'relance' => 'Relance',
+            'imp' => 'Imp',
+            'retard' => 'Retard',
+            'recouv' => 'Recouv',
+            default => null,
+        };
     }
 
     private static function normalizeName(string $name): string

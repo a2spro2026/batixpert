@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\SaleOrder;
+use App\Models\Client;
+use App\Support\ClientPlafond;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -35,6 +37,7 @@ class SaleOrderApiController extends Controller
     {
         $validated = $this->validated($request);
         $items = $this->normalizeItems($validated);
+        $this->guardPlafond($request, (int) $validated['client_id'], $items);
 
         $order = DB::transaction(function () use ($validated, $items, $request) {
             $subtotal = collect($items)->sum('total');
@@ -83,6 +86,11 @@ class SaleOrderApiController extends Controller
     {
         $validated = $this->validated($request, true);
         $items = $this->normalizeItems($validated);
+        $clientId = (int) ($validated['client_id'] ?? $sales_order->client_id);
+        $status = $validated['status'] ?? $sales_order->status;
+        if ($status !== 'annule') {
+            $this->guardPlafond($request, $clientId, $items, $sales_order->id);
+        }
         $subtotal = collect($items)->sum('total');
         $first = $items[0] ?? null;
 
@@ -160,6 +168,23 @@ class SaleOrderApiController extends Controller
         ];
 
         return $request->validate($rules);
+    }
+
+    private function guardPlafond(Request $request, int $clientId, array $items, ?int $exceptSaleOrderId = null): void
+    {
+        $client = Client::query()->find($clientId);
+        if (! $client) {
+            return;
+        }
+
+        $amount = round((float) collect($items)->sum('total'), 2);
+        ClientPlafond::assert(
+            $client,
+            $amount,
+            $request->user(),
+            $request->boolean('autoriser_plafond'),
+            $exceptSaleOrderId,
+        );
     }
 
     private function normalizeItems(array $validated): array

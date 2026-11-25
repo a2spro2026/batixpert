@@ -390,13 +390,6 @@ export default function EtatPaiementPage() {
                     </div>
                 )}
 
-                {editingPaymentId && (
-                    <div className="mb-3 p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 text-sm border border-amber-100 dark:border-amber-800 flex items-center justify-between gap-3">
-                        <span>Modification du paiement <strong>{form.reference}</strong> — seuls la date et les informations de règlement sont modifiables.</span>
-                        <button type="button" onClick={resetForm} className="text-xs font-semibold underline shrink-0">Annuler</button>
-                    </div>
-                )}
-
                 <div className="overflow-x-auto space-y-2">
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 xl:grid-cols-[110px_80px_minmax(105px,0.85fr)_minmax(88px,0.75fr)_96px_88px] gap-2 items-end min-w-[900px]">
                         <Field label="Date" compact>

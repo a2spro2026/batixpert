@@ -1,10 +1,11 @@
-import { Bell, Moon, PanelLeftClose, PanelLeftOpen, Sun } from 'lucide-react';
+import { Moon, PanelLeftClose, PanelLeftOpen, Sun } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLocation } from 'react-router-dom';
 import { NavbarBrand } from '../Logo';
 import UserAvatar from '../UserAvatar';
 import { getPageTitle } from '../../lib/pageMeta';
+import NotificationsBell from './NotificationsBell';
 
 export default function Header({ sidebarOpen, onToggleSidebar }) {
     const { dark, toggle } = useTheme();
@@ -46,14 +47,7 @@ export default function Header({ sidebarOpen, onToggleSidebar }) {
                     >
                         {dark ? <Sun className="w-5 h-5 text-amber-400" /> : <Moon className="w-5 h-5 text-slate-600" />}
                     </button>
-                    <button
-                        type="button"
-                        className="relative hidden sm:block p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                        aria-label="Notifications"
-                    >
-                        <Bell className="w-5 h-5 text-slate-600 dark:text-slate-300" />
-                        <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
-                    </button>
+                    <NotificationsBell />
                     {user && (
                         <div className="flex items-center gap-2.5 ml-1 pl-2 sm:pl-3 border-l border-slate-200 dark:border-slate-700">
                             <div className="hidden sm:block text-right leading-tight">

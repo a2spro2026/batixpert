@@ -4,6 +4,7 @@ import { CheckCircle2, Plus, PlusCircle, XCircle, Eye, Pencil, Trash2, Printer, 
 import api from '../lib/api';
 import { openPrintPreview } from '../lib/printDocument';
 import { useChauffeurs } from '../hooks/useChauffeurs';
+import { useAuth } from '../contexts/AuthContext';
 import MobileRecordCard, { MobileCardList } from '../components/MobileRecordCard';
 
 const UNIT_OPTIONS = ['', 'Kg', 'U', 'Sac', 'ML', 'M²', 'M³', 'Tn', 'M'];
@@ -327,6 +328,7 @@ function ImportPurchaseModal({ open, rows, loading, onClose, onSelect }) {
 
 export default function BonVentesPage() {
     const navigate = useNavigate();
+    const { user } = useAuth();
     const [form, setForm] = useState(emptyHeader);
     const [lines, setLines] = useState([emptyLine()]);
     const [rows, setRows] = useState([]);
@@ -337,6 +339,7 @@ export default function BonVentesPage() {
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
     const [editingId, setEditingId] = useState(null);
+    const [credit, setCredit] = useState(null);
     const [viewRow, setViewRow] = useState(null);
     const [formOpen, setFormOpen] = useState(false);
     const [importOpen, setImportOpen] = useState(false);
@@ -385,6 +388,26 @@ export default function BonVentesPage() {
     }, []);
 
     const { chauffeurs, resolveMatricule, reloadChauffeurs } = useChauffeurs();
+
+    useEffect(() => {
+        if (!form.client_id) {
+            setCredit(null);
+            return undefined;
+        }
+        let cancelled = false;
+        const params = {};
+        if (editingId) params.except_sale_order_id = editingId;
+        api.get(`/clients/${form.client_id}/plafond`, { params })
+            .then((res) => { if (!cancelled) setCredit(res.data); })
+            .catch(() => { if (!cancelled) setCredit(null); });
+        return () => { cancelled = true; };
+    }, [form.client_id, editingId]);
+
+    const orderTotal = useMemo(() => lines.reduce((sum, line) => {
+        const qty = parseFloat(String(line.quantity).replace(',', '.')) || 0;
+        const price = parseFloat(String(line.unit_price).replace(',', '.')) || 0;
+        return sum + qty * price;
+    }, 0), [lines]);
 
     useEffect(() => {
         setForm((f) => ({ ...f, order_date: new Date().toISOString().slice(0, 10) }));
@@ -597,15 +620,33 @@ export default function BonVentesPage() {
             })),
         };
 
-        try {
+        const send = async (autoriser) => {
+            const body = autoriser ? { ...payload, autoriser_plafond: true } : payload;
             if (editingId) {
-                await api.put(`/sales-orders/${editingId}`, payload);
+                await api.put(`/sales-orders/${editingId}`, body);
             } else {
-                await api.post('/sales-orders', payload);
+                await api.post('/sales-orders', body);
             }
+        };
+
+        try {
+            await send(false);
             resetForm();
         } catch (err) {
-            setError(err.response?.data?.message || 'Erreur lors de la validation');
+            const plafondMsg = err.response?.data?.errors?.plafond?.[0];
+            if (plafondMsg && user?.statut === 'Gerant') {
+                if (window.confirm(`${plafondMsg}\n\nAutoriser ce dépassement ?`)) {
+                    try {
+                        await send(true);
+                        resetForm();
+                        return;
+                    } catch (retryErr) {
+                        setError(retryErr.response?.data?.errors?.plafond?.[0] || retryErr.response?.data?.message || 'Erreur lors de la validation');
+                        return;
+                    }
+                }
+            }
+            setError(plafondMsg || err.response?.data?.message || 'Erreur lors de la validation');
         } finally {
             setSaving(false);
         }
@@ -657,6 +698,12 @@ export default function BonVentesPage() {
                         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 space-y-3">
                             {error && (
                                 <div className="p-3 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm border border-red-100 dark:border-red-800">{error}</div>
+                            )}
+                            {credit?.plafond != null && (
+                                <p className={`rounded-xl px-3 py-2 text-xs font-medium normal-case ${orderTotal > Number(credit.reste) + 0.001 ? 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300' : 'bg-slate-50 text-slate-600 dark:bg-slate-800 dark:text-slate-300'}`}>
+                                    Plafond {formatMontantDisplay(credit.plafond)} · Solde {formatMontantDisplay(credit.solde)} · Disponible {formatMontantDisplay(Math.max(Number(credit.reste) || 0, 0))}
+                                    {orderTotal > Number(credit.reste) + 0.001 ? (user?.statut === 'Gerant' ? ' · Dépassement : validation admin requise' : ' · Dépassement : voir l\'admin') : ''}
+                                </p>
                             )}
 
                             <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/40 p-2.5">

@@ -57,6 +57,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('chantiers/{chantier}/archive', [ChantierApiController::class, 'archive']);
 
     Route::apiResource('clients', ClientApiController::class);
+    Route::get('clients/{client}/plafond', [ClientApiController::class, 'plafond']);
     Route::get('client-payments/meta', [ClientPaymentApiController::class, 'meta']);
     Route::get('client-payments/orders', [ClientPaymentApiController::class, 'orders']);
     Route::patch('client-payments/orders/{sales_order}/action', [ClientPaymentApiController::class, 'updateAction']);
@@ -80,6 +81,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('supplier-reliquats', [SupplierReliquatApiController::class, 'index']);
     Route::get('client-releve', [ClientReleveApiController::class, 'index']);
     Route::get('client-relances/meta', [ClientRelanceApiController::class, 'meta']);
+    Route::get('client-relances/notifications', [ClientRelanceApiController::class, 'notifications']);
     Route::apiResource('client-relances', ClientRelanceApiController::class)
         ->parameters(['client-relances' => 'clientRelance'])
         ->only(['index', 'store', 'update', 'destroy']);

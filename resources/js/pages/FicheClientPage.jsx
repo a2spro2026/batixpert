@@ -33,9 +33,9 @@ const emptyForm = {
     city: '',
     chantier_type: '',
     reglement: '',
-    chantier_address: '',
     work_delay: '', // Échéance
     budget: '', // Solde Initial
+    plafond: '',
     portal_login: '',
     portal_password: '',
 };
@@ -43,7 +43,7 @@ const emptyForm = {
 function Field({ label, children, className = '' }) {
     return (
         <div className={className}>
-            <label className="field-label">
+            <label className="field-label !overflow-visible !text-clip">
                 {label}
             </label>
             {children}
@@ -57,9 +57,17 @@ const inputClass =
 const readOnlyClass =
     'w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 px-2.5 py-1.5 text-xs text-center cursor-not-allowed';
 
+const barClass = `${inputClass} !h-10 !text-sm`;
+const barReadOnlyClass = `${readOnlyClass} !h-10 !text-sm`;
+
 function formatSolde(value) {
     const n = Number(String(value ?? '').replace(',', '.')) || 0;
     return n.toFixed(2);
+}
+
+function formatPlafond(value) {
+    if (value === null || value === undefined || value === '') return '—';
+    return formatSolde(value);
 }
 
 function hasSoldeInitial(value) {
@@ -94,9 +102,9 @@ th{background:#f8fafc;width:180px;font-weight:700}
 <tr><th>Ville</th><td>${row.city || '—'}</td></tr>
 <tr><th>Type</th><td>${row.chantier_type || '—'}</td></tr>
 <tr><th>Régl</th><td>${row.reglement || '—'}</td></tr>
-<tr><th>Adresse</th><td>${row.chantier_address || '—'}</td></tr>
 <tr><th>Échéance</th><td>${row.work_delay || row.echeance || '—'}</td></tr>
 <tr><th>Solde Initial</th><td><strong>${formatSolde(row.budget ?? row.initial_balance)}</strong></td></tr>
+<tr><th>Plafond</th><td><strong>${formatPlafond(row.plafond)}</strong></td></tr>
 <tr><th>Date création</th><td>${row.created_at || '—'}</td></tr>
 </table>
 <p class="footer">© BatiXpert — A2SPRO</p>
@@ -153,9 +161,9 @@ function ViewModal({ row, onClose }) {
                         ['Ville', row.city],
                         ['Type', row.chantier_type],
                         ['Régl', row.reglement],
-                        ['Adresse', row.chantier_address],
                         ['Échéance', row.work_delay || row.echeance],
                         ['Solde Initial', formatSolde(row.budget ?? row.initial_balance), hasSoldeInitial(row.budget ?? row.initial_balance)],
+                        ['Plafond', formatPlafond(row.plafond), row.plafond != null && Number(row.plafond) > 0],
                         ['Date', row.created_at],
                     ].map(([label, value, isRed]) => (
                         <div key={label} className="flex justify-between gap-4 py-2 border-b border-slate-100 dark:border-slate-800 last:border-0">
@@ -218,9 +226,9 @@ export default function FicheClientPage() {
             city: row.city || '',
             chantier_type: row.chantier_type || '',
             reglement: row.reglement || '',
-            chantier_address: row.chantier_address || '',
             work_delay: row.work_delay || row.echeance || '',
             budget: parseSoldeInput(row.budget ?? row.initial_balance),
+            plafond: row.plafond == null || row.plafond === '' ? '' : parseSoldeInput(row.plafond),
             portal_login: row.portal_login || '',
             portal_password: '',
         });
@@ -250,9 +258,9 @@ export default function FicheClientPage() {
             city: form.city || null,
             chantier_type: form.chantier_type || null,
             reglement: form.reglement || null,
-            chantier_address: form.chantier_address || null,
             work_delay: form.work_delay || null,
             budget: form.budget === '' ? 0 : Number(parseSoldeInput(form.budget) || 0),
+            plafond: form.plafond === '' ? null : Number(parseSoldeInput(form.plafond) || 0),
             portal_login: form.portal_login || null,
         };
         if (form.portal_password) {
@@ -283,54 +291,45 @@ export default function FicheClientPage() {
                     </div>
                 )}
 
-                {editingId && (
-                    <div className="mb-3 px-3 py-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 text-xs font-medium border border-amber-200 dark:border-amber-800">
-                        Mode modification — modifiez les champs puis cliquez sur Mettre à jour
-                    </div>
-                )}
-
                 <div className="overflow-x-auto">
-                    <div className="grid grid-cols-[78px_72px_minmax(120px,1.2fr)_95px_90px_minmax(120px,1.1fr)_70px_70px_88px_95px] gap-1.5 items-end min-w-[1100px]">
-                        <Field label="Date">
-                            <input type="text" readOnly value={meta.date} className={readOnlyClass} />
+                    <div className="flex w-full flex-nowrap items-end gap-2 min-w-[78rem]">
+                        <Field label="Date" className="min-w-[7.5rem] flex-1">
+                            <input type="text" readOnly value={meta.date} className={barReadOnlyClass} />
                         </Field>
-                        <Field label="CR">
-                            <input type="text" readOnly value={editingId ? rows.find((r) => r.id === editingId)?.code ?? meta.next_id : meta.next_id} className={readOnlyClass} />
+                        <Field label="CR" className="min-w-[6rem] flex-1">
+                            <input type="text" readOnly value={editingId ? rows.find((r) => r.id === editingId)?.code ?? meta.next_id : meta.next_id} className={barReadOnlyClass} />
                         </Field>
-                        <Field label="Nom Client">
-                            <input type="text" required value={form.name} onChange={(e) => set('name', e.target.value)} placeholder="Raison sociale" className={inputClass} />
+                        <Field label="Nom Client" className="min-w-[12rem] flex-[1.6]">
+                            <input type="text" required value={form.name} onChange={(e) => set('name', e.target.value)} placeholder="Raison sociale" className={barClass} />
                         </Field>
-                        <Field label="Contact">
-                            <input type="tel" value={form.phone} onChange={(e) => set('phone', e.target.value)} placeholder="06 XX XX XX XX" className={inputClass} />
+                        <Field label="Contact" className="min-w-[9rem] flex-1">
+                            <input type="tel" value={form.phone} onChange={(e) => set('phone', e.target.value)} placeholder="06 XX XX XX XX" className={barClass} />
                         </Field>
-                        <Field label="Ville">
-                            <input type="text" value={form.city} onChange={(e) => set('city', e.target.value)} placeholder="Ville" className={inputClass} />
+                        <Field label="Ville" className="min-w-[7rem] flex-1">
+                            <input type="text" value={form.city} onChange={(e) => set('city', e.target.value)} placeholder="Ville" className={barClass} />
                         </Field>
-                        <Field label="Adresse">
-                            <input type="text" value={form.chantier_address} onChange={(e) => set('chantier_address', e.target.value)} placeholder="Adresse" className={inputClass} />
-                        </Field>
-                        <Field label="Type">
-                            <select value={form.chantier_type} onChange={(e) => set('chantier_type', e.target.value)} className={inputClass}>
+                        <Field label="Type" className="min-w-[5.5rem] flex-1">
+                            <select value={form.chantier_type} onChange={(e) => set('chantier_type', e.target.value)} className={barClass}>
                                 {TYPE_OPTIONS.map((opt) => (
                                     <option key={opt.value || 'empty'} value={opt.value}>{opt.label}</option>
                                 ))}
                             </select>
                         </Field>
-                        <Field label="Régl">
-                            <select value={form.reglement} onChange={(e) => set('reglement', e.target.value)} className={inputClass}>
+                        <Field label="Régl" className="min-w-[5.5rem] flex-1">
+                            <select value={form.reglement} onChange={(e) => set('reglement', e.target.value)} className={barClass}>
                                 {REGLEMENT_OPTIONS.map((opt) => (
                                     <option key={opt.value || 'empty'} value={opt.value}>{opt.label}</option>
                                 ))}
                             </select>
                         </Field>
-                        <Field label="Échéance">
-                            <select value={form.work_delay} onChange={(e) => set('work_delay', e.target.value)} className={inputClass}>
+                        <Field label="Échéance" className="min-w-[6.5rem] flex-1">
+                            <select value={form.work_delay} onChange={(e) => set('work_delay', e.target.value)} className={barClass}>
                                 {ECHEANCE_OPTIONS.map((opt) => (
                                     <option key={opt.value || 'echeance-empty'} value={opt.value}>{opt.label}</option>
                                 ))}
                             </select>
                         </Field>
-                        <Field label="Solde Initial">
+                        <Field label="Solde Initial" className="min-w-[7.5rem] flex-1">
                             <input
                                 type="text"
                                 inputMode="decimal"
@@ -338,37 +337,46 @@ export default function FicheClientPage() {
                                 onChange={(e) => set('budget', e.target.value.replace(/[^\d.,\-]/g, ''))}
                                 onBlur={() => set('budget', parseSoldeInput(form.budget))}
                                 placeholder="0.00"
-                                className={`${inputClass} ${hasSoldeInitial(form.budget) ? 'border-red-400 text-red-600 dark:text-red-400 font-bold bg-red-50 dark:bg-red-950/30 focus:ring-red-400/40 focus:border-red-500' : ''}`}
+                                className={`${barClass} ${hasSoldeInitial(form.budget) ? 'border-red-400 text-red-600 dark:text-red-400 font-bold bg-red-50 dark:bg-red-950/30 focus:ring-red-400/40 focus:border-red-500' : ''}`}
+                            />
+                        </Field>
+                        <Field label="Plafond" className="min-w-[8rem] flex-1">
+                            <input
+                                type="text"
+                                inputMode="decimal"
+                                value={form.plafond}
+                                onChange={(e) => set('plafond', e.target.value.replace(/[^\d.,]/g, ''))}
+                                onBlur={() => set('plafond', form.plafond === '' ? '' : parseSoldeInput(form.plafond))}
+                                placeholder="Sans limite"
+                                title="Vide = sans limite. Le client ne peut pas commander au-delà de ce montant moins son solde."
+                                className={barClass}
+                            />
+                        </Field>
+                        <Field label="Login portail" className="min-w-[9rem] flex-1">
+                            <input
+                                type="text"
+                                value={form.portal_login}
+                                onChange={(e) => set('portal_login', e.target.value)}
+                                placeholder="Identifiant"
+                                autoComplete="off"
+                                data-lpignore="true"
+                                data-1p-ignore
+                                className={barClass}
+                            />
+                        </Field>
+                        <Field label="Mot de passe" className="min-w-[9rem] flex-1">
+                            <input
+                                type="password"
+                                value={form.portal_password}
+                                onChange={(e) => set('portal_password', e.target.value)}
+                                placeholder={editingId ? 'Inchangé' : 'Mot de passe'}
+                                autoComplete="new-password"
+                                data-lpignore="true"
+                                data-1p-ignore
+                                className={barClass}
                             />
                         </Field>
                     </div>
-                </div>
-
-                <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2 max-w-xl">
-                    <Field label="Login portail">
-                        <input
-                            type="text"
-                            value={form.portal_login}
-                            onChange={(e) => set('portal_login', e.target.value)}
-                            placeholder="Identifiant client"
-                            autoComplete="off"
-                            data-lpignore="true"
-                            data-1p-ignore
-                            className={inputClass}
-                        />
-                    </Field>
-                    <Field label="Mot de passe portail">
-                        <input
-                            type="password"
-                            value={form.portal_password}
-                            onChange={(e) => set('portal_password', e.target.value)}
-                            placeholder={editingId ? 'Laisser vide = inchangé' : 'Mot de passe'}
-                            autoComplete="new-password"
-                            data-lpignore="true"
-                            data-1p-ignore
-                            className={inputClass}
-                        />
-                    </Field>
                 </div>
 
                 <div className="flex flex-wrap gap-3 mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
@@ -395,7 +403,7 @@ export default function FicheClientPage() {
                     <table className="w-full text-sm min-w-[1050px]">
                         <thead>
                             <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700">
-                                {['CR', 'Nom Client', 'Contact', 'Ville', 'Adresse', 'Type', 'Régl', 'Échéance', 'Solde Initial', 'Actions'].map((h) => (
+                                {['CR', 'Nom Client', 'Contact', 'Ville', 'Type', 'Régl', 'Échéance', 'Solde Initial', 'Plafond', 'Actions'].map((h) => (
                                     <th
                                         key={h}
                                         className="px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap text-center"
@@ -427,7 +435,6 @@ export default function FicheClientPage() {
                                                 {row.city || '—'}
                                             </span>
                                         </td>
-                                        <td className="px-4 py-2.5 text-center text-slate-600 dark:text-slate-300 max-w-[160px] truncate mx-auto">{row.chantier_address || '—'}</td>
                                         <td className="px-4 py-2.5 text-center">
                                             <span className={`inline-flex px-2 py-0.5 rounded-md text-xs font-semibold ${
                                                 row.chantier_type === 'Rev' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
@@ -450,6 +457,9 @@ export default function FicheClientPage() {
                                         </td>
                                         <td className={`px-4 py-2.5 text-center font-semibold tabular-nums ${hasSoldeInitial(row.budget) ? 'text-red-600 dark:text-red-400' : 'text-brand-navy dark:text-orange-400'}`}>
                                             {formatSolde(row.budget)}
+                                        </td>
+                                        <td className={`px-4 py-2.5 text-center font-semibold tabular-nums ${row.plafond != null && Number(row.plafond) > 0 ? 'text-red-600 dark:text-red-400' : 'text-slate-500 dark:text-slate-400'}`}>
+                                            {formatPlafond(row.plafond)}
                                         </td>
                                         <td className="px-4 py-2.5">
                                             <div className="flex items-center justify-center gap-0.5">
